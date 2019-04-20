@@ -31,20 +31,16 @@
 *.out
 *.app
 
-# Qt QMake files
-.qmake.stash
-object_script.test.Debug
-object_script.test.Release
-
-# Makefiles
-Makefile
-Makefile.Debug
-Makefile.Release
+# CMake directories and files
+CMakeFiles/
+CMakeCache.txt
+*.cmake
+build/
 
 # Folders
+.cpp_example/
+.python/
+.snippets/
 .vscode/
-debug/
-release/
-_python/
-_cpp_example/
-snippets/
+.resources/
+
