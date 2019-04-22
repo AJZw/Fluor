@@ -1,5 +1,5 @@
 /**** General **************************************************************
-** Version:    v0.9.1
+** Version:    v0.9.2
 ** Date:       2019-03-11
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
@@ -57,11 +57,15 @@ class Controller : public QMainWindow {
         int window_height;
 
         bool eventFilter(QObject *obj, QEvent *event);
+    
+    public slots:
+        void receiveGlobalEvent(QEvent* event);
 
     signals:
         void clicked();
         void resized(const QWidget* widget);
         void moved(const QWidget* widget);
+        void sendGlobalEvent(QEvent* event);
 };
 
 } // Main namespace

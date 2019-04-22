@@ -1,0 +1,44 @@
+TO DO:
+
+GENERAL:
+    > add code signing
+    >> Make licensing window
+    >> Make about window
+    Implement the ASCII/CSV transformers
+    Interpolation
+    Normalize Y to 100%
+    Smoothen
+    Add Controller
+    Write UNIT tests -> some internal changes screwed up bar/laser with graph connections; testing prevents these errors
+    Add a way to intercept all Errors and parse those to a popup window / possible?
+    Probably not, but implement logging as a better alternative!
+    Including logging window! which is openable independently and is updated on every log event
+    A way to save the view
+    A way to load the view
+    A way to export the plots
+    Sometimes (exp shift+windows_key) moves the window, this should close all open drop-down menu's.
+
+PARSERS
+    > TEST QSettings settings on macintosh, does it follow the QApp defined names
+
+DATA:
+    Implement validity check upon new data: check if sorted low->high. 
+    I use binary searches for speedy data manipulation. This require a sorted std::vector
+
+FLUOR:
+    if fluorophore name too long gets squeezed by scroll_widget, way to solve this nicely?
+
+TOOLBAR:
+    Properly toggle_emission/excitation icons -> properly resize button / icon to work with different font sizes (on macOS you need to use QSize(25,25) for example)
+
+LASER & FLUOR:
+    If selected plot with laser -> see if entree in QModel, if so -> select
+
+GRAPH:
+    Save graph properties and reload upon opening -> for now disabled cause it breaks the BarLayout
+    GraphPlot in Square instead of line upon certain size / option?
+    'black' axes face_color option allow for white out of visible spectrum plotting
+    Add Object for non-sequential lasers
+    Colinear lasers object
+    Selection in Plot -> see statistics of each plot
+    More indepth detector plotting, also taking into account the dichromatic mirrors etc.

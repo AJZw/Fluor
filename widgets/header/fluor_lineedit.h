@@ -1,5 +1,5 @@
 /**** General **************************************************************
-** Version:    v0.9.1
+** Version:    v0.9.2
 ** Date:       2019-02-03
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
@@ -59,6 +59,7 @@ class LineEdit : public QLineEdit {
 
         void setCompleter(QCompleter* completer);
         QCompleter* completer();
+        void clearFocus();
 
         void toggleStylePopup();
         void toggleStylePopup(bool popup);
@@ -83,8 +84,6 @@ class LineEdit : public QLineEdit {
         void buildOutput();
 
         void updateTextParameters(const QString& text, const int cursor);
-        void updatePopupHighlighted(const QString &text);
-        void updatePopupActivated(const QString &text);
         void updateTab();
         void updateBackspace();
         void updateDelete();
@@ -105,12 +104,50 @@ class LineEdit : public QLineEdit {
         void showButton();
         void hideButton();
         void unfocus(QEvent* event);
-        void reloadCompleterPopupSize(const QWidget* widget=nullptr);
+        void reloadSize(const QWidget* widget=nullptr);
         void reloadCompleterModel(const DataFluorophores* data=nullptr);
+        void updatePopupHighlighted(const QString& text);
+        void updatePopupActivated(const QString& text);
+        void updatePopupDblClicked(const QString& text);
 
     private slots:
         void reset();
         void updateTextEdited(const QString& text); // slot that wraps textEdited()
+};
+
+class Popup : public QListView {
+    Q_OBJECT
+
+    public:
+        explicit Popup(QWidget* parent=nullptr);
+        Popup(const Popup &obj) = delete;
+        Popup& operator=(const Popup &obj) = delete;
+        Popup(Popup&&) = delete;
+        Popup& operator=(Popup&&) = delete;
+        ~Popup() = default;
+
+        void setModel(QAbstractItemModel* model);
+        bool updateKeyUp();
+        bool updateKeyDown();
+
+    private:
+        const int max_visible_items;
+        QRect max_size;
+
+        bool eventFilter(QObject* obj, QEvent* event);
+
+    private slots:
+        void highlight(const QModelIndex& index);
+        void activate(const QModelIndex& index);
+
+    public slots:
+        void showPopup();
+        void updateRect(const QWidget* widget);
+
+    signals:
+        void highlighted(const QString& entree);
+        void activated(const QString& entree);
+        void dblClicked(const QString& entree);
 };
 
 class Completer : public QCompleter {
@@ -125,27 +162,28 @@ class Completer : public QCompleter {
         ~Completer() = default;
 
         const QString& getCompletion() const;
+        Fluor::Popup* popup();
+        void setPopup(Fluor::Popup* popup);
+        void showPopup();
+        void hidePopup();
 
     private:
+        Fluor::Popup* widget_popup;
         bool mouse_pressed;
         bool select_active_row;
         QRect popup_max_size;
         QStringList model_list;
         QString completion;
-
-        void showPopup();
-        bool eventFilter(QObject *obj, QEvent *event) override;
     
     signals:
         void _q_complete(QModelIndex index);        // to (dynamically) connect to private _q_complete slot
         void completed(QString completion);         // fired after completion has been determined
-        void popupVisible(bool visible);              // fires upon popup visibility changes
+        void popupVisible(bool visible);            // fires upon popup visibility changes
 
     public slots:
         void complete(const QRect& rect=QRect());
         void updateCompleter(const QString prefix, const QStringList& disabled);
         void updatePopupRect(const QWidget* widget=nullptr);
-        void updateHighlight(const QString& entry);
 };
 
 } // Fluor namespace

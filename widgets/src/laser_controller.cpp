@@ -1,5 +1,5 @@
 /**** General **************************************************************
-** Version:    v0.9.1
+** Version:    v0.9.2
 ** Date:       2019-02-03
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
@@ -49,9 +49,9 @@ Controller::Controller(QWidget* parent) :
     QObject::connect(this, &Laser::Controller::hideLineEdit, widget_lineedit, &Laser::LineEdit::hideButton);
 
     // Forwards the events to/from LineEdit
-    QObject::connect(this, &Laser::Controller::unfocused, widget_lineedit, &Laser::LineEdit::unfocus);
+    QObject::connect(this, &Laser::Controller::sendGlobalEvent, widget_lineedit, &Laser::LineEdit::unfocus);
     //QObject::connect(this, &Laser::Controller::reloadedCytometer, widget_lineedit, &Laser::LineEdit::reloadModel);
-    QObject::connect(this, &Laser::Controller::reloadedMaxSize, widget_lineedit, &Laser::LineEdit::reloadPopupSize);
+    QObject::connect(this, &Laser::Controller::reloadedGlobalSize, widget_lineedit, &Laser::LineEdit::reloadSize);
     //QObject::connect(widget_lineedit, &Laser::LineEdit::output, this, &Laser::Controller::output);
 }
 
@@ -70,8 +70,8 @@ void Controller::paintEvent(QPaintEvent* event) {
 /*
 Slot: unfocus the widget
 */
-void Controller::unfocus(QEvent* event){
-    emit this->unfocused(event);
+void Controller::receiveGlobalEvent(QEvent* event){
+    emit this->sendGlobalEvent(event);
 }
 
 /*
@@ -85,8 +85,8 @@ void Controller::reloadCytometer(const DataCytometer* data){
 /*
 Slot: reload the max size of a (ListView) widget
 */
-void Controller::reloadMaxSize(const QWidget* widget){
-    emit this->reloadedMaxSize(widget);
+void Controller::reloadGlobalSize(const QWidget* widget){
+    emit this->reloadedGlobalSize(widget);
 }
 
 /*

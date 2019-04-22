@@ -1,5 +1,5 @@
 /**** General **************************************************************
-** Version:    v0.9.1
+** Version:    v0.9.2
 ** Date:       2019-03-11
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
@@ -50,12 +50,12 @@ Controller::Controller(QWidget* parent) :
     controller_layout->addWidget(controller_fluor, 1, 0, 1, 1);
 
     // Connect signals and slots
-    QObject::connect(this, &Central::Controller::unfocused, controller_fluor, &Fluor::Controller::unfocus);
+    QObject::connect(this, &Central::Controller::sendGlobalEvent, controller_fluor, &Fluor::Controller::receiveGlobalEvent);
     QObject::connect(this, &Central::Controller::reloadedData, controller_fluor, &Fluor::Controller::reloadData);
-    QObject::connect(this, &Central::Controller::reloadedMaxSize, controller_fluor, &Fluor::Controller::reloadMaxSize);
+    QObject::connect(this, &Central::Controller::reloadedGlobalSize, controller_fluor, &Fluor::Controller::reloadGlobalSize);
     
-    QObject::connect(this, &Central::Controller::unfocused, controller_laser, &Laser::Controller::unfocus);
-    QObject::connect(this, &Central::Controller::reloadedMaxSize, controller_laser, &Laser::Controller::reloadMaxSize);
+    QObject::connect(this, &Central::Controller::sendGlobalEvent, controller_laser, &Laser::Controller::receiveGlobalEvent);
+    QObject::connect(this, &Central::Controller::reloadedGlobalSize, controller_laser, &Laser::Controller::reloadGlobalSize);
 
     //this->setStyleSheet("Central--Controller {background-color: blue;}");
 
@@ -74,17 +74,10 @@ void Controller::paintEvent(QPaintEvent* event) {
 }
 
 /*
-Slot: unfocus the widget
+Slot: receives and forward global events
 */
-void Controller::unfocus(QEvent* event){
-    emit this->unfocused(event);
-}
-
-/*
-Slot: reloads the style of the widget (only necessary for non-CSS dependent style features)
-*/
-void Controller::reloadStyle(){
-    emit this->reloadedStyle();
+void Controller::receiveGlobalEvent(QEvent* event){
+    emit this->sendGlobalEvent(event);
 }
 
 /*
@@ -97,8 +90,8 @@ void Controller::reloadData(const DataFluorophores* data){
 /*
 Slot: reloads the max size of a (ListView) widget
 */
-void Controller::reloadMaxSize(const QWidget* widget){
-    emit this->reloadedMaxSize(widget);
+void Controller::reloadGlobalSize(const QWidget* widget){
+    emit this->reloadedGlobalSize(widget);
 }
 
 } // Central namespace

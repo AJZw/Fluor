@@ -1,5 +1,5 @@
 /**** General **************************************************************
-** Version:    v0.9.1
+** Version:    v0.9.2
 ** Date:       2019-04-07
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
@@ -55,6 +55,9 @@ class Popup : public QListView {
         Popup& operator=(Popup&&) = delete;
         ~Popup() = default;
 
+        bool updateKeyUp();
+        bool updateKeyDown();
+
     private:
         const int max_visible_items;
         QRect max_size;
@@ -62,8 +65,12 @@ class Popup : public QListView {
         void buildModel();
         void buildModel(const std::vector<int>& wavelengths);
 
+        bool eventFilter(QObject* obj, QEvent* event);
+
     signals:
+        void dblClicked(const QModelIndex& index);
         void output(int wavelength);
+        void highlighted(const QModelIndex& index);
 
     public slots:
         void showPopup();
@@ -115,12 +122,13 @@ class LineEdit : public QLineEdit {
         void showButton();
         void hideButton();
         void unfocus(QEvent* event);
-        void reloadPopupSize(const QWidget* widget=nullptr);
+        void reloadSize(const QWidget* widget=nullptr);
         //void reloadModel(const DataCytometers* data=nullptr);
 
     private slots:
         void reset();
         void updatePopupActivated(const QModelIndex& index);
+        void updatePopupDblClicked(const QModelIndex& index);
 };
 
 } // Laser namespace

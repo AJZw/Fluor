@@ -1,5 +1,5 @@
 /**** General **************************************************************
-** Version:    v0.9.1
+** Version:    v0.9.2
 ** Date:       2019-03-11
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
@@ -54,16 +54,14 @@ class Controller : public QWidget {
         void paintEvent(QPaintEvent* event);
 
     public slots:
-        void unfocus(QEvent* event);
-        void reloadStyle();
+        void receiveGlobalEvent(QEvent* event);
         void reloadData(const DataFluorophores* data=nullptr);
-        void reloadMaxSize(const QWidget* widget=nullptr);
+        void reloadGlobalSize(const QWidget* widget=nullptr);
 
     signals:
-        void unfocused(QEvent* event); 
-        void reloadedStyle();
+        void sendGlobalEvent(QEvent* event); 
+        void reloadedGlobalSize(const QWidget* widget=nullptr);
         void reloadedData(const DataFluorophores* data=nullptr);
-        void reloadedMaxSize(const QWidget* widget=nullptr);
 
 };
 

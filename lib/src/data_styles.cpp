@@ -1,5 +1,5 @@
 /**** General **************************************************************
-** Version:    v0.9.1
+** Version:    v0.9.2
 ** Date:       2018-04-10
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
@@ -774,11 +774,11 @@ QString StyleBuilder::buildFluorMenu() const {
             "Fluor--LineEdit {"
             " max-height: 1em;"
             "} "
-            "QListView#fluor_popup .QWidget {"
+            "Fluor--Popup .QWidget {"
             " background: %4;"
             "} "
-            "QListView#fluor_popup QScrollBar::vertical {"
-            " margin: 0px 0px 0px 6px;"
+            "Fluor--Popup QScrollBar::vertical {"
+            " margin: 0px 0px 0px 3px;"
             " width: 16px;"
             "} "
             "Fluor--ScrollArea .QWidget {"

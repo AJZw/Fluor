@@ -1,5 +1,5 @@
 /**** General **************************************************************
-** Version:    v0.9.1
+** Version:    v0.9.2
 ** Date:       2019-02-03
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
@@ -9,8 +9,8 @@
 #include "fluor_lineedit.h"
 
 #include <QStyle>
-#include <QAbstractItemView>
 #include <QStyledItemDelegate>
+#include <QAbstractItemView>
 #include <QStandardItemModel>
 #include <QModelIndex>
 
@@ -98,6 +98,17 @@ QCompleter* LineEdit::completer() {
     this->setCompleter(completer_text);  
 
     return this->_completer;
+}
+
+/*
+Clear focus of lineedit and hides popup
+*/
+void LineEdit::clearFocus(){
+    static_cast<Fluor::Completer*>(this->completer())->hidePopup();
+    this->toggleStylePopup(false);
+    this->buildOutput();
+
+    QLineEdit::clearFocus();
 }
 
 /*
@@ -214,7 +225,7 @@ QString LineEdit::getCompletion() {
 }
 
 /*
-Updates text parameters for the text_complete, event_tab, event_return functions
+Slot: Updates text parameters for the text_complete, event_tab, event_return functions
     :param text: the text to parse
     :param cursor: the cursor location
 */
@@ -323,22 +334,59 @@ void LineEdit::updateTextParameters(const QString& text, int cursor) {
 }
 
 /*
-Updates selection upon popup highlighting
+Slot: Updates text and selection upon popup highlighting
+    :param text: text to add
 */
-void LineEdit::updatePopupHighlighted(const QString &text){
+void LineEdit::updatePopupHighlighted(const QString& text){
     // If the entree is disabled, the highlighted signal returns the completion text
-    if(this->prefix_text != text){
+    if(text.isEmpty()){
+        if(this->prefix_text == ""){
+            // No entree selected, and no prefix -> become mepty
+            this->buildText(QString(""));
+        }
+        //else{
+        //    // No entree, but prefix, so get first completion
+        //    this->buildCompletion();
+        //    QString completion = this->getCompletion();
+        //    this->buildText(std::move(completion));
+        //}
+    }else if(this->prefix_text != text){
         this->buildText(text);
         this->buildSelection();
     }
 }
 
 /*
-Updates selection upon popup activation
+Updates text and selection upon popup activation
+    :param text: text to add
 */
-void LineEdit::updatePopupActivated(const QString &text){
+void LineEdit::updatePopupActivated(const QString& text){
+    qDebug() << "Fluor::LineEdit::activated: " << text;
     this->buildText(text);
     this->setCursorPosition(this->cursor_pos + this->postfix_length);
+}
+
+/*
+Updates text and selection upon popup double click
+    :param text: text to add
+*/
+void LineEdit::updatePopupDblClicked(const QString& text){
+    if(!text.isEmpty()){
+        if(this->entries_after.length() == 0){
+            QString text = this->text();
+            text += ", ";
+            this->updateTextParameters(text, text.length());
+            this->buildCompletion();
+            this->buildText(QString{""});
+            this->buildSelection();
+        }else{
+            int cursor = this->cursorPosition() + 2;
+            this->updateTextParameters(this->text(), cursor);
+            this->buildCompletion();
+            //this->buildText(QString{""});
+            this->buildSelection();
+        }
+    }
 }
 
 /*
@@ -358,6 +406,7 @@ void LineEdit::updateTab(){
         // cursorposition (entries_before + prefix) + postfix + ", "
         int cursor = this->cursorPosition() + this->postfix_length + 2;
         this->updateTextParameters(this->text(), cursor);
+        this->buildCompletion();
         this->buildSelection();
     }
 }
@@ -471,49 +520,61 @@ eventFilter for FocusIn, FocusOut events and Keypress events to properly update 
     :param event: the event
 */
 bool LineEdit::eventFilter(QObject *obj, QEvent *event){
-    if(event->type() == QEvent::FocusIn && obj == this){
-        this->toggleStylePopup(true);
-    }else if(event->type() == QEvent::FocusOut && obj == this){
-        if(!this->completer()->popup()->hasFocus()){
-            this->toggleStylePopup(false);
-            this->buildOutput();
+    switch(event->type()){
+    case QEvent::FocusIn:
+        if(obj == this){
+            this->toggleStylePopup(true);
         }
-    }else if(event->type() == QEvent::KeyPress){
+        return false;
+    case QEvent::FocusOut:
+        return true;
+    case QEvent::KeyPress: {
         QKeyEvent* event_key = static_cast<QKeyEvent*>(event);
-        if(event_key->key() == Qt::Key_Backspace){
-            // If using setSelection backspace doesnt work properly -> removes entire selection
+        switch(event_key->key()){
+        case Qt::Key_Backspace:
             this->updateBackspace();
             return true;
-        }else if(event_key->key() == Qt::Key_Delete){
+        case Qt::Key_Delete:
             this->updateDelete();
             return true;
-        }else if(event_key->key() == Qt::Key_Tab){
+        case Qt::Key_Tab:
             this->updateTab();
             return true;
-        }else if(event_key->key() == Qt::Key_Enter || event_key->key() == Qt::Key_Return){
+        case Qt::Key_Enter:
+        case Qt::Key_Return:
             this->clearFocus();
             return true;
-        }else if(event_key->key() == Qt::Key_Escape){
+        case Qt::Key_Escape:
             this->setText("");
             this->clearFocus();
             return true;
-        }else if(event_key->key() == Qt::Key_Left){
+        case Qt::Key_Left:
             this->updateLeft();
             return true;
-        }else if(event_key->key() == Qt::Key_Right){
+        case Qt::Key_Right:
             this->updateRight();
             return true;
-        }else if(event_key->key() == Qt::Key_PageDown || event_key->key() == Qt::Key_PageUp){
-            // Ignore pagedown and pageup keys
-            return true;
-        }else if(event_key->key() == Qt::Key_Home){
+        case Qt::Key_Home:
             this->updateHome();
             return true;
-        }else if(event_key->key() == Qt::Key_End){
+        case Qt::Key_End:
             this->updateEnd();
             return true;
+        // key to propagate to popup
+        case Qt::Key_PageUp:
+        case Qt::Key_Up:{
+            return static_cast<Fluor::Completer*>(this->completer())->popup()->updateKeyUp();
         }
-    }else if(event->type() == QEvent::MouseButtonPress){
+        case Qt::Key_PageDown:
+        case Qt::Key_Down:{
+            return static_cast<Fluor::Completer*>(this->completer())->popup()->updateKeyDown();
+        }
+        default:
+            break;
+        }
+        break;
+    }
+    case QEvent::MouseButtonPress: {
         QMouseEvent* event_mouse = static_cast<QMouseEvent*>(event);
         int mouse_pos = this->cursorPositionAt(QPoint(event_mouse->x(), event_mouse->y()));
 
@@ -527,7 +588,8 @@ bool LineEdit::eventFilter(QObject *obj, QEvent *event){
         this->buildCompletion();
         this->buildSelection();
         return true;
-    }else if(event->type() == QEvent::MouseMove){
+    }
+    case QEvent::MouseMove: {
         QMouseEvent* event_mouse = static_cast<QMouseEvent*>(event);
         if(event_mouse->buttons() == Qt::LeftButton){
             int mouse_pos = this->cursorPositionAt(QPoint(event_mouse->x(), event_mouse->y()));
@@ -541,9 +603,10 @@ bool LineEdit::eventFilter(QObject *obj, QEvent *event){
             }
             this->buildCompletion();
             this->buildSelection();
-            return true;
         }
-    }else if(event->type() == QEvent::MouseButtonDblClick){
+        return true;
+    }
+    case QEvent::MouseButtonDblClick: {
         QMouseEvent* event_mouse = static_cast<QMouseEvent*>(event);
         if(event_mouse->button() == Qt::LeftButton){
             int mouse_pos = this->cursorPositionAt(QPoint(event_mouse->x(), event_mouse->y()));
@@ -554,8 +617,11 @@ bool LineEdit::eventFilter(QObject *obj, QEvent *event){
             this->buildSelection();
         }
         return true;
-    }else if(event->type() == QEvent::MouseButtonRelease){
+    }
+    case QEvent::MouseButtonRelease:
         return true;
+    default:
+        break;
     }
 
     return QLineEdit::eventFilter(obj, event);
@@ -587,8 +653,26 @@ void LineEdit::hideButton(){
 Slot: unfocuses the widget
 */
 void LineEdit::unfocus(QEvent* event){
-    Q_UNUSED(event);
-    if(this->hasFocus()){
+    // Make sure it is the correct mouse event
+    if(event->type() != QEvent::MouseButtonRelease){
+        return;
+    }
+
+    // Can now cast statically
+    QMouseEvent* mouse_event = static_cast<QMouseEvent*>(event);
+
+    // Check if it is a click on this widget -> if so, ignore
+    if(this->rect().contains(this->mapFromGlobal(mouse_event->globalPos()))){
+        return;
+    }
+
+    // Clicks on the popup do not propagate to the Main::Controller
+    // But clicks moved into the popup do propagate, so check
+    if(static_cast<Fluor::Completer*>(this->completer())->popup()->rect().contains(this->mapFromGlobal(mouse_event->globalPos()))){
+        return;
+    }
+
+    if(this->isVisible()){
         this->clearFocus();
     }
 }
@@ -624,9 +708,14 @@ void LineEdit::updateTextEdited(const QString& text) {
 Slot: reloads the this->completer() maximum popup size
     :param widget: widget to base the size upon
 */
-void LineEdit::reloadCompleterPopupSize(const QWidget* widget){
+void LineEdit::reloadSize(const QWidget* widget){
     if(widget){
         static_cast<Fluor::Completer*>(this->completer())->updatePopupRect(widget);
+    }
+
+    // This slot is fired when the main widget changes size/location -> finish editing.
+    if(this->isVisible()){
+        this->clearFocus();
     }
 }
 
@@ -666,45 +755,324 @@ void LineEdit::buildOutput() {
 }
 
 /*
+Constructor: Builds the popup for the Laser::LineEdit
+    :param parent: parent widget
+*/
+Popup::Popup(QWidget* parent) :
+    QListView(parent),
+    max_visible_items(50),
+    max_size()
+{
+    // Set standard settings:
+    this->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    this->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    this->setSelectionBehavior(QAbstractItemView::SelectRows);
+    this->setSelectionMode(QAbstractItemView::SingleSelection);
+    this->setWindowModality(Qt::NonModal);
+    this->setWindowFlag(Qt::Tool);
+    this->setWindowFlag(Qt::FramelessWindowHint);
+    this->setWindowFlag(Qt::NoDropShadowWindowHint);
+    this->setWindowFlag(Qt::WindowDoesNotAcceptFocus);
+    
+    // Set delegate for proper stylesheet usage.
+    QStyledItemDelegate* delegate_popup = new QStyledItemDelegate{this};
+    this->setItemDelegate(delegate_popup);
+
+    // Connect to ModelIndex signals and signal out QString ouputs
+    QObject::connect(this, &Fluor::Popup::pressed, this, &Fluor::Popup::activate);
+
+    // Make sure viewport() always inherits QAbstractItemView (or change code in eventFilter)
+    this->viewport()->installEventFilter(this);
+}
+
+/*
+Modified setModel to automatically connect the model output with resizing. Does not take ownership of model.
+*/
+void Popup::setModel(QAbstractItemModel* model){
+    // Disconnect previous model
+    if(this->model()){
+        QObject::disconnect(this->model(), &QAbstractItemModel::modelReset, this, &Fluor::Popup::showPopup);
+    }
+    
+    QListView::setModel(model);
+    QObject::connect(this->model(), &QAbstractItemModel::modelReset, this, &Fluor::Popup::showPopup);
+}
+
+/*
+Updates the popup as if a Key_Up is pressed (popup will never receive these events so is propagated from parent)
+    :returns: whether the event is (fully) handled
+*/
+bool Popup::updateKeyUp(){
+    QModelIndex index_current = this->currentIndex();
+    
+    int row_max = index_current.row();
+    if(!index_current.isValid()){
+        row_max = this->model()->rowCount();
+    }
+
+    // Because rows can be disabled find bottom most enabled row
+    int row_valid = -1;
+    for(int i = row_max -1; i >= 0; --i){
+        QModelIndex index_valid = this->model()->index(i, 0);
+        if( (index_valid.flags()&(Qt::ItemIsEnabled)) == Qt::ItemIsEnabled ){
+            row_valid = i;
+            break;
+        }
+    }
+
+    // No valid rows -> dont select anything
+    if(row_valid < 0){
+        this->setCurrentIndex(QModelIndex());
+        // Make sure the top most entree is visible -> as feedback that the top has been reached
+        this->scrollToTop();
+    }else{
+        QModelIndex index_last = this->model()->index(row_valid, 0);
+        this->setCurrentIndex(index_last);
+    }
+
+    // Emit highlighted signal 
+    this->highlight(this->currentIndex());
+
+    return true;
+}
+
+/*
+Updates the popup as if a Key_Down is pressed (popup will never receive these events so is propagated from parent)
+    :returns: whether the event is (fully) handled
+*/
+bool Popup::updateKeyDown(){
+    QModelIndex index_current = this->currentIndex();
+    
+    int row_max = this->model()->rowCount();
+    int row_current = 0;
+    if(index_current.isValid()){
+        row_current = index_current.row() + 1; 
+    }
+
+    // Because rows can be disabled find bottom most enabled row
+    int row_valid = -1;
+    for(int i = row_current; i < row_max; ++i){
+        QModelIndex index_valid = this->model()->index(i, 0);
+        if( (index_valid.flags()&(Qt::ItemIsEnabled)) == Qt::ItemIsEnabled ){
+            row_valid = i;
+            break;
+        }
+    }
+
+    // No valid rows -> dont select anything
+    if(row_valid < 0){
+        this->setCurrentIndex(QModelIndex());
+        // Scroll to bottom upon no valid lower entree -> as feedback that end has been reached
+        this->scrollToBottom();
+    }else{
+        QModelIndex index_last = this->model()->index(row_valid, 0);
+        this->setCurrentIndex(index_last);
+    }
+
+    // Emit highlighted signal 
+    this->highlight(this->currentIndex());
+    return true;
+}
+
+/*
+Eventfilter for the viewport. Intercepts mousemove events to correctly fire highlight events
+    :param obj: object that fires the event
+    :param event: event
+    :returns: whether the event is (fully) handled
+*/
+bool Popup::eventFilter(QObject* obj, QEvent* event){
+    switch(event->type()){
+    case QEvent::MouseMove:{
+        // Fires when mouse button is clicked and held
+        QMouseEvent* event_mouse = static_cast<QMouseEvent*>(event);
+
+        // Check if left mouse button is pressed
+        if( (event_mouse->buttons()&Qt::LeftButton) == Qt::LeftButton){
+            QPoint point_local = this->mapFromGlobal(event_mouse->globalPos());
+            
+            // I get coordinate from widget, but have to correct to viewport by removing the marings
+            point_local.setY(point_local.y() - this->contentsMargins().top());
+            point_local.setX(point_local.x() - this->contentsMargins().left());
+
+            QModelIndex index_current = this->indexAt(point_local);
+
+            if(index_current.isValid() && (index_current.flags()&(Qt::ItemIsEnabled)) == Qt::ItemIsEnabled){
+                emit this->highlighted(index_current.data(Qt::DisplayRole).toString());
+            }else{
+                emit this->highlighted(QString());
+                // No need to update the itemview
+                // This prevents disabled items of 'taking' activity from the last selected valid item
+                return true;
+            }
+        }
+        break;
+    }
+    case QEvent::MouseButtonDblClick:{
+        // Fires when mouse button is clicked and held
+        QMouseEvent* event_mouse = static_cast<QMouseEvent*>(event);
+
+        // Check if left mouse button is pressed
+        if( (event_mouse->buttons()&Qt::LeftButton) == Qt::LeftButton){
+            QPoint point_local = this->mapFromGlobal(event_mouse->globalPos());
+            
+            // I get coordinate from widget, but have to correct to viewport by removing the marings
+            point_local.setY(point_local.y() - this->contentsMargins().top());
+            point_local.setX(point_local.x() - this->contentsMargins().left());
+
+            QModelIndex index_current = this->indexAt(point_local);
+            
+            if(index_current.isValid() && (index_current.flags()&(Qt::ItemIsEnabled)) == Qt::ItemIsEnabled){
+                emit this->dblClicked(index_current.data(Qt::DisplayRole).toString());
+            }else{
+                emit this->dblClicked(QString());
+            }
+        }
+        // Must return true; if not double click will also emit activated event
+        // This will cause side-effects with the dblClick() signal and capture of LineEdit
+        return true;
+    }
+    default:
+        break;    
+    }
+    return QWidget::eventFilter(obj, event);
+}
+
+/*
+Slot: retreives data of clicked ModelIndex and emits activated
+    :param index: model index of clicked entree
+*/
+void Popup::activate(const QModelIndex& index){
+    if(index.isValid() && (index.flags()&(Qt::ItemIsEnabled)) == Qt::ItemIsEnabled){
+
+        QString index_data = index.data(Qt::DisplayRole).toString();
+        
+        emit this->activated(index_data);
+    }
+}
+
+/*
+Slot: retreives data of highlighted ModelIndex and emits highlighted
+    :param index: model index of clicked entree
+*/
+void Popup::highlight(const QModelIndex& index){
+    // Check if entree is valid and is enabled
+    if(index.isValid() && (index.flags()&(Qt::ItemIsEnabled)) == Qt::ItemIsEnabled){
+        QString index_data = index.data(Qt::DisplayRole).toString();
+        
+        emit this->highlighted(index_data);
+    }else{
+        emit this->highlighted(QString());
+    }
+}
+
+/*
+Slot: Modified QCompleter::showPopup() to correct the popup size to not be bigger then a specified QWidget
+    :param parent: parent widget - completer takes ownership so physical parent has to be parsed
+*/
+void Popup::showPopup(){
+    QWidget* parent = static_cast<QWidget*>(this->parent());
+    // Set height of the QListView
+    // +14 depends on padding stylesheet parameter
+    // Calculate height-necessary-to-fit-columns
+    int height = this->sizeHintForRow(0) * std::min(this->max_visible_items, this->model()->rowCount()) + 14;
+
+    QScrollBar* horizontal_scrollbar = this->horizontalScrollBar();
+    if(horizontal_scrollbar){
+        if(horizontal_scrollbar->isVisible()){
+            height += horizontal_scrollbar->sizeHint().height();
+        }
+    }
+
+    // Get parent widget height and width
+    int parent_height = parent->height();
+    QPoint pos = parent->mapToGlobal(QPoint(0, parent_height - 1));
+    int width = parent->width();
+
+    // Adjust x and width to fit in popup_max_size QRect
+    if(width > this->max_size.width()){
+        width = this->max_size.width();
+    }
+    if( (pos.x() + width) > (this->max_size.x() + this->max_size.width()) ){
+        pos.setX(this->max_size.x() + this->max_size.width() - width);
+    }
+    if(pos.x() < this->max_size.x()){
+        pos.setX(this->max_size.x());
+    }
+
+    // Adjust y and height to fit most efficient in popup_max_size QRect
+    int top = pos.y() - parent_height - this->max_size.top() + 2;
+    int bottom = this->max_size.y() + this->max_size.height() - pos.y();
+    height = std::max(height, this->minimumHeight());
+    if(height > bottom){
+        height = std::min(std::max(top, bottom), height);
+        if(top > bottom){
+            pos.setY(pos.y() - height - parent_height + 2);
+        }
+    }
+
+    this->setGeometry(pos.x(), pos.y(), width, height);
+
+    if(!this->isVisible()){
+        this->show();
+    }
+
+}
+
+/*
+Slot: Updates the popup max size parameter, also hides the popup
+    :param widget: (optional) the widget to base the popup size upon, or if not specified bases it upon the screen size
+*/
+void Popup::updateRect(const QWidget* widget){
+    QWidget* parent_widget = static_cast<QWidget*>(this->parent());
+
+    QRect size;
+    if(widget){
+        size = widget->geometry();
+        size.moveTopLeft(widget->mapToGlobal(QPoint(0,0)));
+
+        QMargins size_margins = widget->contentsMargins();
+        size = size.marginsRemoved(size_margins);
+
+    }else{
+        QApplication* instance = static_cast<QApplication*>(QApplication::instance());
+        int screen_id = instance->desktop()->screenNumber(parent_widget);
+        size = instance->screens()[screen_id]->geometry();
+    }
+
+    this->max_size = size;
+}
+
+/*
 Constructor: Constructs a Completer for Fluor::LineEdit object.
     :param parent: pointer to parent widget
 */
 Completer::Completer(QWidget* parent) :
     QCompleter(parent),
+    widget_popup(nullptr),
     mouse_pressed(false),
     select_active_row(true),
     popup_max_size(),
     //model_list({QString{"No Data Loaded"}}),
-    model_list({QString{"PE"}, QString{"APC"}, QString{"FITC"}, QString{"BV410"}, QString{"BV650"}, QString{"BV735"}, QString{"BV785"}}),
+    model_list({QString{"PE"}, QString{"APC"}, QString{"FITC"}, QString{"BUV395"}, QString{"BUV560"}, QString{"BUV737"}, QString{"BV410"}, QString{"BV650"}, QString{"BV735"}, QString{"BV785"}}),
     completion("")
 {
     this->setWidget(parent);
     this->setCaseSensitivity(Qt::CaseInsensitive);
-    this->setCompletionMode(QCompleter::PopupCompletion);
+    this->setCompletionMode(QCompleter::PopupCompletion); // Normal popup is blocked and replaced
     this->setMaxVisibleItems(50);
     this->setWrapAround(true);
 
     // Build & set model
     QStandardItemModel* model_standarditem = new QStandardItemModel{this};
-    for(int i=0; i<model_list.length(); ++i){
-        QStandardItem *item = new QStandardItem(QString(model_list[i]));
+    for(int i=0; i<this->model_list.length(); ++i){
+        QStandardItem *item = new QStandardItem(QString(this->model_list[i]));
         model_standarditem->appendRow(item);
     }
     this->setModel(model_standarditem);
-
-    // Set popup item deligate for proper style handling; normally inherits QItemDelegate
-    this->popup()->setObjectName("fluor_popup");
-
-    QStyledItemDelegate* delegate_popup = new QStyledItemDelegate{this};
-    this->popup()->setItemDelegate(delegate_popup);
-    this->popup()->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    this->popup()->setWindowFlag(Qt::NoDropShadowWindowHint);
-
-    // Sets base size of popup (not sure if relevant in this case -> likely a draw() call had to happen before)
-    this->updatePopupRect();
-
-    // Event managing
-    this->installEventFilter(this);
+    
+    // Setup popup & make sure the parent of completer inherits a QWidget
+    // Needs a model to be set first, to function correctly
+    this->popup();
 
     // Need to use old-style connect to connect during runtime to the Q_PRIVATE_SLOT(_q_complete)
     QObject::connect(this, SIGNAL(_q_complete(QModelIndex)), static_cast<QCompleter*>(this), SLOT(_q_complete(QModelIndex)));
@@ -718,171 +1086,62 @@ const QString& Completer::getCompletion() const{
 }
 
 /*
-Modified QCompleter::showPopup() to correct the popup size to not be bigger then a specified QWidget
+Sets popup. Takes ownership of the popup (dont share popup with other widgets)
+    :param popup: popup widget
+*/
+void Completer::setPopup(Fluor::Popup* popup){
+    // Remove previous popup
+    if(this->widget_popup){
+        QObject::disconnect(this->popup(), &Fluor::Popup::activated, static_cast<Fluor::LineEdit*>(this->parent()), &Fluor::LineEdit::updatePopupActivated);
+        QObject::disconnect(this->popup(), &Fluor::Popup::highlighted, static_cast<Fluor::LineEdit*>(this->parent()), &Fluor::LineEdit::updatePopupHighlighted);
+        QObject::disconnect(this->popup(), &Fluor::Popup::dblClicked, static_cast<Fluor::LineEdit*>(this->parent()), &Fluor::LineEdit::updatePopupDblClicked);
+        delete this->widget_popup;
+    }
+    
+    this->widget_popup = popup;
+    if(this->completionModel()){
+        popup->setModel(this->completionModel());
+    }else{
+        qWarning() << "Fluor::Completer::setPopup(): No model to give to popup.";
+    }
+
+    QObject::connect(this->popup(), &Fluor::Popup::activated, static_cast<Fluor::LineEdit*>(this->parent()), &Fluor::LineEdit::updatePopupActivated);
+    QObject::connect(this->popup(), &Fluor::Popup::highlighted, static_cast<Fluor::LineEdit*>(this->parent()), &Fluor::LineEdit::updatePopupHighlighted);
+    QObject::connect(this->popup(), &Fluor::Popup::dblClicked, static_cast<Fluor::LineEdit*>(this->parent()), &Fluor::LineEdit::updatePopupDblClicked);
+}
+
+/*
+Gets popup for Completer. If no completer has been set, will construct one before returning it
+    :returns: popup widget
+*/
+Fluor::Popup* Completer::popup(){
+    if(this->widget_popup){
+        return this->widget_popup;
+    }
+
+    // No popup has been set, so build one:
+    Fluor::Popup* popup_new = new Fluor::Popup(static_cast<QWidget*>(this->parent()));
+    this->setPopup(popup_new);
+
+    return this->widget_popup;
+}
+
+/*
+Shows the popup (if not visible)
 */
 void Completer::showPopup(){
-    QWidget* parent_widget = static_cast<QWidget*>(this->parent());
-
-    // Set height of the QListView
-    // +14 depends on padding stylesheet parameter
-    int columns{1};
-    if(this->completionMode() == QCompleter::UnfilteredPopupCompletion){
-        columns = this->maxVisibleItems();
-    }else{
-        if(this->completionPrefix() == QString{""}){
-            columns = this->maxVisibleItems();
-        }else{
-            columns = this->completionCount();
-            if(columns < 1){
-                columns = 1;
-            }
-        }
-    }
-
-    // Calculate height-necessary-to-fit-columns
-    int height = this->popup()->sizeHintForRow(0) * std::min(columns, this->model()->rowCount()) + 14;
-
-    QScrollBar* horizontal_scrollbar = this->popup()->horizontalScrollBar();
-    if(horizontal_scrollbar){
-        if(horizontal_scrollbar->isVisible()){
-            height += horizontal_scrollbar->sizeHint().height();
-        }
-    }
-
-    // Get parent widget height and width
-    int parent_height = parent_widget->height();
-    QPoint pos = parent_widget->mapToGlobal(QPoint(0, parent_height - 1));
-    int width = parent_widget->width();
-
-    // Adjust x and width to fit in popup_max_size QRect
-    if(width > this->popup_max_size.width()){
-        width = this->popup_max_size.width();
-    }
-    if( (pos.x() + width) > (this->popup_max_size.x() + this->popup_max_size.width()) ){
-        pos.setX(this->popup_max_size.x() + this->popup_max_size.width() - width);
-    }
-    if(pos.x() < this->popup_max_size.x()){
-        pos.setX(this->popup_max_size.x());
-    }
-
-    // Adjust y and height to fit most efficient in popup_max_size QRect
-    int top = pos.y() - parent_height - this->popup_max_size.top() + 2;
-    int bottom = this->popup_max_size.y() + this->popup_max_size.height() - pos.y();
-    height = std::max(height, this->popup()->minimumHeight());
-    if(height > bottom){
-        height = std::min(std::max(top, bottom), height);
-        if(top > bottom){
-            pos.setY(pos.y() - height - parent_height + 2);
-        }
-    }
-
-    this->popup()->setGeometry(pos.x(), pos.y(), width, height);
-
     if(!this->popup()->isVisible()){
-        this->popup()->show();
+        this->popup()->showPopup();
     }
 }
 
 /*
-Evenfilter for KeyPress events
-    :param obj: event source
-    :param event: event
+Hides the popup (if visible)
 */
-bool Completer::eventFilter(QObject *obj, QEvent *event){
-    if(event->type() == QEvent::Show && this->popup() == obj){
-        emit this->popupVisible(true);
-        return true;
-    }else if(event->type() == QEvent::Hide && this->popup() == obj){
-        emit this->popupVisible(false);
-        return true;
+void Completer::hidePopup(){
+    if(this->popup()->isVisible()){
+        this->popup()->hide();
     }
-
-    if(event->type() == QEvent::MouseButtonPress && this->popup() == obj){
-        if(!this->popup()->underMouse()){
-            // Get pointer to parent object and check if widget!
-            QWidget* widget_parent = dynamic_cast<QWidget*>(this->parent());
-            QMouseEvent* event_mouse = static_cast<QMouseEvent*>(event);
-
-            if(widget_parent){
-                if(widget_parent->rect().contains(widget_parent->mapFromGlobal(event_mouse->globalPos()))){
-                    this->mouse_pressed = true;
-                    this->parent()->eventFilter(obj, event);
-                }else{
-                    this->popup()->hide();
-                }
-            }else{
-                qWarning() << "Fluor::Completer::eventFilter - parent does not inherit from QWidget";
-            }
-            return true;
-        }
-        return false;
-    }else if(event->type() == QEvent::MouseMove){
-        if(!this->popup()->underMouse()){
-            this->parent()->eventFilter(obj, event);
-        }else{
-            return false;
-        }
-    }else if(event->type() == QEvent::MouseButtonDblClick){
-        if(!this->popup()->underMouse()){
-            QWidget* widget_parent = dynamic_cast<QWidget*>(this->parent());
-            QMouseEvent* event_mouse = static_cast<QMouseEvent*>(event);
-            
-            if(widget_parent){
-                if(widget_parent->rect().contains(widget_parent->mapFromGlobal(event_mouse->globalPos()))){
-                    this->parent()->eventFilter(obj, event);
-                }
-            }else{
-                qWarning() << "Fluor::Completer::eventFilter - parent does not inherit from QWidget";
-            }
-
-            return true;
-        }else{
-            return false;
-        }
-    }else if(event->type() == QEvent::MouseButtonRelease){
-        if(this->mouse_pressed){
-            this->mouse_pressed = false;
-            this->parent()->eventFilter(obj, event);
-            return true;
-        }else{
-            return false;
-        }
-    }
-
-    // Some events need to be explicitly forwared to parent, because popup() doesnt have its own parent (atleast in pyqt)
-    if(event->type() == QEvent::KeyPress){
-        QKeyEvent* event_key = static_cast<QKeyEvent*>(event);
-        
-        if(event_key->key() == Qt::Key_Tab){
-            this->parent()->eventFilter(obj, event);
-            return true;
-        }else if(event_key->key() == Qt::Key_Backspace){
-            this->parent()->eventFilter(obj, event);
-            return true;
-        }else if(event_key->key() == Qt::Key_Delete){
-            this->parent()->eventFilter(obj, event);
-            return true;
-        }else if(event_key->key() == Qt::Key_Enter || event_key->key() == Qt::Key_Return){
-            this->popup()->close();
-            this->parent()->eventFilter(obj, event);
-            return true;
-        }else if(event_key->key() == Qt::Key_Down || event_key->key() == Qt::Key_Up){
-            // Need to return false, otherwise the fall-back eventhandling allows for selection of inactive QItems
-            return false;
-        }else if(event_key->key() == Qt::Key_Left || event_key->key() == Qt::Key_Right){
-            this->parent()->eventFilter(obj, event);
-            return true;
-        }else if(event_key->key() == Qt::Key_Escape){
-            this->popup()->close();
-            this->parent()->eventFilter(obj, event);
-            return true;
-        }else if(event_key->key() == Qt::Key_Home || event_key->key() == Qt::Key_End){
-            this->parent()->eventFilter(obj, event);
-            return true;
-        }
-    }
-
-    return QCompleter::eventFilter(obj, event);
 }
 
 /*
@@ -911,9 +1170,6 @@ void Completer::complete(const QRect& rect){
         }
         return;
     }
-
-    // To make sure that popup() has been build
-    this->popup();
 
     if(this->completionMode() == QCompleter::UnfilteredPopupCompletion){
         this->setCurrentRow(index.row());
@@ -968,48 +1224,7 @@ Updates the popup max size parameter
     :param widget: (optional) the widget to base the popup size upon, or if not specified bases it upon the screen size
 */
 void Completer::updatePopupRect(const QWidget* widget){
-    QWidget* parent_widget = static_cast<QWidget*>(this->parent());
-
-    QRect size;
-    if(widget){
-        size = widget->geometry();
-        size.moveTopLeft(widget->mapToGlobal(QPoint(0,0)));
-
-        QMargins size_margins = widget->contentsMargins();
-        size = size.marginsRemoved(size_margins);
-
-    }else{
-        QApplication* instance = static_cast<QApplication*>(QApplication::instance());
-        int screen_id = instance->desktop()->screenNumber(parent_widget);
-        size = instance->screens()[screen_id]->geometry();
-    }
-
-    this->popup_max_size = size;
-}
-
-/*
-Tries to find the entry and selects it. This does force a highlighted() signal to be fired. 
-    :param entry: the entry to select
-*/
-void Completer::updateHighlight(const QString& entry){
-    //select active popup QListView
-    qDebug() << "updateHighlight";
-    if(this->select_active_row && entry != ""){
-        // Enters infinite loop upon first-letter-in-no-entry
-        QModelIndex index = this->popup()->indexAt(QPoint(0, 0));
-        if(!(index.isValid() && index.data().toString() == entry)){
-            while(this->popup()->viewport()->rect().contains(QPoint(0, this->popup()->visualRect(index).y() + this->popup()->visualRect(index).height() + 1 ))){
-                if(index.isValid() && index.data().toString() == entry){
-                    break;
-                }
-                index = this->popup()->indexAt(QPoint(0, this->popup()->visualRect(index).y() + this->popup()->visualRect(index).height() + 1 ));
-            }
-        }
-        if(index.isValid()){
-            QItemSelectionModel* selection = this->popup()->selectionModel();
-            selection->select(index, QItemSelectionModel::ClearAndSelect);
-        }
-    }
+    static_cast<Fluor::Popup*>(this->popup())->updateRect(widget);
 }
 
 } // Fluor namespace

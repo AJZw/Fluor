@@ -1,5 +1,5 @@
 /**** General **************************************************************
-** Version:    v0.9.1
+** Version:    v0.9.2
 ** Date:       2019-03-03
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
@@ -58,18 +58,18 @@ class Controller : public QWidget{
         void paintEvent(QPaintEvent* event);
 
     public slots:
-        void unfocus(QEvent* event);
+        void receiveGlobalEvent(QEvent* event);
+        void reloadGlobalSize(const QWidget* widget=nullptr);
         void reloadData(const DataFluorophores* data=nullptr);
-        void reloadMaxSize(const QWidget* widget=nullptr);
 
     private slots:
         void clickedPushButton(bool checked);
         void finishedLineEdit();
     
     signals:
-        void unfocused(QEvent* event);
+        void sendGlobalEvent(QEvent* event);
+        void reloadedGlobalSize(const QWidget* widget=nullptr);
         void reloadedData(const DataFluorophores* data=nullptr);
-        void reloadedMaxSize(const QWidget* widget=nullptr);
 
         void showPushButton();
         void hidePushButton();

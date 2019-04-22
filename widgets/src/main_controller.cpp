@@ -1,5 +1,5 @@
 /**** General **************************************************************
-** Version:    v0.9.1
+** Version:    v0.9.2
 ** Date:       2019-03-11
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
@@ -34,10 +34,13 @@ Controller::Controller(QWidget* parent) :
 
     this->installEventFilter(this);
 
+    // Receive global events
+    QObject::connect(static_cast<Application*>(QApplication::instance()), &Application::globalMouseButtonRelease, this, &Main::Controller::receiveGlobalEvent);
+    
     // Connect signals and slots
-    QObject::connect(static_cast<Application*>(QApplication::instance()), &Application::globalMouseButtonRelease, controller_widget, &Central::Controller::unfocus);
-    QObject::connect(this, &Main::Controller::resized, controller_widget, &Central::Controller::reloadMaxSize);
-    QObject::connect(this, &Main::Controller::moved, controller_widget, &Central::Controller::reloadMaxSize);
+    QObject::connect(this, &Main::Controller::sendGlobalEvent, controller_widget, &Central::Controller::receiveGlobalEvent);
+    QObject::connect(this, &Main::Controller::resized, controller_widget, &Central::Controller::reloadGlobalSize);
+    QObject::connect(this, &Main::Controller::moved, controller_widget, &Central::Controller::reloadGlobalSize);
 }
 
 /*
@@ -63,5 +66,13 @@ bool Controller::eventFilter(QObject *obj, QEvent *event){
 
     return QMainWindow::eventFilter(obj, event);
 }
+
+/*
+Slot: forwards the event to this->sendGlobalEvent();
+*/
+void Controller::receiveGlobalEvent(QEvent* event){
+    emit this->sendGlobalEvent(event);
+}
+
 
 } // Main namespace

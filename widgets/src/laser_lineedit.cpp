@@ -1,5 +1,5 @@
 /**** General **************************************************************
-** Version:    v0.9.1
+** Version:    v0.9.2
 ** Date:       2019-02-03
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
@@ -7,6 +7,7 @@
 ***************************************************************************/
 
 #include "laser_lineedit.h"
+#include "fluor_lineedit.h"
 
 #include <QStyle>
 #include <QChar>
@@ -57,8 +58,51 @@ Popup::Popup(QWidget* widget) :
     std::vector<int> data_example = {350, 405, 562, 640, 900};
     this->buildModel(data_example);
 
-    // Internal connections
-    //QObject::connect(this, &QListView::activated, this, &Laser::Popup::buildOutput);
+    // Set eventfilter on the viewport to capture mouvemove events
+    this->viewport()->installEventFilter(this);
+}
+
+/*
+Updates the popup as if a Key_Up is pressed (popup will never receive these events so is propagated from parent)
+    :returns: whether the event is (fully) handled
+*/
+bool Popup::updateKeyUp(){
+    QModelIndex index_current = this->currentIndex();
+    if(!index_current.isValid()){
+        int row_count = this->model()->rowCount();
+        QModelIndex index_last = this->model()->index(row_count -1, 0);
+
+        this->setCurrentIndex(index_last);
+    }else if(index_current.row() == 0){
+        this->setCurrentIndex(QModelIndex());
+    }else{
+        QModelIndex index_up = this->model()->index(index_current.row() -1, 0);
+        this->setCurrentIndex(index_up);
+    }
+    // Emit highlighted signal
+    emit this->highlighted(this->currentIndex());
+    return true;
+}
+
+/*
+Updates the popup as if a Key_Down is pressed (popup will never receive these events so is propagated from parent)
+    :returns: whether the event is (fully) handled
+*/
+bool Popup::updateKeyDown(){
+    QModelIndex index_current = this->currentIndex();
+    if(!index_current.isValid()){
+        QModelIndex index_first = this->model()->index(0, 0);
+        this->setCurrentIndex(index_first);
+    }else if(index_current.row() == this->model()->rowCount() -1){
+        this->setCurrentIndex(QModelIndex());
+    }else{
+        QModelIndex index_down = this->model()->index(index_current.row() +1, 0);
+        this->setCurrentIndex(index_down);
+    }
+
+    // Emit signal for feedback to user
+    emit this->highlighted(this->currentIndex());
+    return true;
 }
 
 /*
@@ -161,6 +205,56 @@ void Popup::showPopup(){
 }
 
 /*
+Eventfilter for the viewport. Intercepts mousemove events to correctly fire highlight events
+    :param obj: object that fires the event
+    :param event: event
+    :returns: whether the event is (fully) handled
+*/
+bool Popup::eventFilter(QObject* obj, QEvent* event){
+    switch(event->type()){
+    case QEvent::MouseMove:{
+        // Fires when mouse button is clicked and held
+        QMouseEvent* event_mouse = static_cast<QMouseEvent*>(event);
+
+        // Check if left mouse button is pressed
+        if( (event_mouse->buttons()&Qt::LeftButton) == Qt::LeftButton){
+            QPoint point_local = this->mapFromGlobal(event_mouse->globalPos());
+            
+            // I get coordinate from widget, but have to correct to viewport by removing the marings
+            point_local.setY(point_local.y() - this->contentsMargins().top());
+            point_local.setX(point_local.x() - this->contentsMargins().left());
+
+            QModelIndex index_current = this->indexAt(point_local);
+            
+            emit this->highlighted(index_current);
+        }
+        break;
+    }
+    case QEvent::MouseButtonDblClick:{
+        // Fires when mouse button is clicked and held
+        QMouseEvent* event_mouse = static_cast<QMouseEvent*>(event);
+
+        // Check if left mouse button is pressed
+        if( (event_mouse->buttons()&Qt::LeftButton) == Qt::LeftButton){
+            QPoint point_local = this->mapFromGlobal(event_mouse->globalPos());
+            
+            // I get coordinate from widget, but have to correct to viewport by removing the marings
+            point_local.setY(point_local.y() - this->contentsMargins().top());
+            point_local.setX(point_local.x() - this->contentsMargins().left());
+
+            QModelIndex index_current = this->indexAt(point_local);
+
+            emit this->dblClicked(index_current);
+        }
+        break;
+    }
+    default:
+        break;    
+    }
+    return QListView::eventFilter(obj, event);
+}
+
+/*
 Slot: Receives the activated QModelIndex, receives and emits the proper output
     :param index: the activated index
 */
@@ -240,20 +334,22 @@ Sets popup. Takes ownership of the popup (dont share popup with other widgets)
 void LineEdit::setPopup(Laser::Popup* popup){
     // Remove previous popup
     if(this->widget_popup){
-        QObject::disconnect(this->popup(), &Laser::Popup::clicked, this, &Laser::LineEdit::updatePopupActivated);
-        QObject::disconnect(this->popup(), &Laser::Popup::entered, this, &Laser::LineEdit::updatePopupActivated);
+        QObject::disconnect(this->popup(), &Laser::Popup::pressed, this, &Laser::LineEdit::updatePopupActivated);
+        QObject::disconnect(this->popup(), &Laser::Popup::highlighted, this, &Laser::LineEdit::updatePopupActivated);
+        QObject::disconnect(this->popup(), &Laser::Popup::dblClicked, this, &Laser::LineEdit::updatePopupDblClicked);
         //QObject::disconnect(this, &LineEdit::highlightPopup, static_cast<Fluor::Completer*>(this->completer()), &Fluor::Completer::updateHighlight);
         delete this->widget_popup;
     }
     
     this->widget_popup = popup;
-    QObject::connect(this->popup(), &Laser::Popup::clicked, this, &Laser::LineEdit::updatePopupActivated);
-    QObject::connect(this->popup(), &Laser::Popup::entered, this, &Laser::LineEdit::updatePopupActivated);
+    QObject::connect(this->popup(), &Laser::Popup::pressed, this, &Laser::LineEdit::updatePopupActivated);
+    QObject::connect(this->popup(), &Laser::Popup::highlighted, this, &Laser::LineEdit::updatePopupActivated);
+    QObject::connect(this->popup(), &Laser::Popup::dblClicked, this, &Laser::LineEdit::updatePopupDblClicked);
     //QObject::connect(this, &LineEdit::highlightPopup, static_cast<Fluor::Completer*>(this->completer()), &Fluor::Completer::updateHighlight);
 }
 
 /*
-Gets popup for LineEdit. If no completer has been set, will construct one before returning it
+Gets popup for LineEdit.
     :returns: popup widget
 */
 Laser::Popup* LineEdit::popup(){
@@ -282,6 +378,7 @@ Hides the popup (if visible)
 */
 void LineEdit::hidePopup(){
     if(this->popup()->isVisible()){
+        this->popup()->setCurrentIndex(QModelIndex());
         this->popup()->hide();
     }
 }
@@ -290,9 +387,9 @@ void LineEdit::hidePopup(){
 Removes focus from the widget and its popup. Builds and emits output events.
 */
 void LineEdit::clearFocus(){
-    this->hidePopup();
-    this->toggleStylePopup(false);
     this->buildOutput();
+    this->toggleStylePopup(false);
+    this->hidePopup();
 
     QLineEdit::clearFocus();
 }
@@ -301,20 +398,27 @@ void LineEdit::clearFocus(){
 Construct output integer and emits->output() 
 */
 void LineEdit::buildOutput(){
-    QString text = this->text();
-    
-    // Validate output
-    QString output_text("");
-    for(int i = this->text_write_start; i < this->text_write_end; ++i){
-        QChar letter(text[i]);
+    // Check if popup has remove selected as that one is exempt from text modification
+    QModelIndex popup_index_current = this->popup()->currentIndex();
+    int output = 0;
+    if(popup_index_current.data(Qt::UserRole + 1).toInt() == -1){
+        output = -1;
+    }else{
+        QString text = this->text();
+        
+        // Validate output
+        QString output_text("");
+        for(int i = this->text_write_start; i < this->text_write_end; ++i){
+            QChar letter(text[i]);
 
-        // Only accept numbers
-        if(letter.isNumber()){
-            output_text.append(letter);
+            // Only accept numbers
+            if(letter.isNumber()){
+                output_text.append(letter);
+            }
         }
-    }
 
-    int output = output_text.toInt();
+        output = output_text.toInt();
+    }
 
     emit this->output(output);
     qDebug() << "Laser::LineEdit: emits output: " << output;
@@ -392,8 +496,8 @@ bool LineEdit::eventFilter(QObject *obj, QEvent *event){
 
                     this->buildText(std::move(output));
                     this->setCursorPosition(cursor_pos +1);
+                    this->popup()->setCurrentIndex(QModelIndex());
                 }
-                return true;
             }else{
                 int select_start = this->selectionStart();
                 int select_end = this->selectionEnd();
@@ -423,7 +527,9 @@ bool LineEdit::eventFilter(QObject *obj, QEvent *event){
                 // Output results
                 this->buildText(std::move(output));
                 this->setCursorPosition(select_start + this->text_write_start + 1);
+                this->popup()->setCurrentIndex(QModelIndex());
             }
+
             return true;
         }
         case Qt::Key_Backspace:{
@@ -440,8 +546,8 @@ bool LineEdit::eventFilter(QObject *obj, QEvent *event){
 
                     this->buildText(std::move(output));
                     this->setCursorPosition(cursor_pos -1);
+                    this->popup()->setCurrentIndex(QModelIndex());
                 }
-                return true;
             }else{
                 int select_start = this->selectionStart();
                 int select_end = this->selectionEnd();
@@ -471,7 +577,9 @@ bool LineEdit::eventFilter(QObject *obj, QEvent *event){
                 // Output results
                 this->buildText(std::move(output));
                 this->setCursorPosition(select_start + this->text_write_start);
+                this->popup()->setCurrentIndex(QModelIndex());
             }
+
             return true;
         }
         case Qt::Key_Delete:{
@@ -493,8 +601,8 @@ bool LineEdit::eventFilter(QObject *obj, QEvent *event){
 
                     this->buildText(std::move(output));
                     this->setCursorPosition(cursor_pos);
+                    this->popup()->setCurrentIndex(QModelIndex());
                 }
-                return true;
             }else{
                 int select_start = this->selectionStart();
                 int select_end = this->selectionEnd();
@@ -524,6 +632,7 @@ bool LineEdit::eventFilter(QObject *obj, QEvent *event){
                 // Output results
                 this->buildText(std::move(output));
                 this->setCursorPosition(select_start + this->text_write_start);
+                this->popup()->setCurrentIndex(QModelIndex());
             }
             return true;
         }
@@ -653,38 +762,11 @@ bool LineEdit::eventFilter(QObject *obj, QEvent *event){
         // key to handle for popup
         case Qt::Key_PageUp:
         case Qt::Key_Up:{
-            QModelIndex index_current = this->popup()->currentIndex();
-            if(!index_current.isValid()){
-                int row_count = this->popup()->model()->rowCount();
-                QModelIndex index_last = this->popup()->model()->index(row_count -1, 0);
-
-                this->popup()->setCurrentIndex(index_last);
-            }else if(index_current.row() == 0){
-                this->popup()->setCurrentIndex(QModelIndex());
-            }else{
-                QModelIndex index_up = this->popup()->model()->index(index_current.row() -1, 0);
-                this->popup()->setCurrentIndex(index_up);
-            }
-            // Emit entered signal 
-            emit this->popup()->entered(this->popup()->currentIndex());
-            return true;
+            return this->popup()->updateKeyUp();
         }
         case Qt::Key_PageDown:
         case Qt::Key_Down:{
-            QModelIndex index_current = this->popup()->currentIndex();
-            if(!index_current.isValid()){
-                QModelIndex index_first = this->popup()->model()->index(0, 0);
-                this->popup()->setCurrentIndex(index_first);
-            }else if(index_current.row() == this->popup()->model()->rowCount() -1){
-                this->popup()->setCurrentIndex(QModelIndex());
-            }else{
-                QModelIndex index_down = this->popup()->model()->index(index_current.row() +1, 0);
-                this->popup()->setCurrentIndex(index_down);
-            }
-
-            // Emit signal for feedback to user
-            emit this->popup()->entered(this->popup()->currentIndex());
-            return true;
+            return this->popup()->updateKeyDown();
         }
 
         // Shortcuts
@@ -817,6 +899,7 @@ bool LineEdit::eventFilter(QObject *obj, QEvent *event){
 
                     int cursor_output = std::min(select_start + text_numbers.length(), this->text_write_length);
                     this->setCursorPosition(cursor_output + this->text_write_start);
+                    this->popup()->setCurrentIndex(QModelIndex());
                 }else{
                     int cursor_pos = this->cursorPosition();
                     // check if cursor_pos is valid, if not limit ot modifyable area
@@ -832,6 +915,7 @@ bool LineEdit::eventFilter(QObject *obj, QEvent *event){
                     
                     int cursor_output = std::min(cursor_pos + text_numbers.length(), this->text_write_length);
                     this->setCursorPosition(cursor_output + this->text_write_start);
+                    this->popup()->setCurrentIndex(QModelIndex());
                 }
             }
             return true;
@@ -1005,7 +1089,7 @@ Slot: unfocuses the widget, based upon a global QEvent::MouseButtonRelease. Diff
     :param event: the global QEvent::MouseButtonRelease
 */
 void LineEdit::unfocus(QEvent* event){
-    // Cast dynamically, because event is undefined
+    // Cast dynamically, because event is of undefined super class
     QMouseEvent* mouse_event = dynamic_cast<QMouseEvent*>(event);
 
     // No mouse event
@@ -1043,12 +1127,17 @@ void LineEdit::reset() {
 }
 
 /*
-Slot: reloads the this->popup() maximum popup size
+Slot: reloads the this->popup() maximum popup size & buildOutput
     :param widget: widget to base the size upon
 */
-void LineEdit::reloadPopupSize(const QWidget* widget){
+void LineEdit::reloadSize(const QWidget* widget){
     if(widget){
         this->popup()->updateRect(widget);
+    }
+
+    // Upon size changing should finish widget function
+    if(this->isVisible()){
+        this->clearFocus();
     }
 }
 
@@ -1073,6 +1162,16 @@ void LineEdit::updatePopupActivated(const QModelIndex& index){
         this->setCursorPosition(this->text_write_start);
     }
 }
+
+/*
+Slot: upon popup double clicking. Clear focus.
+    :param index: activated index
+*/
+void LineEdit::updatePopupDblClicked(const QModelIndex& index){
+    Q_UNUSED(index);
+    this->clearFocus();
+}
+
 
 /*
 Slot: reloads the this->popup() model
