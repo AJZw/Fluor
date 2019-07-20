@@ -57,8 +57,9 @@ class Controller : public QWidget{
 
     public slots:
         void receiveGlobalEvent(QEvent* event);
-        void reloadGlobalSize(const QWidget* widget=nullptr);
-        //void reloadCytometer(const DataCytometer* data=nullptr);
+        void receiveGlobalSize(const QWidget* widget=nullptr);
+        //void receiveCytometer(const Data::Cytometer& data);
+        void receiveOutput(int output);
 
     private slots:
         void clickedPushButton(bool checked);
@@ -66,8 +67,9 @@ class Controller : public QWidget{
     
     signals:
         void sendGlobalEvent(QEvent* event);
-        void reloadedGlobalSize(const QWidget* widget=nullptr);
-        //void reloadedCytometer(const DataCytometer* data=nullptr);
+        void sendGlobalSize(const QWidget* widget=nullptr);
+        //void sendCytometer(const Data::Cytometer& data);
+        void sendOutput(int output);
 
         void showPushButton();
         void hidePushButton();

@@ -123,7 +123,7 @@ class LineEdit : public QLineEdit {
         void hideButton();
         void unfocus(QEvent* event);
         void reloadSize(const QWidget* widget=nullptr);
-        //void reloadModel(const DataCytometers* data=nullptr);
+        //void reloadModel(const Data::Cytometers* data=nullptr);
 
     private slots:
         void reset();

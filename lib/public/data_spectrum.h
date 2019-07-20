@@ -49,28 +49,29 @@
 #include <QStringList>
 #include <vector>
 
+namespace Data {
 
-class DATALIB_EXPORT DataColor {
+class DATALIB_EXPORT Color {
     public:
-        DataColor();
-        DataColor(int red, int green, int blue);
+        Color();
+        Color(int red, int green, int blue);
         int red;
         int green;
         int blue;
 };
 
-class DATALIB_EXPORT DataMeta {
+class DATALIB_EXPORT Meta {
     public:
-        DataMeta();
-        DataMeta(int excitation_max, int emission_max);
+        Meta();
+        Meta(int excitation_max, int emission_max);
         int excitation_max;
         int emission_max;
 };
 
-class DATALIB_EXPORT DataSpectrum {
+class DATALIB_EXPORT Spectrum {
     public:
-        DataSpectrum(QString fluor_id);
-        DataSpectrum(
+        Spectrum(QString fluor_id);
+        Spectrum(
             QString fluor_id,
             std::vector<double> excitation_wavelength, 
             std::vector<double> excitation_intensity, 
@@ -80,6 +81,7 @@ class DATALIB_EXPORT DataSpectrum {
 
         QString id() const;
         bool isValid() const;
+        void setToZero();
 
         void setExcitation(const std::vector<double> wavelength, const std::vector<double> intensity);
         void setEmission(const std::vector<double> wavelength, const std::vector<double> intensity);
@@ -98,7 +100,7 @@ class DATALIB_EXPORT DataSpectrum {
         double excitationMax() const;
         double emissionMax() const;
 
-        static DataColor color(const double wavelength); // instead of DataColor return QColor?
+        static Data::Color color(const double wavelength); // instead of DataColor return QColor?
 
     private:
         const QString fluor_id;
@@ -115,14 +117,29 @@ class DATALIB_EXPORT DataSpectrum {
 // this class could inherit QObject to allow for signal/slot mechanics
 class DATALIB_EXPORT CacheSpectrum {
     public:
-        CacheSpectrum(unsigned int index, DataSpectrum spectrum);
-        CacheSpectrum(unsigned int index, QString fluor_name, DataSpectrum spectrum);
-        CacheSpectrum(unsigned int index, QString fluor_name, QStringList fluor_names, DataSpectrum spectrum, DataMeta meta);
+        CacheSpectrum(unsigned int index, Data::Spectrum spectrum);
+        CacheSpectrum(unsigned int index, QString fluor_name, Data::Spectrum spectrum);
+        CacheSpectrum(unsigned int index, QString fluor_name, Data::Spectrum spectrum, Data::Meta meta);
 
+    private:
+        unsigned int build_index;
+        bool modified;
+
+        const Data::Spectrum fluor_spectrum;
+
+        QString fluor_name;
+        const Data::Meta fluor_meta;
+
+        bool fluor_visible_excitation;
+        bool fluor_visible_emission;
+        double fluor_intensity_cutoff;
+
+    public:
         unsigned int index() const;
+        void setIndex(unsigned int index);
         QString id() const;
         QString name() const;
-        QStringList names() const;
+        void setName(const QString& name);
 
         double excitationMax() const;
         double emissionMax() const;
@@ -141,18 +158,8 @@ class DATALIB_EXPORT CacheSpectrum {
         std::vector<double> getEmissionIntensity() const;
         std::vector<double> getEmissionIntensity(const double intensity) const;
 
-    private:
-        const unsigned int build_index;
-
-        const DataSpectrum fluor_spectrum;
-
-        const QString fluor_name;
-        const QStringList fluor_all_names;
-        const DataMeta fluor_meta;
-
-        bool fluor_visible_excitation;
-        bool fluor_visible_emission;
-        double fluor_intensity_cutoff;
 };
+
+} // Data namespace
 
 #endif // DATA_SPECTRUM_H

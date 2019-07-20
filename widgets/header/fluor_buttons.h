@@ -54,6 +54,89 @@ class PushButton : public QPushButton {
         void showButton();
 };
 
+class EmissionButton : public QPushButton {
+    Q_OBJECT
+
+    public:
+        explicit EmissionButton(QWidget* parent=nullptr);
+        EmissionButton(const EmissionButton &obj) = delete;
+        EmissionButton& operator=(const EmissionButton &obj) = delete;
+        EmissionButton(EmissionButton&&) = delete;
+        EmissionButton& operator=(EmissionButton&&) = delete;
+        ~EmissionButton() = default;
+    
+    private:
+        QString tooltip_active;
+        QString tooltip_inactive;
+
+        void setToolTip();
+    
+    signals:
+        void clicked(bool active);
+
+    private slots:
+        void click(bool checked);
+
+    public slots:
+        void toggleActive(bool checked);
+        void setActive(bool active);
+};
+
+class ExcitationButton : public QPushButton {
+    Q_OBJECT
+
+    public:
+        explicit ExcitationButton(QWidget* parent=nullptr);
+        ExcitationButton(const ExcitationButton &obj) = delete;
+        ExcitationButton& operator=(const ExcitationButton &obj) = delete;
+        ExcitationButton(ExcitationButton&&) = delete;
+        ExcitationButton& operator=(ExcitationButton&&) = delete;
+        ~ExcitationButton() = default;
+
+    private:
+        QString tooltip_active;
+        QString tooltip_inactive;
+    
+        void setToolTip();
+    
+    signals:
+        void clicked(bool active);
+
+    private slots:
+        void click(bool checked);
+
+    public slots:
+        void toggleActive(bool checked);
+        void setActive(bool active);
+};
+
+class RemoveButton : public QPushButton {
+    Q_OBJECT
+
+    public:
+        explicit RemoveButton(QWidget* parent=nullptr);
+        RemoveButton(const RemoveButton &obj) = delete;
+        RemoveButton& operator=(const RemoveButton &obj) = delete;
+        RemoveButton(RemoveButton&&) = delete;
+        RemoveButton& operator=(RemoveButton&&) = delete;
+        ~RemoveButton() = default;
+
+    private:
+        QString tooltip_active;
+        QString tooltip_inactive;
+
+        void setToolTip();
+    
+    signals:
+        void clicked(bool active);
+
+    private slots:
+        void click(bool checked);
+
+    public slots:
+        void setActive(const bool active);
+};
+
 } // Fluor namespace
 
 #endif //FLUOR_BUTTONS_H

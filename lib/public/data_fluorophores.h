@@ -43,33 +43,60 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include <QDebug>
 #include <QString>
 #include <QStringList>
 
+namespace Data {
 
+struct DATALIB_EXPORT FluorophoreID {
+    FluorophoreID(QString id, QString name, unsigned int order) : id(id), name(name), order(order) {};
+    FluorophoreID(const FluorophoreID&) = default;
+    FluorophoreID& operator=(const FluorophoreID&) = default;
+    FluorophoreID(FluorophoreID&&) = default;
+    FluorophoreID& operator=(FluorophoreID&&) = default;
+    ~FluorophoreID() = default;
 
-class DATALIB_EXPORT DataFluorophores {
+    friend QDebug operator<<(QDebug stream, const FluorophoreID& object){return stream << "{" << object.id << ":" << object.name << ":" << object.order << "}";};
+    bool operator<(const FluorophoreID& other) const {return this->id < other.id;}
+
+    const QString id;
+    mutable QString name;
+    mutable unsigned int order;
+};
+
+class DATALIB_EXPORT Fluorophores {
     public:
-        DataFluorophores();
-        void load(DataFactory& data);
+        Fluorophores();
+        Fluorophores(const Fluorophores&) = default;
+        Fluorophores& operator=(const Fluorophores&) = default;
+        Fluorophores(Fluorophores&&) = default;
+        Fluorophores& operator=(Fluorophores&&) = default;
+        ~Fluorophores() = default;
+
+        void load(Data::Factory& data);
         void unload();
         bool isValid() const;
 
-        std::unique_ptr<DataSpectrum> getSpectrum(const DataFactory& data, const QString& id) const;
-        std::unique_ptr<CacheSpectrum> getCacheSpectrum(const DataFactory& data, unsigned int index, const QString& id, const QString& name) const;
+        Data::Spectrum getSpectrum(const Data::Factory& data, const QString& id) const;
+        Data::CacheSpectrum getCacheSpectrum(const Data::Factory& data, const QString& id, const QString& name, unsigned int index) const;
         const std::vector<QString>& getFluorName() const;
         const std::unordered_map<QString, QString>& getFluorID() const;
+        const std::unordered_map<QString, QStringList>& getFluorNames() const;
 
     private:
         bool data_loaded;
-        std::vector<QString> fluor_name;                    // ordered vector of fluorophore names (for input list)
-        std::unordered_map<QString, QString> fluor_id;      // unordered map, each fluorophore's name corresponding fluorophore ID (for spectrum lookup)
+        std::vector<QString> fluor_name;                        // ordered vector of fluorophore names (for input list)
+        std::unordered_map<QString, QString> fluor_id;          // unordered map, each fluorophore's name corresponding fluorophore ID (for ID/spectrum lookup)
+        std::unordered_map<QString, QStringList> fluor_names;   // unordered map, each fluorophore's name corresponding to all name variants (for lineedit item en/disabling) 
     
         static std::vector<double> toStdVector(const QStringList& stringlist);
         static void qDebugMap(const std::unordered_map<QString, QString>& map);
         static void qDebugMap(const std::unordered_map<QString, QStringList>& map);
-        static void qDebugMap(const std::unordered_map<QString, std::vector<int>>& map);
+        static void qDebugMap(const std::unordered_map<QString, std::vector<double>>& map);
         static void qDebugSet(const std::unordered_set<QString>& map);
 };
+
+}   // Data namespace
 
 #endif // DATA_FLUOROPHORES_H

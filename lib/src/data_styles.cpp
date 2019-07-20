@@ -10,6 +10,8 @@
 
 #include <QDebug>
 
+namespace Data {
+
 /* 
 (Constructor) Builds a CSS stylesheet (from QSettings)
 */
@@ -130,9 +132,9 @@ Getter: returns all style names from the settings file
     :param data: a data factory
     :returns: vector of style_id(s)
 */
-std::vector<QString> StyleBuilder::getStyleIDs(DataFactory& data) const {
+std::vector<QString> StyleBuilder::getStyleIDs(const Data::Factory& data) const {
     std::unique_ptr<QSettings> style;
-    style = data.get("styles");
+    style = data.get(Data::Factory::styles);
     
     QStringList style_groups;
     style_groups = style->childGroups();
@@ -145,9 +147,9 @@ Loads attributes from settings file
     :param data: a data factory
     :param style_id: the id of the style to load
 */
-void StyleBuilder::loadStyle(DataFactory& data, const QString& style_id){
+void StyleBuilder::loadStyle(const Data::Factory& data, const QString& style_id){
     std::unique_ptr<QSettings> style;
-    style = data.get("styles");
+    style = data.get(Data::Factory::styles);
 
     QStringList style_groups;
     style_groups = style->childGroups();
@@ -606,7 +608,7 @@ QString StyleBuilder::buildScrollBar() const {
             " border-bottom: %1 solid %2;"
             " border-left: %1 solid %2;"
             " border-right: %1 solid %2;"
-            " width: 10px;"
+            " width: 8px;"
             " margin: 0px 0px 0px 0px;"
             "} "
             "QScrollBar::handle::vertical {"
@@ -758,17 +760,22 @@ QString StyleBuilder::buildFluorMenu() const {
     style = "Fluor--PushButton {"
             " min-width: 10em;"
             "} "
-            "QPushButton#fluor_excitation {"
-            " padding: 6px 1px 6px 1px;"
+            "Fluor--EmissionButton {"
+            " text-align: left;"
             "} "
-            "QPushButton#fluor_remove {"
+            "Fluor--ExcitationButton {"
+            " padding: 6px 0px 6px 0px;"
+            " width: 5px;"
+            "} "
+            "Fluor--RemoveButton[active=true] {"
             " background-color: %1;"
-            " padding: 6px 1px 6px 1px;"
+            " padding: 6px 0px 6px 0px;"
+            " width: 5px;"
             "} "
-            "QPushButton#fluor_remove::hover {"
+            "Fluor--RemoveButton::hover[active=true] {"
             " background-color: %2;"
             "} "
-            "QPushButton#fluor_remove::pressed::hover {"
+            "Fluor--RemoveButton::pressed::hover[active=true] {"
             " background-color: %3;"
             "} "
             "Fluor--LineEdit {"
@@ -777,16 +784,16 @@ QString StyleBuilder::buildFluorMenu() const {
             "Fluor--Popup .QWidget {"
             " background: %4;"
             "} "
-            "Fluor--Popup QScrollBar::vertical {"
-            " margin: 0px 0px 0px 3px;"
-            " width: 16px;"
-            "} "
-            "Fluor--ScrollArea .QWidget {"
+            "Fluor--ScrollController .QWidget {"
             " background: %5;"
             "} "
-            "Fluor--ScrollArea QScrollBar::vertical {"
+            "Fluor--Popup QScrollBar::vertical {"
             " margin: 0px 0px 0px 3px;"
-            " width: 13px;"
+            " width: 10px;"
+            "} "
+            "Fluor--ScrollController QScrollBar::vertical {"
+            " margin: 0px 0px 0px 3px;"
+            " width: 10px;"
             "} ";
     
     style = style.arg(
@@ -825,3 +832,5 @@ QString StyleBuilder::buildGraph() const {
     );
     return(style);
 }
+
+} // Data namespace

@@ -1,13 +1,13 @@
 /**** General **************************************************************
-** Version:    v0.9.0
-** Date:       2018-12-11
+** Version:    v0.9.3
+** Date:       2019-04-27
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
 ***************************************************************************/
 
-/**** LGPLv3 License ******************************************************** 
-** data_cytometers.h is part of Fluor
+/**** LGPLv3 License *******************************************************
+** graph_graphicsview.h is part of Fluor
 **        
 ** Fluor is free software: you can redistribute it and/or
 ** modify it under the terms of the Lesser GNU General Public License as
@@ -24,32 +24,43 @@
 ***************************************************************************/
 
 /**** DOC ******************************************************************
-** 
-** :class: Datacytometers
-** Data container for cytometer information
+**
 ** 
 ***************************************************************************/
 
-#ifndef DATA_CYTOMETERS_H
-#define DATA_CYTOMETERS_H
+#ifndef GRAPH_GRAPHICSVIEW_H
+#define GRAPH_GRAPHICSVIEW_H
 
-#include "data_global.h"
-#include "data_factory.h"
+#include <QGraphicsView>
+#include <QGraphicsScene>
+#include <QWidget>
+#include <QResizeEvent>
+#include <QRect>
 
-namespace Data {
+//#include <QRectF>
 
-class DATALIB_EXPORT Cytometers {
+namespace Graph {
+
+class GraphicsView : public QGraphicsView {
+    Q_OBJECT
+
     public:
-        Cytometers();
-        void load(const Data::Factory& data);
-        void unload();
-        bool isValid() const;
+        explicit GraphicsView(QGraphicsScene* scene, QWidget* parent = nullptr);
+        GraphicsView(const GraphicsView &obj) = delete;
+        GraphicsView& operator=(const GraphicsView &obj) = delete;
+        GraphicsView(GraphicsView&&) = delete;
+        GraphicsView& operator=(GraphicsView&&) = delete;
+        ~GraphicsView() = default;
 
     private:
-        bool data_loaded;
+        void resizeEvent(QResizeEvent* event);
+
+    signals:
+        void resizedView(const QSize space);
 
 };
 
-} // Data namespace
 
-#endif //DATA_CYTOMETERS_H
+} // Graph namespace
+
+#endif // GRAPH_GRAPHICSVIEW_H

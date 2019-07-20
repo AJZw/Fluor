@@ -39,12 +39,14 @@
 
 #include <QString>
 
+namespace Data {
+
 class DATALIB_EXPORT StyleBuilder {
     public:
         StyleBuilder();
         QString getStyleSheet() const;
-        std::vector<QString> getStyleIDs(DataFactory& data) const;
-        void loadStyle(DataFactory& data, const QString& style_id);
+        std::vector<QString> getStyleIDs(const Data::Factory& data) const;
+        void loadStyle(const Data::Factory& data, const QString& style_id);
 
     private:
         QString stylesheet;
@@ -162,5 +164,7 @@ class DATALIB_EXPORT StyleBuilder {
         QString buildFluorMenu() const;
         QString buildGraph() const;
 };
+
+} // Data namespace
 
 #endif // DATA_STYLE_H

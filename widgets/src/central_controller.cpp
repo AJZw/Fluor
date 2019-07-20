@@ -9,9 +9,12 @@
 #include "central_controller.h"
 
 #include <QGridLayout>
+
 #include "laser_controller.h"
 #include "toolbar_controller.h"
 #include "fluor_controller.h"
+#include "graph_controller.h"
+
 #include <QStyleOption>
 #include <QStyle>
 #include <QPainter>
@@ -44,20 +47,26 @@ Controller::Controller(QWidget* parent) :
     Laser::Controller* controller_laser = new Laser::Controller(this);
     Bar::Controller* controller_toolbar = new Bar::Controller(this);
     Fluor::Controller* controller_fluor = new Fluor::Controller(this);
+    Graph::Controller* controller_graph = new Graph::Controller(this);
 
     controller_layout->addWidget(controller_laser, 0, 0, 1, 1);
     controller_layout->addWidget(controller_toolbar, 0, 1, 1, 1);
     controller_layout->addWidget(controller_fluor, 1, 0, 1, 1);
+    controller_layout->addWidget(controller_graph, 1, 1, 1, 1);
 
     // Connect signals and slots
     QObject::connect(this, &Central::Controller::sendGlobalEvent, controller_fluor, &Fluor::Controller::receiveGlobalEvent);
-    QObject::connect(this, &Central::Controller::reloadedData, controller_fluor, &Fluor::Controller::reloadData);
-    QObject::connect(this, &Central::Controller::reloadedGlobalSize, controller_fluor, &Fluor::Controller::reloadGlobalSize);
+    QObject::connect(this, &Central::Controller::sendData, controller_fluor, &Fluor::Controller::receiveData);
+    QObject::connect(this, &Central::Controller::sendGlobalSize, controller_fluor, &Fluor::Controller::receiveGlobalSize);
     
     QObject::connect(this, &Central::Controller::sendGlobalEvent, controller_laser, &Laser::Controller::receiveGlobalEvent);
-    QObject::connect(this, &Central::Controller::reloadedGlobalSize, controller_laser, &Laser::Controller::reloadGlobalSize);
+    QObject::connect(this, &Central::Controller::sendGlobalSize, controller_laser, &Laser::Controller::receiveGlobalSize);
 
-    //this->setStyleSheet("Central--Controller {background-color: blue;}");
+    QObject::connect(controller_laser, &Laser::Controller::sendOutput, this, &Central::Controller::receiveLaser);
+    QObject::connect(controller_fluor, &Fluor::Controller::sendCacheAdd, this, &Central::Controller::receiveCacheAdd);
+    QObject::connect(controller_fluor, &Fluor::Controller::sendCacheRemove, this, &Central::Controller::receiveCacheRemove);
+
+    QObject::connect(this, &Central::Controller::sendSyncFluor, controller_fluor, &Fluor::Controller::receiveSync);
 
 }
 
@@ -83,15 +92,43 @@ void Controller::receiveGlobalEvent(QEvent* event){
 /*
 Slot: reloads the data of the widget
 */
-void Controller::reloadData(const DataFluorophores* data){
-    emit this->reloadedData(data);
+void Controller::receiveData(const Data::Fluorophores& data){
+    emit this->sendData(data);
 }
 
 /*
 Slot: reloads the max size of a (ListView) widget
 */
-void Controller::reloadGlobalSize(const QWidget* widget){
-    emit this->reloadedGlobalSize(widget);
+void Controller::receiveGlobalSize(const QWidget* widget){
+    emit this->sendGlobalSize(widget);
+}
+
+/*
+Slot: receives and forwards the cache adding input
+*/
+void Controller::receiveCacheAdd(std::set<Data::FluorophoreID>& fluorophores){
+    emit this->sendCacheAdd(fluorophores);
+}
+
+/*
+Slot: receives and forwards the cache remove input
+*/
+void Controller::receiveCacheRemove(std::set<Data::FluorophoreID>& fluorophores){
+    emit this->sendCacheRemove(fluorophores);
+}
+
+/*
+Slot: receives and forwards the laser wavelength input
+*/
+void Controller::receiveLaser(int wavelength){
+    emit this->sendLaser(wavelength);
+}
+
+/*
+Slot: receives and forwards the synchronisation request of the fluor buttons
+*/
+void Controller::receiveSyncFluor(const std::vector<Cache::CacheID>& input){
+    emit this->sendSyncFluor(input);
 }
 
 } // Central namespace

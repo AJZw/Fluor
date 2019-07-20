@@ -420,8 +420,8 @@ void LineEdit::buildOutput(){
         output = output_text.toInt();
     }
 
-    emit this->output(output);
     qDebug() << "Laser::LineEdit: emits output: " << output;
+    emit this->output(output);
     emit this->finished();
 }
 
@@ -1176,7 +1176,7 @@ void LineEdit::updatePopupDblClicked(const QModelIndex& index){
 /*
 Slot: reloads the this->popup() model
 
-void LineEdit::reloadModel(const DataCytometers* data){
+void LineEdit::reloadModel(const Data::Cytometers* data){
     if(data){
         qDebug() << "reload laser model";
     }

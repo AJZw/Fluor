@@ -10,48 +10,49 @@
 
 #include <QDebug>
 
+namespace Data {
 
 /*
-Constructor: Construct a standard DataColor object (color=white (255, 255, 255))
+Constructor: Construct a standard Data::Color object (color=white (255, 255, 255))
 */
-DataColor::DataColor() :
+Color::Color() :
     red(255), green(255), blue(255)
 {}
 
 /*
-Constructor: Construct a DataColor object
+Constructor: Construct a Data::Color object
     :param red: red color value 0-255
     :param green: green color value 0-255
     :param blue: blue color value 0-255
 */
-DataColor::DataColor(int red, int green, int blue) :
+Color::Color(int red, int green, int blue) :
     red(red), green(green), blue(blue)
 {}
 
 /* ######################################################################################### */
 
 /*
-Constructor: Construct a DataMeta object with default values of 0
+Constructor: Construct a Meta object with default values of 0
 */
-DataMeta::DataMeta() :
+Meta::Meta() :
     excitation_max(-1), emission_max(-1)
 {}
 
 /*
-Constructor: Construct a DataMeta object
+Constructor: Construct a Meta object
     :param excitation_max: excitation max wavelength 
     :param emission_max: emission max wavelength 
 */
-DataMeta::DataMeta(int excitation_max, int emission_max) :
+Meta::Meta(int excitation_max, int emission_max) :
     excitation_max(excitation_max), emission_max(emission_max)
 {}
 
 /* ######################################################################################### */
 
 /*
-Constructor: Constructs a DataSpectrum object. Contains all necessary plotting data for a fluophore
+Constructor: Constructs a Spectrum object. Contains all necessary plotting data for a fluophore
 */
-DataSpectrum::DataSpectrum(QString fluor_id) :
+Spectrum::Spectrum(QString fluor_id) :
     fluor_id(fluor_id),
     excitation_wavelength(),
     excitation_intensity(),
@@ -59,7 +60,7 @@ DataSpectrum::DataSpectrum(QString fluor_id) :
     emission_intensity()
 {}
 
-DataSpectrum::DataSpectrum(
+Spectrum::Spectrum(
     QString fluor_id,
     std::vector<double> excitation_wavelength, 
     std::vector<double> excitation_intensity, 
@@ -73,9 +74,9 @@ DataSpectrum::DataSpectrum(
 {}
 
 /*
-Getter - returns the fluorophore id of the DataSpectrum object
+Getter - returns the fluorophore id of the Spectrum object
 */
-QString DataSpectrum::id() const {
+QString Spectrum::id() const {
     return(this->fluor_id);
 }
 
@@ -83,7 +84,7 @@ QString DataSpectrum::id() const {
 Checks whether the excitation/emission parameters are valid
     :returns: true if valid otherwise false
 */
-bool DataSpectrum::isValid() const {
+bool Spectrum::isValid() const {
     if(this->excitation_intensity.empty() || this->excitation_wavelength.empty()){
         return(false);
     }else if(this->emission_intensity.empty() || this->emission_wavelength.empty()){
@@ -98,11 +99,23 @@ bool DataSpectrum::isValid() const {
 }
 
 /*
+Sets all emission and excitation data to size 1 containing a 0
+*/
+void Spectrum::setToZero(){
+    std::vector<double> vector_null{0.0};
+    
+    this->excitation_intensity = vector_null;
+    this->excitation_wavelength = vector_null;
+    this->emission_intensity = vector_null;
+    this->emission_wavelength = vector_null;
+}
+
+/*
 Setter for the excitation data, no validity checking
     :param wavelength: sets the excitation wavelength
     :param intensity: sets the excitation intensity
 */
-void DataSpectrum::setExcitation(std::vector<double> wavelength, std::vector<double> intensity){
+void Spectrum::setExcitation(std::vector<double> wavelength, std::vector<double> intensity){
     this->excitation_wavelength = wavelength;
     this->excitation_intensity = intensity;
 }
@@ -112,7 +125,7 @@ Setter for the emission data, no validity checking
     :param wavelength: sets the emission wavelength
     :param intensity: sets the emission intensity
 */
-void DataSpectrum::setEmission(std::vector<double> wavelength, std::vector<double> intensity){
+void Spectrum::setEmission(std::vector<double> wavelength, std::vector<double> intensity){
     this->emission_wavelength = wavelength;
     this->emission_intensity = intensity;
 }
@@ -121,7 +134,7 @@ void DataSpectrum::setEmission(std::vector<double> wavelength, std::vector<doubl
 Getter for the excitation wavelength
     :returns: excitation wavelength
 */
-std::vector<double> DataSpectrum::getExcitationWavelength() const {
+std::vector<double> Spectrum::getExcitationWavelength() const {
     return(this->excitation_wavelength);
 }
 
@@ -129,7 +142,7 @@ std::vector<double> DataSpectrum::getExcitationWavelength() const {
 Getter for the excitation intensity
     :returns: excitation intensity
 */
-std::vector<double> DataSpectrum::getExcitationIntensity() const {
+std::vector<double> Spectrum::getExcitationIntensity() const {
     return(this->excitation_intensity);
 }
 
@@ -137,7 +150,7 @@ std::vector<double> DataSpectrum::getExcitationIntensity() const {
 Getter for the emission wavelength
     :returns: emission wavelength
 */
-std::vector<double> DataSpectrum::getEmissionWavelength() const {
+std::vector<double> Spectrum::getEmissionWavelength() const {
     return(this->emission_wavelength);
 }
 
@@ -145,7 +158,7 @@ std::vector<double> DataSpectrum::getEmissionWavelength() const {
 Getter for the emission intensity
     :returns: emission intensity
 */
-std::vector<double> DataSpectrum::getEmissionIntensity() const {
+std::vector<double> Spectrum::getEmissionIntensity() const {
     return(this->emission_intensity);
 }
 
@@ -155,7 +168,7 @@ Getter for the emission intensity after intensity correction
     :param cutoff: intensity threshold, any value lower will return 0 intensity
     :returns: corrected emission intensity 
 */
-std::vector<double> DataSpectrum::getEmissionIntensity(const double intensity, const double cutoff) const {
+std::vector<double> Spectrum::getEmissionIntensity(const double intensity, const double cutoff) const {
     // If intensity too low, no reason to transform the vector, build a new vector with only 0.0s
     if(intensity <= cutoff){
         std::vector<double> zero_vector(this->emission_intensity.size());
@@ -190,12 +203,9 @@ std::vector<double> DataSpectrum::getEmissionIntensity(const double intensity, c
     :param at_wavelength: wavelength to return the intensity of
     :returns: intensity at the specified wavelength. Out of bounds returns 0, unspecified at_wavelength returns the first specified higher value
 */
-double DataSpectrum::intensityAt(const std::vector<double>& wavelength, const std::vector<double>& intensity, const int& at_wavelength){
+double Spectrum::intensityAt(const std::vector<double>& wavelength, const std::vector<double>& intensity, const int& at_wavelength){
     // if vector is empty, any indexing causes undefined behavior. I dont want to check on every call, 
     // use isValid() upon creation to make sure all assumptions are met
-    // if(wavelength.empty() || intensity.empty()){
-    //     return(0.0);
-    // }
 
     // Check if wavelength falls within the excitation_wavelength defined region
     if(wavelength.front() > at_wavelength || wavelength.back() < at_wavelength){
@@ -208,12 +218,11 @@ double DataSpectrum::intensityAt(const std::vector<double>& wavelength, const st
     first = std::lower_bound(wavelength.begin(), wavelength.end(), at_wavelength);
     // first contains the first value that is lower or exact wavelength
     // substract iterator location from the starting location to get the index
-    long long int index;
+    std::size_t index;
     index = first - wavelength.begin();
 
     // bound checking shouldnt be necessary as intensity and wavelength should be of equal length
     // and wavelength should always be found inside the vector, but to prevent segfaults:
-    // always conversion from long long int into long long unsigned int?
     return(intensity.at(index));
 }
 
@@ -222,8 +231,8 @@ Returns the excitation intensity at a specific wavelength
     :param wavelength: the excitation wavelength
     :returns: the excitation intensity, out of bounds returns 0, an unspecified wavelength returns the first specified higher value
 */
-double DataSpectrum::excitationAt(const int wavelength) const {
-    return (DataSpectrum::intensityAt(this->excitation_intensity, this->excitation_wavelength, wavelength));
+double Spectrum::excitationAt(const int wavelength) const {
+    return (Spectrum::intensityAt(this->excitation_intensity, this->excitation_wavelength, wavelength));
 }
 
 /*
@@ -231,15 +240,15 @@ Returns the emission intensity at a specific wavelength
     :param wavelength: the emission wavelength
     :returns: the emission intensity, out of bounds returns 0, an unspecified wavelength returns the first specified higher value
 */
-double DataSpectrum::emissionAt(const int wavelength) const {
-    return(DataSpectrum::intensityAt(this->emission_intensity, this->emission_wavelength, wavelength));
+double Spectrum::emissionAt(const int wavelength) const {
+    return(Spectrum::intensityAt(this->emission_intensity, this->emission_wavelength, wavelength));
 }
 
 /*
 Returns the wavelength of the maximum excitation intensity
     :returns: the wavelength of the (first) maximum excitation
 */
-double DataSpectrum::excitationMax() const {
+double Spectrum::excitationMax() const {
     // iterate over the excitation to get the maximum 
     std::vector<double>::const_iterator max = this->excitation_intensity.begin();
 
@@ -250,7 +259,7 @@ double DataSpectrum::excitationMax() const {
         }
     }
 
-    long long int index;
+    std::size_t index;
     index = max - this->excitation_intensity.begin();
 
     return(this->excitation_wavelength[index]);
@@ -260,7 +269,7 @@ double DataSpectrum::excitationMax() const {
 Returns the wavelength of the maximum emission intensity
     :returns: the wavelength of the (first) maximum emission
 */
-double DataSpectrum::emissionMax() const {
+double Spectrum::emissionMax() const {
     // iterate over the excitation to get the maximum 
     std::vector<double>::const_iterator max = this->emission_intensity.begin();
 
@@ -271,21 +280,22 @@ double DataSpectrum::emissionMax() const {
         }
     }
 
-    long long int index;
+    std::size_t index;
     index = max - this->emission_intensity.begin();
 
     return(this->emission_wavelength[index]);
 }
 
 /*
-(Static) Returns the color of the maximum emission intensity 
+(Static) Returns the color of the maximum emission intensity, uses linear approximation
+Source: http://www.efg2.com/Lab/ScienceAndEngineering/Spectra.htm
     :param wavelength: wavelength to transform into visible RGB value
-    :returns: DataColor object; colors scale 0-255
+    :returns: Data::Color object; colors scale 0-255
 */
-DataColor DataSpectrum::color(double wavelength){
+Data::Color Spectrum::color(double wavelength){
     double red, green, blue, intensity;
     if(wavelength >= 380.0 && wavelength < 440.0){
-        red = -(wavelength - 440.0) / (440.0 - 350.0);
+        red = -(wavelength - 440.0) / (440.0 - 380.0);
         green = 0.0;
         blue = 1.0;
     }else if(wavelength >= 440.0 && wavelength < 490.0){
@@ -316,7 +326,7 @@ DataColor DataSpectrum::color(double wavelength){
 
     // Intensity correction
     if(wavelength >= 380.0 && wavelength < 420.0){
-        intensity = 0.3 + 0.7 * (wavelength - 350.0) / (420.0 - 350.0);
+        intensity = 0.3 + 0.7 * (wavelength - 380.0) / (420.0 - 380.0);
     }else if(wavelength >= 420.0 && wavelength <= 700.0){
         intensity = 1.0;
     }else if(wavelength > 700.0 && wavelength <= 780.0){
@@ -330,7 +340,7 @@ DataColor DataSpectrum::color(double wavelength){
     blue = intensity * blue;
     green = intensity * green;
 
-    DataColor color(static_cast<int>(red), static_cast<int>(green), static_cast<int>(blue));
+    Data::Color color(static_cast<int>(red), static_cast<int>(green), static_cast<int>(blue));
 
     return color;
 }
@@ -338,35 +348,35 @@ DataColor DataSpectrum::color(double wavelength){
 /* ######################################################################################### */
 
 /*
-Constructor: Constructs a CacheSpectrum object. Combines a DataSpectrum object with additional cache parameters
+Constructor: Constructs a CacheSpectrum object. Combines a Spectrum object with additional cache parameters
 */
-CacheSpectrum::CacheSpectrum(unsigned int index, DataSpectrum spectrum) :
+CacheSpectrum::CacheSpectrum(unsigned int index, Data::Spectrum spectrum) :
     build_index{index},
+    modified{false},
     fluor_spectrum{std::move(spectrum)},
     fluor_name{std::move(this->fluor_spectrum.id())},
-    fluor_all_names{},
     fluor_meta{},
     fluor_visible_excitation{false},
     fluor_visible_emission{true},
     fluor_intensity_cutoff{0.0}
 {}
 
-CacheSpectrum::CacheSpectrum(unsigned int index, QString fluor_name, DataSpectrum spectrum) :
+CacheSpectrum::CacheSpectrum(unsigned int index, QString fluor_name, Data::Spectrum spectrum) :
     build_index{index},
+    modified{false},
     fluor_spectrum{std::move(spectrum)},
     fluor_name{std::move(fluor_name)},
-    fluor_all_names{},
     fluor_meta{},
     fluor_visible_excitation{false},
     fluor_visible_emission{true},
     fluor_intensity_cutoff{0.0}
 {}
 
-CacheSpectrum::CacheSpectrum(unsigned int index, QString fluor_name, QStringList fluor_names, DataSpectrum spectrum, DataMeta meta) :
+CacheSpectrum::CacheSpectrum(unsigned int index, QString fluor_name, Data::Spectrum spectrum, Data::Meta meta) :
     build_index{index},
+    modified{false},
     fluor_spectrum{std::move(spectrum)},
     fluor_name{std::move(fluor_name)},
-    fluor_all_names{std::move(fluor_names)},
     fluor_meta{std::move(meta)},
     fluor_visible_excitation{false},
     fluor_visible_emission{true},
@@ -379,6 +389,14 @@ Getter for the build index
 */
 unsigned int CacheSpectrum::index() const {
     return(this->build_index);
+}
+
+/*
+Setter for the build index
+    :param: index
+*/
+void CacheSpectrum::setIndex(unsigned int index){
+    this->build_index = index;
 }
 
 /*
@@ -398,11 +416,11 @@ QString CacheSpectrum::name() const {
 }
 
 /*
-Getter for the all fluorophore names for that fluorophore id
-    :returns: 
+Setter for the fluorophore name
+    :param: name
 */
-QStringList CacheSpectrum::names() const {
-    return(this->fluor_all_names);
+void CacheSpectrum::setName(const QString& name){
+    this->fluor_name = name;
 }
 
 /*
@@ -450,7 +468,10 @@ Setter for the visibility of the excitation plot
     :params: excitation visibility
 */
 void CacheSpectrum::setVisibleExcitation(bool visibility) {
-    this->fluor_visible_excitation = std::move(visibility);
+    if(visibility != this->fluor_visible_excitation){
+        this->fluor_visible_excitation = visibility;
+        this->modified = true;
+    }
 }
 
 /*
@@ -458,7 +479,10 @@ Setter for the visibility of the emission plot
     :params: emission visibility
 */
 void CacheSpectrum::setVisibleEmission(bool visibility) {
-    this->fluor_visible_emission = std::move(visibility);
+    if(visibility != this->fluor_visible_emission){
+        this->fluor_visible_emission = visibility;
+        this->modified = true;
+    }
 }
 
 /*
@@ -474,7 +498,7 @@ Setter for the intensity cutoff
     :params: intensity cutoff
 */
 void CacheSpectrum::setIntensityCutoff(const double cutoff) {
-    this->fluor_intensity_cutoff = std::move(cutoff);
+    this->fluor_intensity_cutoff = cutoff;
 }
 
 /*
@@ -518,5 +542,4 @@ std::vector<double> CacheSpectrum::getEmissionIntensity(const double intensity) 
     return(this->fluor_spectrum.getEmissionIntensity(std::move(intensity), this->fluor_intensity_cutoff));
 }
 
-
-
+} // Data namespace

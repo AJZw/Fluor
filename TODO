@@ -25,11 +25,16 @@ DATA:
     Implement validity check upon new data: check if sorted low->high. 
     I use binary searches for speedy data manipulation. This require a sorted std::vector
 
+CACHE:
+    In common usage check to what size the unordered_map grow, now just a guess
+    Write correction upon counter overflow
+    Write correction when unordered_map grows to big
+
 FLUOR:
     if fluorophore name too long gets squeezed by scroll_widget, way to solve this nicely?
 
 TOOLBAR:
-    Properly toggle_emission/excitation icons -> properly resize button / icon to work with different font sizes (on macOS you need to use QSize(25,25) for example)
+    Check if Icon resizing algorithm works on MacOS
 
 LASER & FLUOR:
     If selected plot with laser -> see if entree in QModel, if so -> select

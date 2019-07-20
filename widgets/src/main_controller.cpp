@@ -39,8 +39,15 @@ Controller::Controller(QWidget* parent) :
     
     // Connect signals and slots
     QObject::connect(this, &Main::Controller::sendGlobalEvent, controller_widget, &Central::Controller::receiveGlobalEvent);
-    QObject::connect(this, &Main::Controller::resized, controller_widget, &Central::Controller::reloadGlobalSize);
-    QObject::connect(this, &Main::Controller::moved, controller_widget, &Central::Controller::reloadGlobalSize);
+    QObject::connect(this, &Main::Controller::resized, controller_widget, &Central::Controller::receiveGlobalSize);
+    QObject::connect(this, &Main::Controller::moved, controller_widget, &Central::Controller::receiveGlobalSize);
+    QObject::connect(this, &Main::Controller::sendData, controller_widget, &Central::Controller::receiveData);
+    QObject::connect(this, &Main::Controller::sendSyncFluor, controller_widget, &Central::Controller::receiveSyncFluor);
+
+    QObject::connect(controller_widget, &Central::Controller::sendLaser, this, &Main::Controller::receiveLaser);
+    QObject::connect(controller_widget, &Central::Controller::sendCacheAdd, this, &Main::Controller::receiveCacheAdd);
+    QObject::connect(controller_widget, &Central::Controller::sendCacheRemove, this, &Main::Controller::receiveCacheRemove);
+
 }
 
 /*
@@ -74,5 +81,32 @@ void Controller::receiveGlobalEvent(QEvent* event){
     emit this->sendGlobalEvent(event);
 }
 
+/*
+Slot: forwards the cache add event
+*/
+void Controller::receiveCacheAdd(std::set<Data::FluorophoreID>& flourophores){
+    emit this->sendCacheAdd(flourophores);
+}
+
+/*
+Slot: forwards the cache remove event
+*/
+void Controller::receiveCacheRemove(std::set<Data::FluorophoreID>& flourophores){
+    emit this->sendCacheRemove(flourophores);
+}
+
+/*
+Slot: forwards the laser event
+*/
+void Controller::receiveLaser(int wavelenght){
+    emit this->sendLaser(wavelenght);
+}
+
+/*
+Slot: forwards the synchronisation request of the fluor buttons
+*/
+void Controller::receiveSyncFluor(const std::vector<Cache::CacheID>& input){
+    emit this->sendSyncFluor(input);
+}
 
 } // Main namespace

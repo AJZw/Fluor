@@ -49,15 +49,19 @@
 #include <QSettings>
 #include <QMessageBox>
 
-class DATALIB_EXPORT DataFactory {
+namespace Data {
+
+class DATALIB_EXPORT Factory {
     public:
-        DataFactory();
-        DataFactory(const QString settings, const QString styles, const QString cytometers, const QString fluorophores);
-        DataFactory(const DataFactory&) = default;         // Copy/Move - not sure whether you would want to, but should be fine
-        DataFactory& operator=(const DataFactory&) = default;
-        DataFactory(DataFactory&&) = default;
-        DataFactory& operator=(DataFactory&&) = default;
-        ~DataFactory() = default;
+        Factory();
+        Factory(const QString settings, const QString styles, const QString cytometers, const QString fluorophores);
+        Factory(const Factory&) = default;         // Copy/Move - not sure whether you would want to, but should be fine
+        Factory& operator=(const Factory&) = default;
+        Factory(Factory&&) = default;
+        Factory& operator=(Factory&&) = default;
+        ~Factory() = default;
+
+        enum type{settings, defaults, styles, cytometers, fluorophores};
 
         bool isValid() const;
         bool isWarning() const;
@@ -69,7 +73,7 @@ class DATALIB_EXPORT DataFactory {
         QString getPathStyles() const;
         QString getPathCytometers() const;
         QString getPathFluorophores() const;
-        std::unique_ptr<QSettings> get(const QString& settings) const;
+        std::unique_ptr<QSettings> get(const Factory::type type) const;
 
     private:
         const QString file_settings;
@@ -96,26 +100,28 @@ class DATALIB_EXPORT DataFactory {
         static bool exists(const QString& path_file);
 };
 
-class DATALIB_EXPORT DataError : public QMessageBox {
+class DATALIB_EXPORT Error : public QMessageBox {
     public:
-        DataError();
-        DataError(const QString& message);
-        DataError(const DataError&) = delete;
-        DataError& operator=(const DataError&) = delete;
-        DataError(DataError&&) = delete;
-        DataError& operator=(DataError&&) = delete;
-        ~DataError() = default;
+        Error();
+        Error(const QString& message);
+        Error(const Error&) = delete;
+        Error& operator=(const Error&) = delete;
+        Error(Error&&) = delete;
+        Error& operator=(Error&&) = delete;
+        ~Error() = default;
 };
 
-class DATALIB_EXPORT DataWarning : public QMessageBox {
+class DATALIB_EXPORT Warning : public QMessageBox {
     public:
-        DataWarning();
-        DataWarning(const QString& message);
-        DataWarning(const DataWarning&) = delete;
-        DataWarning& operator=(const DataWarning&) = delete;
-        DataWarning(DataWarning&&) = delete;
-        DataWarning& operator=(DataWarning&&) = delete;
-        ~DataWarning() = default;
-};  
+        Warning();
+        Warning(const QString& message);
+        Warning(const Warning&) = delete;
+        Warning& operator=(const Warning&) = delete;
+        Warning(Warning&&) = delete;
+        Warning& operator=(Warning&&) = delete;
+        ~Warning() = default;
+};
+
+} // Data namespace
 
 #endif // DATA_FACTORY_H

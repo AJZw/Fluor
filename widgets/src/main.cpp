@@ -11,6 +11,7 @@
 ***************************************************************************/
 
 #include <QApplication>
+#include <QObject>
 #include <QString>
 #include <iostream>
 
@@ -21,6 +22,9 @@
 #include "data_styles.h"
 #include "data_fluorophores.h"
 
+// Cache header
+#include "cache.h"
+
 // Controller widgets
 #include "application.h"
 #include "main_controller.h"
@@ -28,34 +32,46 @@
 int main(int argc, char **argv)
 {
     // Load QApplication eventManager
-    Application app{argc, argv};
+    Application APP{argc, argv};
 
     // Load SettingsFactory
-    DataFactory settings;
+    Data::Factory FACTORY;
 
     // Load Default stylesheet (to make the warnings look pretty)
-    StyleBuilder style;
-    style.loadStyle(settings, "BLACKBLUE");
-    app.setStyleSheet(style.getStyleSheet());
+    Data::StyleBuilder STYLE;
+    STYLE.loadStyle(FACTORY, "BLACKBLUE");
+    APP.setStyleSheet(STYLE.getStyleSheet());
 
     // Run error/warning messages and quits when invalid DataFactory
-    settings.execMessages();
-    if(!settings.isValid()){
-        app.quit();
+    if(!FACTORY.isValid()){
+        FACTORY.execMessages();
+        APP.quit();
         return 1;
     }
     
-    // Start controller etc
-    DataFluorophores data;
-    data.load(settings);
+    // Start data import etc
+    Data::Fluorophores DATA;
+    DATA.load(FACTORY);
+
+    // Build Cache
+    Cache::Cache CACHE(FACTORY, DATA);
 
     // std::unique_ptr<DataSpectrum> color = data.getSpectrum(settings, "APC");
 
     // Loads GUI
-    Main::Controller gui;
-    gui.show();
+    Main::Controller GUI;
+    GUI.show();
 
-    return app.exec();
+    // Connect Cache to GUI
+    QObject::connect(&GUI, &Main::Controller::sendCacheAdd, &CACHE, &Cache::Cache::cacheAdd);
+    QObject::connect(&GUI, &Main::Controller::sendCacheRemove, &CACHE, &Cache::Cache::cacheRemove);
+    QObject::connect(&CACHE, &Cache::Cache::syncFluor, &GUI, &Main::Controller::receiveSyncFluor);
+
+    // Start data loading
+    emit GUI.sendData(DATA);
+
+
+    return APP.exec();
 }
 
 

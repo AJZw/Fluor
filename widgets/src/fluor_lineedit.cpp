@@ -37,15 +37,18 @@ Constructor: Constructs a Fluorophore LineEdit object.
 */
 LineEdit::LineEdit(QWidget* parent) : 
     QLineEdit(parent),
-    _completer{nullptr},
-    inline_selection{true},
-    cursor_pos{0},
-    entries_before{},
-    entries_after{},
-    prefix_text{""},
-    prefix_length{0},
-    postfix_text{""},
-    postfix_length{0}
+    _completer(nullptr),
+    lookup_id(),
+    lookup_names(),
+    incache_names(),
+    inline_selection(true),
+    cursor_pos(0),
+    entries_before(),
+    entries_after(),
+    prefix_text(""),
+    prefix_length(0),
+    postfix_text(""),
+    postfix_length(0)
 {
     // Reserve space for before_entries and after_entries
     this->entries_before.reserve(10);
@@ -63,7 +66,6 @@ LineEdit::LineEdit(QWidget* parent) :
 
     // Text editing connections
     QObject::connect(this, &Fluor::LineEdit::textEdited, this, &Fluor::LineEdit::updateTextEdited);
-
 }
 
 /*
@@ -150,10 +152,24 @@ void LineEdit::complete(){
 Functions that talks to the this->completer() and effectively updates the popup view and completion state
 */
 void LineEdit::buildCompletion() {
-    QStringList entries = {this->entries_before + this->entries_after};
-    Fluor::Completer* fluor_completer = static_cast<Fluor::Completer*>(this->completer());
-    
+    int cache_size = static_cast<int>(this->incache_names.size());
+
+    QStringList entries;
+    entries.reserve(this->entries_before.size() + this->entries_after.size() + cache_size + 5);
+
+    // Add the naming alternatives
+    for(const QString& entry : this->entries_before){
+        entries.append(this->lookup_names[entry]);
+    }
+    for(const QString& entry : this->entries_after){
+        entries.append(this->lookup_names[entry]);
+    }
+    for(const QString& entry : this->incache_names){
+        entries.append(this->lookup_names[entry]);
+    }
+
     // Update completer (& popup) and get completion
+    Fluor::Completer* fluor_completer = static_cast<Fluor::Completer*>(this->completer());
     fluor_completer->updateCompleter(this->prefix_text, entries);
 }
 
@@ -341,7 +357,7 @@ void LineEdit::updatePopupHighlighted(const QString& text){
     // If the entree is disabled, the highlighted signal returns the completion text
     if(text.isEmpty()){
         if(this->prefix_text == ""){
-            // No entree selected, and no prefix -> become mepty
+            // No entree selected, and no prefix -> become empty
             this->buildText(QString(""));
         }
         //else{
@@ -361,7 +377,6 @@ Updates text and selection upon popup activation
     :param text: text to add
 */
 void LineEdit::updatePopupActivated(const QString& text){
-    qDebug() << "Fluor::LineEdit::activated: " << text;
     this->buildText(text);
     this->setCursorPosition(this->cursor_pos + this->postfix_length);
 }
@@ -722,11 +737,26 @@ void LineEdit::reloadSize(const QWidget* widget){
 /*
 Slot: reloads the this->completer() model
 */
-void LineEdit::reloadCompleterModel(const DataFluorophores* data){
-    // Make sure to delete the old model, as it is not deleted upon resetting
-    if(data){
-        qDebug() << "reload completer model";
+void LineEdit::reloadData(const Data::Fluorophores& data){
+    // Make hard copies, that way data can be invalidated without issues here / race conditions
+    this->lookup_id = data.getFluorID();
+    this->lookup_names = data.getFluorNames();
+
+    static_cast<Fluor::Completer*>(this->completer())->buildModel(data.getFluorName());
+}
+
+/*
+Slot: synchronizes the fluorophores names loaded into the cache.items into the lineedit
+*/
+void LineEdit::sync(const std::vector<Cache::CacheID>& input){
+    std::vector<QString> new_vector;
+    new_vector.reserve(input.size());
+
+    for(const Cache::CacheID& id : input){
+        new_vector.push_back(id.name);
     }
+
+    std::swap(this->incache_names, new_vector);
 }
 
 /*
@@ -737,22 +767,51 @@ void LineEdit::buildOutput() {
     // cursor position is 0, so postfix_text is also a full entree
     this->updateTextParameters(this->text(), 0);
 
-    QStringList outputs{this->postfix_text};
-    outputs.append(this->entries_after);
+    QStringList input{this->postfix_text};
+    input.append(this->entries_after);
 
     // Reset button
     this->reset();
 
-    // Remove duplicates
-    outputs.removeDuplicates();
+    // Sanetize output and transform into set of fluorophoreIDs
+    std::set<Data::FluorophoreID> output;
 
-    qDebug() << "Fluor::LineEdit: emits output: " << outputs;
+    // Counter, independent from loop because duplicate entrees / hash misses should not increase the counter
+    unsigned int counter(0);
 
-    // Emit output signal
-    emit this->output(outputs);
+    for(const QString& entree : input){
+        // Lookup in ID unordered_map
+        std::unordered_map<QString, QString>::const_iterator entree_id = this->lookup_id.find(entree);
+
+        if(entree_id == this->lookup_id.end()){
+            // hashmiss so ignore
+            continue;
+        }
+
+        std::pair<std::set<Data::FluorophoreID>::iterator, bool> emplace_succes = output.emplace(entree_id->second, entree, counter);
+
+        if(emplace_succes.second){
+            ++counter;
+        }
+    }
+
+    // Before emitting list, check if it contains anything, if not do not emit
+    if(output.size() != 0){
+        { // Scoping to fire the debug message before the signal gets emitted
+        QDebug message = qDebug();
+        message << "Fluor::LineEdit: emits output:";
+
+        for(Data::FluorophoreID id : output){
+            message << id;
+        }
+        }
+        emit this->output(output);
+    }
 
     emit this->finished();
 }
+
+// ################################################################## //
 
 /*
 Constructor: Builds the popup for the Laser::LineEdit
@@ -1042,6 +1101,8 @@ void Popup::updateRect(const QWidget* widget){
     this->max_size = size;
 }
 
+// ################################################################## //
+
 /*
 Constructor: Constructs a Completer for Fluor::LineEdit object.
     :param parent: pointer to parent widget
@@ -1052,8 +1113,8 @@ Completer::Completer(QWidget* parent) :
     mouse_pressed(false),
     select_active_row(true),
     popup_max_size(),
-    //model_list({QString{"No Data Loaded"}}),
-    model_list({QString{"PE"}, QString{"APC"}, QString{"FITC"}, QString{"BUV395"}, QString{"BUV560"}, QString{"BUV737"}, QString{"BV410"}, QString{"BV650"}, QString{"BV735"}, QString{"BV785"}}),
+    default_items({QString{"No Data Loaded"}}),
+    //default_items({QString{"PE"}, QString{"APC"}, QString{"FITC"}, QString{"BUV395"}, QString{"BUV560"}, QString{"BUV737"}, QString{"BV410"}, QString{"BV650"}, QString{"BV735"}, QString{"BV785"}}),
     completion("")
 {
     this->setWidget(parent);
@@ -1062,20 +1123,26 @@ Completer::Completer(QWidget* parent) :
     this->setMaxVisibleItems(50);
     this->setWrapAround(true);
 
-    // Build & set model
-    QStandardItemModel* model_standarditem = new QStandardItemModel{this};
-    for(int i=0; i<this->model_list.length(); ++i){
-        QStandardItem *item = new QStandardItem(QString(this->model_list[i]));
-        model_standarditem->appendRow(item);
-    }
-    this->setModel(model_standarditem);
-    
-    // Setup popup & make sure the parent of completer inherits a QWidget
-    // Needs a model to be set first, to function correctly
-    this->popup();
+    // Build & set model (also setups the popup)
+    this->buildModel(this->default_items);
 
     // Need to use old-style connect to connect during runtime to the Q_PRIVATE_SLOT(_q_complete)
     QObject::connect(this, SIGNAL(_q_complete(QModelIndex)), static_cast<QCompleter*>(this), SLOT(_q_complete(QModelIndex)));
+}
+
+/*
+Builds and set the model based upon the input vector
+    :param items: the items names to build the model from
+*/
+void Completer::buildModel(const std::vector<QString>& items){
+    // Build new model (and make the QCompleter it's parent. Necessary for lifetime management)
+    QStandardItemModel* model_standarditem = new QStandardItemModel{this};
+    for(std::size_t i=0; i<items.size(); ++i){
+        QStandardItem *item = new QStandardItem(items[i]);
+        model_standarditem->appendRow(item);
+    }
+    this->setModel(model_standarditem);
+    this->popup()->hide();
 }
 
 /*

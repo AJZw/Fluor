@@ -1,13 +1,13 @@
 /**** General **************************************************************
-** Version:    v0.9.1
-** Date:       2019-03-03
+** Version:    v0.9.3
+** Date:       2019-04-23
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
 ***************************************************************************/
 
 /**** LGPLv3 License *******************************************************
-** fluor_scrollarea.h is part of Fluor
+** graph_controller.h is part of Fluor
 **        
 ** Fluor is free software: you can redistribute it and/or
 ** modify it under the terms of the Lesser GNU General Public License as
@@ -24,32 +24,42 @@
 ***************************************************************************/
 
 /**** DOC ******************************************************************
-** The Fluorophore menu scroll area
+** Controller of the  
 **
-** :class: ScrollArea
-** A ScrollArea for showing buttons
-**
+** :class: Controller
+** Controls the signal and slots of a graph widget
+** 
 ***************************************************************************/
 
-#ifndef FLUOR_SCROLLAREA_H
-#define FLUOR_SCROLLAREA_H
+#ifndef GRAPH_CONTROLLER_H
+#define GRAPH_CONTROLLER_H
 
-#include <QScrollArea>
+#include <QWidget>
+#include <QPaintEvent>
 
-namespace Fluor {
+namespace Graph {
 
-class ScrollArea : public QScrollArea {
+class Controller : public QWidget {
     Q_OBJECT
 
     public:
-        explicit ScrollArea(QWidget* parent=nullptr);
-        ScrollArea(const ScrollArea &obj) = delete;
-        ScrollArea& operator=(const ScrollArea &obj) = delete;
-        ScrollArea(ScrollArea&&) = delete;
-        ScrollArea& operator=(ScrollArea&&) = delete;
-        ~ScrollArea() = default;
+        explicit Controller(QWidget* parent = nullptr);
+        Controller(const Controller &obj) = delete;
+        Controller& operator=(const Controller &obj) = delete;
+        Controller(Controller&&) = delete;
+        Controller& operator=(Controller&&) = delete;
+        ~Controller() = default;
+        
+        void paintEvent(QPaintEvent* event);
+
+    signals:
+        void sendGlobalEvent(QEvent* event);
+
+    public slots:
+        void receiveGlobalEvent(QEvent* event);
+
 };
 
-} // Fluor namespace
+} // Bar namespace
 
-#endif //FLUOR_SCROLLAREA_H
+#endif // GRAPH_CONTROLLER_H

@@ -42,7 +42,9 @@
 #include <QStringList>
 #include <QEvent>
 #include <QListView>
+#include <set>
 #include "data_fluorophores.h"
+#include "cache.h"
 
 namespace Fluor {
 
@@ -66,6 +68,9 @@ class LineEdit : public QLineEdit {
 
     private:
         QCompleter* _completer;
+        std::unordered_map<QString, QString> lookup_id;
+        std::unordered_map<QString, QStringList> lookup_names;
+        std::vector<QString> incache_names;                         // Stores fluorophore names already in cache (need to be disabled in the completer)
 
         const bool inline_selection;
         int cursor_pos;                 // Cursor position
@@ -94,18 +99,19 @@ class LineEdit : public QLineEdit {
         bool eventFilter(QObject *obj, QEvent *event) override;
 
     signals:
-        void highlightPopup(const QString entry);   // emits upon selecting a completion
-        void output(QStringList outputs);           // emits output QStringList
-        void finished();                            // emits upon finishing an output
-        //void requestDataFluorophores();
-        //void fluorophores(const QStringList fluorophores);
+        void highlightPopup(const QString entry);               // emits upon selecting a completion
+        void output(std::set<Data::FluorophoreID>& output);     // emits output set
+        void finished();                                        // emits upon finishing an output
     
     public slots:
         void showButton();
         void hideButton();
         void unfocus(QEvent* event);
+
         void reloadSize(const QWidget* widget=nullptr);
-        void reloadCompleterModel(const DataFluorophores* data=nullptr);
+        void reloadData(const Data::Fluorophores& data);
+        void sync(const std::vector<Cache::CacheID>& input);
+
         void updatePopupHighlighted(const QString& text);
         void updatePopupActivated(const QString& text);
         void updatePopupDblClicked(const QString& text);
@@ -161,7 +167,10 @@ class Completer : public QCompleter {
         Completer& operator=(Completer&&) = delete;
         ~Completer() = default;
 
+        void buildModel(const std::vector<QString>& items);
+
         const QString& getCompletion() const;
+
         Fluor::Popup* popup();
         void setPopup(Fluor::Popup* popup);
         void showPopup();
@@ -172,7 +181,7 @@ class Completer : public QCompleter {
         bool mouse_pressed;
         bool select_active_row;
         QRect popup_max_size;
-        QStringList model_list;
+        const std::vector<QString> default_items;
         QString completion;
     
     signals:

@@ -35,6 +35,9 @@
 #define MAIN_CONTROLLER_H
 
 #include <QMainWindow>
+#include <set>
+#include "data_fluorophores.h"
+#include "cache.h"
 
 namespace Main {
 
@@ -49,8 +52,6 @@ class Controller : public QMainWindow {
         Controller& operator=(Controller&&) = delete;
         ~Controller() = default;
 
-    //private slots:
-        
     private:
         QString window_title;
         int window_width;
@@ -61,11 +62,25 @@ class Controller : public QMainWindow {
     public slots:
         void receiveGlobalEvent(QEvent* event);
 
+        void receiveLaser(int wavelength);
+        void receiveCacheAdd(std::set<Data::FluorophoreID>& fluorophores);
+        void receiveCacheRemove(std::set<Data::FluorophoreID>& fluorophores);
+
+        void receiveSyncFluor(const std::vector<Cache::CacheID>& input);
+
     signals:
         void clicked();
         void resized(const QWidget* widget);
         void moved(const QWidget* widget);
+
         void sendGlobalEvent(QEvent* event);
+        void sendData(const Data::Fluorophores& data);
+
+        void sendLaser(int wavelength);
+        void sendCacheAdd(std::set<Data::FluorophoreID>& fluorophores);
+        void sendCacheRemove(std::set<Data::FluorophoreID>& fluorophores);
+
+        void sendSyncFluor(const std::vector<Cache::CacheID>& input);
 };
 
 } // Main namespace

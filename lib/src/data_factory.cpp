@@ -13,10 +13,12 @@
 #include <QDir>
 #include <QDebug>
 
+namespace Data {
+
 /*
 Constructor - Factory that checks path validity upon construction and returns QSettings
 */
-DataFactory::DataFactory() :
+Factory::Factory() :
     file_settings("data/settings.ini"),
     file_styles("data/styles.ini"),
     file_cytometers("data/cytometers.ini"),
@@ -34,11 +36,11 @@ DataFactory::DataFactory() :
     this->path_fluorophores = QDir(this->path_exe).filePath(this->file_fluorophores);
 
     // Check path validity
-    this->valid_settings = DataFactory::exists(this->path_settings);
-    this->valid_defaults = DataFactory::exists(this->path_defaults);
-    this->valid_styles = DataFactory::exists(this->path_styles);
-    this->valid_cytometers = DataFactory::exists(this->path_cytometers);
-    this->valid_fluorophores = DataFactory::exists(this->path_fluorophores);
+    this->valid_settings = Factory::exists(this->path_settings);
+    this->valid_defaults = Factory::exists(this->path_defaults);
+    this->valid_styles = Factory::exists(this->path_styles);
+    this->valid_cytometers = Factory::exists(this->path_cytometers);
+    this->valid_fluorophores = Factory::exists(this->path_fluorophores);
 
     // Here you could check for file validity
 
@@ -60,7 +62,7 @@ Constructor - builds factory with custom relative paths to the data files
     :param cytometers: relative path to cytometers file
     :param fluorophores: relative path to fluorophores file
 */
-DataFactory::DataFactory(
+Factory::Factory(
     const QString settings,
     const QString styles,
     const QString cytometers,
@@ -82,11 +84,11 @@ DataFactory::DataFactory(
     this->path_fluorophores = QDir(this->path_exe).filePath(this->file_fluorophores);
 
     // Check path validity
-    this->valid_settings = DataFactory::exists(this->path_settings);
-    this->valid_defaults = DataFactory::exists(this->path_defaults);
-    this->valid_styles = DataFactory::exists(this->path_styles);
-    this->valid_cytometers = DataFactory::exists(this->path_cytometers);
-    this->valid_fluorophores = DataFactory::exists(this->path_fluorophores);
+    this->valid_settings = Factory::exists(this->path_settings);
+    this->valid_defaults = Factory::exists(this->path_defaults);
+    this->valid_styles = Factory::exists(this->path_styles);
+    this->valid_cytometers = Factory::exists(this->path_cytometers);
+    this->valid_fluorophores = Factory::exists(this->path_fluorophores);
 
     // Here you could check for file validity
 
@@ -105,7 +107,7 @@ DataFactory::DataFactory(
 Returns whether the SettingsFactory is valid for further use. Aka whether settings.ini could be found.
     :returns bool: valid (true) or not (false)
 */
-bool DataFactory::isValid() const {
+bool Factory::isValid() const {
     return !this->error_fatal;
 }
 
@@ -113,14 +115,14 @@ bool DataFactory::isValid() const {
 Returns whether the SettingsFactory is in warning state, aka whether unessential settings are missing.
     :returns bool: warning (true) or not (false)
 */
-bool DataFactory::isWarning() const {
+bool Factory::isWarning() const {
     return this->error_warning;
 }
 
 /*
 Show SettingsError/SettingsWarning based on file validity
 */
-void DataFactory::execMessages() const {
+void Factory::execMessages() const {
     if(this->error_fatal){
         QString message = "";
         if(!this->valid_settings){
@@ -130,7 +132,7 @@ void DataFactory::execMessages() const {
             message.append("Defaults file could not be found.\n");
         }
         message.append("\nSpectral viewer will now terminate.");
-        DataError(message).exec();
+        Data::Error(message).exec();
     }else if(this->error_warning){
         QString message = "";
         if(!this->valid_styles){
@@ -143,7 +145,7 @@ void DataFactory::execMessages() const {
             message.append("Fluorophores data could not be found.\n");
         }
         message.append("\nSpectral viewer will continue in limited mode.");
-        DataWarning(message).exec();
+        Data::Warning(message).exec();
     }
 }
 
@@ -151,7 +153,7 @@ void DataFactory::execMessages() const {
 Getter for path_settings
     :returns: absolute path to the settings source file
 */
-QString DataFactory::getPathSettings() const {
+QString Factory::getPathSettings() const {
     return this->path_settings;
 }
 
@@ -159,7 +161,7 @@ QString DataFactory::getPathSettings() const {
 Getter for path_defaults
     :returns: absolute path to the default settings source file
 */
-QString DataFactory::getPathDefaults() const {
+QString Factory::getPathDefaults() const {
     return this->path_defaults;
 }
 
@@ -167,7 +169,7 @@ QString DataFactory::getPathDefaults() const {
 Getter for path_styles
     :returns: absolute path to the styles source file
 */
-QString DataFactory::getPathStyles() const {
+QString Factory::getPathStyles() const {
     return this->path_styles;
 }
 
@@ -175,7 +177,7 @@ QString DataFactory::getPathStyles() const {
 Getter for path_cytometers
     :returns: absolute path to the cytometers source file
 */
-QString DataFactory::getPathCytometers() const {
+QString Factory::getPathCytometers() const {
     return this->path_cytometers;
 }
 
@@ -183,47 +185,58 @@ QString DataFactory::getPathCytometers() const {
 Getter for path_fluorophores
     :returns: absolute path to the fluorophores source file
 */
-QString DataFactory::getPathFluorophores() const {
+QString Factory::getPathFluorophores() const {
     return this->path_fluorophores;
 }
 
 /*
 Builds the QSettings as specified by the parameter
-    :param settings: a string that specifies the settings file to return
+    :param settings: a enum specifying the settings type
     :returns: a QSettings object
 */
-std::unique_ptr<QSettings> DataFactory::get(const QString& settings) const {
-    if(settings == "settings"){
+std::unique_ptr<QSettings> Factory::get(const Factory::type type) const {
+    switch(type){
+    case Factory::settings:{
         if(this->valid_settings){
             return std::make_unique<QSettings>(this->path_settings, QSettings::IniFormat);
         }else{
             qFatal("SettingsFactory::get(): requested invalid data source");
         }
-    }else if(settings == "defaults"){
+        break;
+    }
+    case Factory::defaults:{
         if(this->valid_defaults){
             return std::make_unique<QSettings>(this->path_defaults, QSettings::IniFormat);
         }else{
             qFatal("SettingsFactory::get(): requested invalid data source");
         }
-    }else if(settings == "styles"){
+        break;
+    }
+    case Factory::styles:{
         if(this->valid_styles){
             return std::make_unique<QSettings>(this->path_styles, QSettings::IniFormat);
         }else{
             qFatal("SettingsFactory::get(): requested invalid data source");
         }
-    }else if(settings == "cytometers"){
+        break;
+    }
+    case Factory::cytometers:{
         if(this->valid_cytometers){
             return std::make_unique<QSettings>(this->path_cytometers, QSettings::IniFormat);
         }else{
             qFatal("SettingsFactory::get(): requested invalid data source");
         }
-    }else if(settings == "fluorophores"){
+        break;
+    }
+    case Factory::fluorophores:{
         if(this->valid_fluorophores){
             return std::make_unique<QSettings>(this->path_fluorophores, QSettings::IniFormat);
         }else{
             qFatal("SettingsFactory::get(): requested invalid data source");
         }
-    }else{
+        break;
+    }
+    default:
         qFatal("SettingsFactory::get(): unknown settings object, cannot return a QSetting");
     }
     return(std::make_unique<QSettings>());
@@ -233,7 +246,7 @@ std::unique_ptr<QSettings> DataFactory::get(const QString& settings) const {
 (Static) Convenience function: checks if file exists
     :returns [bool]: whether file exists or not
 */
-bool DataFactory::exists(const QString& path_file){
+bool Factory::exists(const QString& path_file){
     bool file_exists = QDir().exists(path_file);
     return file_exists;
 }
@@ -241,7 +254,7 @@ bool DataFactory::exists(const QString& path_file){
 /*
 QMessageBox for showing a standard fatal error message
 */
-DataError::DataError(){
+Error::Error(){
     this->setText("Spectral Viewer encountered a fatal error");
     this->setInformativeText("Spectral Viewer will now close.");
     this->setStandardButtons(QMessageBox::Ok);
@@ -253,7 +266,7 @@ DataError::DataError(){
 QMessageBox for showing a customized fatal error message
     :param message: information message to show
 */
-DataError::DataError(const QString& message){
+Error::Error(const QString& message){
     this->setText("Spectral Viewer encountered a fatal error.");
     this->setInformativeText(message);
     this->setStandardButtons(QMessageBox::Ok);
@@ -264,7 +277,7 @@ DataError::DataError(const QString& message){
 /*
 QMessageBox for showing a standard warning error message
 */
-DataWarning::DataWarning(){
+Warning::Warning(){
     this->setText("Spectral Viewer encountered a problem.");
     this->setInformativeText("Databases are not found. Data may be missing.");
     this->setStandardButtons(QMessageBox::Ok);
@@ -276,10 +289,12 @@ DataWarning::DataWarning(){
 QMessageBox for showing a customized warning error message
     :param message: information message to show
 */
-DataWarning::DataWarning(const QString& message){
+Warning::Warning(const QString& message){
     this->setText("Spectral Viewer encountered a problem.");
     this->setInformativeText(message);
     this->setStandardButtons(QMessageBox::Ok);
     this->setDefaultButton(QMessageBox::Ok);
     this->setIcon(QMessageBox::Warning);
 }
+
+}   // Data namespace

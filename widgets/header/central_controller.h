@@ -37,7 +37,9 @@
 
 #include <QWidget>
 #include <QPaintEvent>
+#include <set>
 #include "data_fluorophores.h"
+#include "cache.h"
 
 namespace Central {
 
@@ -55,13 +57,25 @@ class Controller : public QWidget {
 
     public slots:
         void receiveGlobalEvent(QEvent* event);
-        void reloadData(const DataFluorophores* data=nullptr);
-        void reloadGlobalSize(const QWidget* widget=nullptr);
+        void receiveData(const Data::Fluorophores& data);
+        void receiveGlobalSize(const QWidget* widget=nullptr);
+
+        void receiveCacheAdd(std::set<Data::FluorophoreID>& fluorophores);
+        void receiveCacheRemove(std::set<Data::FluorophoreID>& fluorophores);
+        void receiveLaser(int wavelength);
+
+        void receiveSyncFluor(const std::vector<Cache::CacheID>& input);
 
     signals:
         void sendGlobalEvent(QEvent* event); 
-        void reloadedGlobalSize(const QWidget* widget=nullptr);
-        void reloadedData(const DataFluorophores* data=nullptr);
+        void sendGlobalSize(const QWidget* widget=nullptr);
+        void sendData(const Data::Fluorophores& data);
+
+        void sendCacheAdd(std::set<Data::FluorophoreID>& fluorophores);
+        void sendCacheRemove(std::set<Data::FluorophoreID>& fluorophores);
+        void sendLaser(int wavelength);
+
+        void sendSyncFluor(const std::vector<Cache::CacheID>& input);
 
 };
 

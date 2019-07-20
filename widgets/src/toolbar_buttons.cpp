@@ -10,6 +10,10 @@
 #include <QSize>
 #include <QStyle>
 #include <QAbstractButton>
+
+#include <QFont>
+#include <QFontMetrics>
+
 #include <QDebug>
 
 namespace Bar {
@@ -69,7 +73,6 @@ QSize SquarePushButton::minimumSizeHint() const {
 
     return std::move(size);
 }
-
 
 /*
 Set tooltip based on tooltip_disabled/active/inactive strings
@@ -134,7 +137,7 @@ void SquarePushButton::toggleActive(bool checked){
 Slot: set 'active' state of the button and changes icon
 */
 void SquarePushButton::setActive(const bool active){
-    if(this->property("active") == active){
+    if(this->property("active").toBool() == active){
         return;
     }
     this->setProperty("active", active);
@@ -153,7 +156,13 @@ IconPushButton::IconPushButton(QWidget* parent) :
     SquarePushButton(parent)
 {
     this->setProperty("active", true);
-    this->setIconSize(QSize(21, 21));
+
+    // get font size (which is DPI scaled) and calculate icon size based on that
+    QFontMetrics font_metric = QFontMetrics(this->font());
+    int height = font_metric.height();
+    int icon_size = height + 8;     // atleast this is the case on Windows10
+
+    this->setIconSize(QSize(icon_size, icon_size));
     this->setContentsMargins(0, 0, 0, 0);
 }
 

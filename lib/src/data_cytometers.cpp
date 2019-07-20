@@ -10,20 +10,22 @@
 
 #include <QDebug>
 
+namespace Data {
+
 /*
 Constructor: Construct the fluorophore data types
 */
-DataCytometers::DataCytometers(){}
+Cytometers::Cytometers(){}
 
 /*
 Loads the cytometers QSettings
 Note: do not call this if DataFactory 'cytometers' is invalid, that causes the factory to qFatal()
     :param data: the DataFactory to request the source data from
 */
-void DataCytometers::load(DataFactory& data){
+void Cytometers::load(const Data::Factory& data){
     // Retrieve QSetting
     std::unique_ptr<QSettings> cytometers;
-    cytometers = data.get("cytometers");
+    cytometers = data.get(Data::Factory::cytometers);
     
     // Sets the loaded flag
     data_loaded = true;
@@ -32,7 +34,7 @@ void DataCytometers::load(DataFactory& data){
 /*
 Unallocates memory of all loaded data
 */
-void DataCytometers::unload(){
+void Cytometers::unload(){
     data_loaded = false;
 }
 
@@ -40,7 +42,7 @@ void DataCytometers::unload(){
 Returns whether DataCytometers is valid (has loaded cytometer data)
     :returns: validity
 */
-bool DataCytometers::isValid() const {
+bool Cytometers::isValid() const {
     if(this->data_loaded){
         return true;
     }else{
@@ -48,7 +50,7 @@ bool DataCytometers::isValid() const {
     }
 }
 
-
+} // Data namespace
 
 /*
 class Data():

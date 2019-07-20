@@ -14,6 +14,9 @@ set(CMAKE_AUTORCC ON)
 
 # Set executable
 add_executable(fluor
+    widgets/header/cache.h
+    widgets/src/cache.cpp
+
     widgets/src/main.cpp
     widgets/header/application.h
     widgets/src/application.cpp
@@ -35,8 +38,6 @@ add_executable(fluor
     widgets/src/fluor_lineedit.cpp
     widgets/header/fluor_buttons.h
     widgets/src/fluor_buttons.cpp
-    widgets/header/fluor_scrollarea.h
-    widgets/src/fluor_scrollarea.cpp
     
     widgets/header/laser_controller.h
     widgets/src/laser_controller.cpp
@@ -44,6 +45,17 @@ add_executable(fluor
     widgets/src/laser_lineedit.cpp
     widgets/header/laser_buttons.h
     widgets/src/laser_buttons.cpp
+
+    widgets/header/graph_controller.h
+    widgets/src/graph_controller.cpp
+    widgets/header/graph_graphicsscene.h
+    widgets/src/graph_graphicsscene.cpp
+    widgets/header/graph_settings.h
+    widgets/src/graph_settings.cpp
+    widgets/header/graph_graphicsview.h
+    widgets/src/graph_graphicsview.cpp
+    widgets/header/graph_graphicsitems.h
+    widgets/src/graph_graphicsitems.cpp
 
     resources/resources.qrc
 )
@@ -59,6 +71,16 @@ target_compile_options(fluor PRIVATE
     -Wsign-compare
     -Wsign-conversion
     -Wsign-promo
+    -Wnon-virtual-dtor
+    -Wold-style-cast
+    -Wunused
+    -Woverloaded-virtual
+    -Wnull-dereference
+    -Wdouble-promotion
+    -Wduplicated-cond
+    -Wduplicated-branches
+    -Wlogical-op
+    #-Wuseless-cast
 )
 
 set_target_properties(fluor PROPERTIES
