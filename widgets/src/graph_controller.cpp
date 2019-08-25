@@ -40,7 +40,8 @@ Controller::Controller(QWidget* parent) :
 
     // Connect
     QObject::connect(graphics_view, &Graph::GraphicsView::resizedView, graphics_scene, Graph::GraphicsScene::resizeScene);
-
+    QObject::connect(this, &Graph::Controller::sendCacheSync, graphics_scene, &Graph::GraphicsScene::sync);
+    QObject::connect(this, &Graph::Controller::sendCacheUpdate, graphics_scene, &Graph::GraphicsScene::update);
 
     controller_layout->addWidget(graphics_view);
 }
@@ -64,7 +65,18 @@ void Controller::receiveGlobalEvent(QEvent* event){
     emit this->sendGlobalEvent(event);
 }
 
+/* 
+Slot: receives cache sync events for the graph
+*/
+void Controller::receiveCacheSync(const std::vector<Cache::CacheID>& cache_state){
+    emit this->sendCacheSync(cache_state);
+}
 
-
+/* 
+Slot: receives cache update events for the graph
+*/
+void Controller::receiveCacheUpdate(const std::vector<Cache::CacheID>& cache_state){
+    emit this->sendCacheUpdate(cache_state);
+}
 
 } // Fluor namespace

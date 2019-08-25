@@ -26,9 +26,9 @@
 /**** DOC ******************************************************************
 ** Controller of central widget
 **
-** :class: Controller
-** Controls the signal and slots of the laser selection/fluorophore selection/
-** toolbar/graph widgets
+** :class: Central::Controller
+** Controls the central_widget layout and connects the signals and slots for
+** the laser menu, toolbar buttons, fluorophore menu, and graphs
 ** 
 ***************************************************************************/
 
@@ -60,22 +60,28 @@ class Controller : public QWidget {
         void receiveData(const Data::Fluorophores& data);
         void receiveGlobalSize(const QWidget* widget=nullptr);
 
+        void receiveCacheRequestUpdate();
         void receiveCacheAdd(std::set<Data::FluorophoreID>& fluorophores);
-        void receiveCacheRemove(std::set<Data::FluorophoreID>& fluorophores);
-        void receiveLaser(int wavelength);
+        void receiveCacheRemove(std::vector<Data::FluorophoreID>& fluorophores);
 
-        void receiveSyncFluor(const std::vector<Cache::CacheID>& input);
+        void receiveCacheSync(const std::vector<Cache::CacheID>& cache_state);
+        void receiveCacheUpdate(const std::vector<Cache::CacheID>& cache_state);
+
+        void receiveLaser(int wavelength);
 
     signals:
         void sendGlobalEvent(QEvent* event); 
         void sendGlobalSize(const QWidget* widget=nullptr);
         void sendData(const Data::Fluorophores& data);
 
+        void sendCacheRequestUpdate();
         void sendCacheAdd(std::set<Data::FluorophoreID>& fluorophores);
-        void sendCacheRemove(std::set<Data::FluorophoreID>& fluorophores);
-        void sendLaser(int wavelength);
+        void sendCacheRemove(std::vector<Data::FluorophoreID>& fluorophores);
 
-        void sendSyncFluor(const std::vector<Cache::CacheID>& input);
+        void sendCacheSync(const std::vector<Cache::CacheID>& cache_state);
+        void sendCacheUpdate(const std::vector<Cache::CacheID>& cache_state);
+        
+        void sendLaser(int wavelength);
 
 };
 

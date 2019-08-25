@@ -24,9 +24,9 @@
 ***************************************************************************/
 
 /**** DOC ******************************************************************
-** Controller of the  
+** Controller of a graph
 **
-** :class: Controller
+** :class: Graph::Controller
 ** Controls the signal and slots of a graph widget
 ** 
 ***************************************************************************/
@@ -34,6 +34,7 @@
 #ifndef GRAPH_CONTROLLER_H
 #define GRAPH_CONTROLLER_H
 
+#include <cache.h>
 #include <QWidget>
 #include <QPaintEvent>
 
@@ -54,12 +55,16 @@ class Controller : public QWidget {
 
     signals:
         void sendGlobalEvent(QEvent* event);
+        void sendCacheSync(const std::vector<Cache::CacheID>& cache_state);
+        void sendCacheUpdate(const std::vector<Cache::CacheID>& cache_state);
 
     public slots:
         void receiveGlobalEvent(QEvent* event);
+        void receiveCacheSync(const std::vector<Cache::CacheID>& cache_state);
+        void receiveCacheUpdate(const std::vector<Cache::CacheID>& cache_state);
 
 };
 
-} // Bar namespace
+} // Graph namespace
 
 #endif // GRAPH_CONTROLLER_H

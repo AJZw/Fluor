@@ -26,7 +26,7 @@
 /**** DOC ******************************************************************
 ** Controller of the toolbar
 **
-** :class: Controller
+** :class: Bar::Controller
 ** Controls the signal and slots of the toolbar widgets
 ** 
 ***************************************************************************/

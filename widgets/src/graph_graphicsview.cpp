@@ -22,10 +22,7 @@ GraphicsView::GraphicsView(QGraphicsScene* scene, QWidget* parent) :
     this->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     this->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
-    //this->installEventFilter(this);
-
-    
-
+    this->installEventFilter(this);
 
 }
 
@@ -43,18 +40,13 @@ void GraphicsView::resizeEvent(QResizeEvent* event){
     QGraphicsView::resizeEvent(event);
 }
 
-
-/*
 bool GraphicsView::eventFilter(QObject* obj, QEvent* event){
-    if(event->type() == QEvent::Resize){
-        QResizeEvent* event_resize = static_cast<QResizeEvent*>(event);
-        qDebug() << event_resize->size();
-        emit this->resizedView(this->mapToScene(this->viewport()->geometry()).boundingRect());
-        return false;
+    if(event->type() == QEvent::PaletteChange){
+        qDebug() << "GV->palettechange";
     }
     return QGraphicsView::eventFilter(obj, event);
 }
-*/
+
 
 
 } // Graph namespace

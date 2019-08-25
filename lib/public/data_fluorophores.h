@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.1
-** Date:       2018-12-08
+** Version:    v0.9.4
+** Date:       2019-07-21
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -78,11 +78,12 @@ class DATALIB_EXPORT Fluorophores {
         void unload();
         bool isValid() const;
 
-        Data::Spectrum getSpectrum(const Data::Factory& data, const QString& id) const;
-        Data::CacheSpectrum getCacheSpectrum(const Data::Factory& data, const QString& id, const QString& name, unsigned int index) const;
         const std::vector<QString>& getFluorName() const;
         const std::unordered_map<QString, QString>& getFluorID() const;
         const std::unordered_map<QString, QStringList>& getFluorNames() const;
+
+        Data::Spectrum getSpectrum(const Data::Factory& data, const QString& id) const;
+        Data::CacheSpectrum getCacheSpectrum(const Data::Factory& data, const QString& id, unsigned int index) const;
 
     private:
         bool data_loaded;
@@ -90,7 +91,8 @@ class DATALIB_EXPORT Fluorophores {
         std::unordered_map<QString, QString> fluor_id;          // unordered map, each fluorophore's name corresponding fluorophore ID (for ID/spectrum lookup)
         std::unordered_map<QString, QStringList> fluor_names;   // unordered map, each fluorophore's name corresponding to all name variants (for lineedit item en/disabling) 
     
-        static std::vector<double> toStdVector(const QStringList& stringlist);
+        static Data::Polygon toPolygon(const QStringList& list_x, const QStringList& list_y);
+
         static void qDebugMap(const std::unordered_map<QString, QString>& map);
         static void qDebugMap(const std::unordered_map<QString, QStringList>& map);
         static void qDebugMap(const std::unordered_map<QString, std::vector<double>>& map);

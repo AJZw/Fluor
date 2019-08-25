@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.1
-** Date:       2018-12-08
+** Version:    v0.9.4
+** Date:       2019-07-21
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -26,17 +26,17 @@
 /**** DOC ******************************************************************
 ** The spectrum objects
 **
-** :class: DataColor
-** Struct that contains the red, green, blue values of a color
-** 
-** :class: DataMeta
+** :class: Data::Meta
 ** Struct for Spectrum meta data
 **
-** :class: DataSpectrum
-** Object that contains the spectrum data of a fluorophore
+** :class: Data::Polygon
+** QPolygonF curve container
 **
-** :class: CacheSpectrum
-** Object container for spectrum and meta data for use in cache
+** :class: Data::Spectrum
+** Container for excitation and emission curves (Data::Polygon) and ID
+**
+** :class: Data::CacheSpectrum
+** Container for a Data::Spectrum and global parameters
 ** 
 ***************************************************************************/
 
@@ -47,18 +47,12 @@
 
 #include <QString>
 #include <QStringList>
-#include <vector>
+#include <QPolygonF>
+#include <QColor>
+#include <QRectF>
+#include <QDebug>
 
 namespace Data {
-
-class DATALIB_EXPORT Color {
-    public:
-        Color();
-        Color(int red, int green, int blue);
-        int red;
-        int green;
-        int blue;
-};
 
 class DATALIB_EXPORT Meta {
     public:
@@ -68,78 +62,126 @@ class DATALIB_EXPORT Meta {
         int emission_max;
 };
 
+class DATALIB_EXPORT Polygon {
+    public:
+        Polygon();
+        Polygon(double x_min, double x_max, double y_min, double y_max, QPolygonF curve);
+        Polygon(const Polygon& other);                  // Non default - forces deepcopy of QPolygonF
+        Polygon& operator=(const Polygon& other);       // Non default - forces deepcopy of QPolygonF
+        Polygon(Polygon&& other) = default;
+        Polygon& operator=(Polygon&& other) = default;
+        ~Polygon() = default;
+
+        friend QDebug operator<<(QDebug stream, const Polygon& object){return stream << "Data::Polygon{" << object.x_min << "-" << object.x_max << ":" << object.curve[0] << "-" << object.curve[object.curve.size() - 1] << "}";};
+        
+        bool empty() const;
+        qreal intensityAt(double wavelength, double cutoff=0.0) const;
+        qreal intensityAtIter(double wavelength, double cutoff=0.0) const;
+        double intensityMax() const;
+
+        const QColor& color() const;
+        void setColor();
+        void setColor(double wavelength);
+        void setColor(QColor color);
+        static QColor visibleSpectrum(const double wavelength);
+
+        QPolygonF& polygon();
+
+        // Polygon scaling/moving - note: the cache is supposed to keep unmodified originals
+        void scale(const Polygon& base, const QRectF& size, const double xg_start, const double xg_end, const double yg_start, const double yg_end, const qreal intensity=1.0);
+        void copyCurve(const Polygon& base);
+        void closeCurve(const QRectF& size);
+
+    private:
+        double x_min;
+        double x_max;
+        double y_min;
+        double y_max;
+        QColor line_color;
+        QPolygonF curve;
+};
+
+// Note: polygon_emission_fill is always instantiated as an empty object to save space. Scale will auto construct the fill curve data
 class DATALIB_EXPORT Spectrum {
     public:
-        Spectrum(QString fluor_id);
-        Spectrum(
-            QString fluor_id,
-            std::vector<double> excitation_wavelength, 
-            std::vector<double> excitation_intensity, 
-            std::vector<double> emission_wavelength,
-            std::vector<double> emission_intensity
-        );
+        Spectrum(QString id);
+        Spectrum(QString id, Polygon excitation=Polygon(), Polygon emission=Polygon());
+        Spectrum(const Spectrum&) = default;
+        Spectrum& operator=(const Spectrum&) = default;
+        Spectrum(Spectrum&&) = default;
+        Spectrum& operator=(Spectrum&&) = default;
+        ~Spectrum() = default;
+
+        friend QDebug operator<<(QDebug stream, const Spectrum& object){return stream << "{" << object.fluor_id << object.polygon_excitation << object.polygon_emission << "}";};
 
         QString id() const;
         bool isValid() const;
-        void setToZero();
 
-        void setExcitation(const std::vector<double> wavelength, const std::vector<double> intensity);
-        void setEmission(const std::vector<double> wavelength, const std::vector<double> intensity);
+        const Data::Polygon& excitation() const;
+        const Data::Polygon& emission() const;
+        const Data::Polygon& emission_fill() const;
+        void setExcitation(Polygon polygon);
+        void setEmission(Polygon polygon);
 
-        // All further functions assume a valid object
-        // All the getters return a copy, maybe make the returns shared/unique_ptr?
-        // Copy return does enable placing on the stack
-        std::vector<double> getExcitationWavelength() const;
-        std::vector<double> getExcitationIntensity() const;
-        std::vector<double> getEmissionWavelength() const;
-        std::vector<double> getEmissionIntensity() const;
-        std::vector<double> getEmissionIntensity(const double intensity, const double cutoff=0.0) const ;
+        bool absorptionFlag() const;
+        bool twoPhotonFlag() const;
+        void setAbsorptionFlag(bool flag);
+        void setTwoPhotonFlag(bool flag);
 
-        double excitationAt(const int wavelength) const;
-        double emissionAt(const int wavelength) const;
+        qreal excitationAt(double wavelength, double cutoff=0.0) const;
+        qreal emissionAt(double wavelength, double cutoff=0.0) const;
         double excitationMax() const;
         double emissionMax() const;
 
-        static Data::Color color(const double wavelength); // instead of DataColor return QColor?
+        void scale(const Data::Polygon& base, const QRectF& size, const double xg_start, const double xg_end, const double yg_start, const double yg_end, const qreal intensity=1.0);
 
     private:
+        // Flags
+        bool absorption;
+        bool two_photon;
+
+        // ID
         const QString fluor_id;
 
-        std::vector<double> excitation_wavelength;
-        std::vector<double> excitation_intensity;
-        std::vector<double> emission_wavelength;
-        std::vector<double> emission_intensity;
-
-        // wavelength lookup can be further optimized by assuming that the stepsize is 1 -> you can calculate the exact index (wavelength - front())
-        static double intensityAt(const std::vector<double>& wavelength, const std::vector<double>& intensity, const int& at_wavelength);
+        // Line data
+        Data::Polygon polygon_excitation;
+        Data::Polygon polygon_emission;
 };
 
 // this class could inherit QObject to allow for signal/slot mechanics
 class DATALIB_EXPORT CacheSpectrum {
     public:
         CacheSpectrum(unsigned int index, Data::Spectrum spectrum);
-        CacheSpectrum(unsigned int index, QString fluor_name, Data::Spectrum spectrum);
-        CacheSpectrum(unsigned int index, QString fluor_name, Data::Spectrum spectrum, Data::Meta meta);
+        CacheSpectrum(unsigned int index, Data::Spectrum spectrum, Data::Meta meta);
+        CacheSpectrum(const CacheSpectrum&) = default;
+        CacheSpectrum& operator=(const CacheSpectrum&) = default;
+        CacheSpectrum(CacheSpectrum&&) = default;
+        CacheSpectrum& operator=(CacheSpectrum&&) = default;
+        ~CacheSpectrum() = default;
+
+        friend QDebug operator<<(QDebug stream, const CacheSpectrum& object){return stream << object.spectrum_data;};
 
     private:
-        unsigned int build_index;
+        // Index
+        unsigned int cache_index;
+
+        // Data
+        const Data::Spectrum spectrum_data;
+        const Data::Meta spectrum_meta;
+
+        // General plotting parameters
+        bool visible_excitation;
+        bool visible_emission;
+        double intensity_cutoff;
+
+        // Flags
         bool modified;
 
-        const Data::Spectrum fluor_spectrum;
-
-        QString fluor_name;
-        const Data::Meta fluor_meta;
-
-        bool fluor_visible_excitation;
-        bool fluor_visible_emission;
-        double fluor_intensity_cutoff;
-
     public:
+        QString id() const;
+
         unsigned int index() const;
         void setIndex(unsigned int index);
-        QString id() const;
-        QString name() const;
-        void setName(const QString& name);
 
         double excitationMax() const;
         double emissionMax() const;
@@ -152,12 +194,15 @@ class DATALIB_EXPORT CacheSpectrum {
         double intensityCutoff() const;
         void setIntensityCutoff(const double cutoff);
 
-        std::vector<double> getExcitationWavelength() const;
-        std::vector<double> getExcitationIntensity() const;
-        std::vector<double> getEmissionWavelength() const;
-        std::vector<double> getEmissionIntensity() const;
-        std::vector<double> getEmissionIntensity(const double intensity) const;
+        // Data::Spectrum getters, internally forwarded to the Data::Spectrum
+        const Data::Spectrum& spectrum() const;
+        Data::Spectrum copySpectrum() const;
 
+        bool absorptionFlag() const;
+        bool twoPhotonFlag() const;
+
+        qreal excitationAt(double wavelength) const;
+        qreal emissionAt(double wavelength) const;
 };
 
 } // Data namespace

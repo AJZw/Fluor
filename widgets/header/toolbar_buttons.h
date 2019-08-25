@@ -26,34 +26,34 @@
 /**** DOC ******************************************************************
 ** The bar menu buttons
 **
-** :class: SquarePushButton
+** :class: Bar::SquarePushButton
 ** A QPushButton that always has a square shape. Can be enabled/disabled and active/inactive
 **
-** :class: IconPushButton
+** :class: Bar::IconPushButton
 ** A SquarePushButton of a fixed icon size
 **
-** :class: LaserButton
+** :class: Bar::LaserButton
 ** Laser visibility toggle button, contains both enable/disable, active/inactive states
 **
-** :class: ExcitationPushButton
+** :class: Bar::ExcitationPushButton
 ** Excitation visibility toggle button, contains active/inactive states
 **
-** :class: EmissionButton
+** :class: Bar::EmissionButton
 ** Emission visibility toggle button, contains active/inactive states
 **
-** :class: DetectorButton
+** :class: Bar::DetectorButton
 ** Detector visibility toggle button, contains both enable/disable, active/inactive states
 **
-** :class: GraphAddButton
+** :class: Bar::GraphAddButton
 ** Button to add a graph, contains enable/disable states
 **
-** :class: GraphRemoveButton
+** :class: Bar::GraphRemoveButton
 ** Button to remove a graph, contains enable/disable states
 **
-** :class: LasersButton
+** :class: Bar::LasersButton
 ** Button to expand/reduce to amount of graphs, contains enable/disable, active/inactive states
 **
-** :class: Label
+** :class: Bar::Label
 ** A label to show information, contains enable/disable state
 **
 ***************************************************************************/
@@ -79,7 +79,7 @@ class SquarePushButton : public QPushButton {
         SquarePushButton& operator=(const SquarePushButton &obj) = delete;
         SquarePushButton(SquarePushButton&&) = delete;
         SquarePushButton& operator=(SquarePushButton&&) = delete;
-        ~SquarePushButton() = default;
+        virtual ~SquarePushButton() = default;
     
     private:
         QSize sizeHint() const;
@@ -114,8 +114,7 @@ class IconPushButton : public SquarePushButton {
         IconPushButton& operator=(const IconPushButton &obj) = delete;
         IconPushButton(IconPushButton&&) = delete;
         IconPushButton& operator=(IconPushButton&&) = delete;
-        ~IconPushButton() = default;
-
+        virtual ~IconPushButton() = default;
 };
 
 class LaserButton : public IconPushButton {
@@ -127,7 +126,7 @@ class LaserButton : public IconPushButton {
         LaserButton& operator=(const LaserButton& obj) = delete;
         LaserButton(LaserButton&&) = delete;
         LaserButton& operator=(LaserButton&&) = delete;
-        ~LaserButton() = default;
+        virtual ~LaserButton() = default;
 
     signals:
         void clicked(bool active);
@@ -142,7 +141,7 @@ class ExcitationButton : public IconPushButton {
         ExcitationButton& operator=(const ExcitationButton &obj) = delete;
         ExcitationButton(ExcitationButton&&) = delete;
         ExcitationButton& operator=(ExcitationButton&&) = delete;
-        ~ExcitationButton() = default;
+        virtual ~ExcitationButton() = default;
 };
 
 class EmissionButton : public IconPushButton {
@@ -154,7 +153,7 @@ class EmissionButton : public IconPushButton {
         EmissionButton& operator=(const EmissionButton &obj) = delete;
         EmissionButton(EmissionButton&&) = delete;
         EmissionButton& operator=(EmissionButton&&) = delete;
-        ~EmissionButton() = default;
+        virtual ~EmissionButton() = default;
 };
 
 class DetectorButton : public IconPushButton {
@@ -166,7 +165,7 @@ class DetectorButton : public IconPushButton {
         DetectorButton& operator=(const DetectorButton& obj) = delete;
         DetectorButton(DetectorButton&&) = delete;
         DetectorButton& operator=(const DetectorButton&&) = delete;
-        ~DetectorButton() = default; 
+        virtual ~DetectorButton() = default; 
 };
 
 class GraphAddButton : public IconPushButton {
@@ -178,7 +177,7 @@ class GraphAddButton : public IconPushButton {
         GraphAddButton& operator=(const GraphAddButton& obj) = delete;
         GraphAddButton(GraphAddButton&&) = delete;
         GraphAddButton& operator=(const GraphAddButton&&) = delete;
-        ~GraphAddButton() = default;
+        virtual ~GraphAddButton() = default;
     
     protected slots:
         virtual void setActive(const bool active) override;
@@ -193,7 +192,7 @@ class GraphRemoveButton : public IconPushButton {
         GraphRemoveButton& operator=(const GraphRemoveButton& obj) = delete;
         GraphRemoveButton(GraphRemoveButton&&) = delete;
         GraphRemoveButton& operator=(const GraphRemoveButton&&) = delete;
-        ~GraphRemoveButton() = default;
+        virtual ~GraphRemoveButton() = default;
     
     protected slots:
         virtual void setActive(const bool active) override;
@@ -208,7 +207,7 @@ class LasersButton : public IconPushButton {
         LasersButton& operator=(const LasersButton& obj) = delete;
         LasersButton(LasersButton&&) = delete;
         LasersButton& operator=(const LasersButton&&) = delete;
-        ~LasersButton() = default; 
+        virtual ~LasersButton() = default; 
 };
 
 class Label : public QLabel {

@@ -19,13 +19,6 @@
 namespace Bar {
 
 /*
-* > Fix icons >
-* >> Laser_off - should radiate white not gray
-* >> Make detector_none - with the white being gray
-*/
-
-
-/*
 Constructor: builds a square pushbutton
     :param parent: parent widget
 */

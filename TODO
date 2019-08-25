@@ -1,17 +1,11 @@
 TO DO:
 
 GENERAL:
-    > add code signing
+    > add code signing on MacOS
     >> Make licensing window
     >> Make about window
-    Implement the ASCII/CSV transformers
-    Interpolation
-    Normalize Y to 100%
-    Smoothen
-    Add Controller
-    Write UNIT tests -> some internal changes screwed up bar/laser with graph connections; testing prevents these errors
     Add a way to intercept all Errors and parse those to a popup window / possible?
-    Probably not, but implement logging as a better alternative!
+    Implement logging as a better alternative! -> capture QDebug() messages and output to window
     Including logging window! which is openable independently and is updated on every log event
     A way to save the view
     A way to load the view
@@ -22,16 +16,14 @@ PARSERS
     > TEST QSettings settings on macintosh, does it follow the QApp defined names
 
 DATA:
-    Implement validity check upon new data: check if sorted low->high. 
-    I use binary searches for speedy data manipulation. This require a sorted std::vector
+    Check for absorption / excitation curves, pick most precise one and set absorption flag
+    Implement two_photon excitation
 
 CACHE:
     In common usage check to what size the unordered_map grow, now just a guess
-    Write correction upon counter overflow
-    Write correction when unordered_map grows to big
 
 FLUOR:
-    if fluorophore name too long gets squeezed by scroll_widget, way to solve this nicely?
+    If Spectrum name too long, it squeezes the excitation-visibility, and remove-button out of the scrollarea viewport.
 
 TOOLBAR:
     Check if Icon resizing algorithm works on MacOS

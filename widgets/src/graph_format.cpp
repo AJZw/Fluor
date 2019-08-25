@@ -1,25 +1,28 @@
 /**** General **************************************************************
-** Version:    v0.9.3
-** Date:       2019-04-23
+** Version:    v0.9.4
+** Date:       2019-07-24
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
 ***************************************************************************/
 
-#include "graph_settings.h"
+#include "graph_format.h"
 
 #include <QDebug>
 
 namespace Graph {
+
+namespace Format {
 
 /*
 Constructor for Axis object
     :param min: absolute minimum value
     :param max: absolute maximum value, expected to be larger then min
 */
-Axis::Axis(int min, int max) :
+Axis::Axis(int min, int max, QString label) :
     min(min),
-    max(max)
+    max(max),
+    label(label)
 {}
 
 /*
@@ -60,6 +63,10 @@ Find the indexes which fit in between the begin and end value (if any)
 */
 template<std::size_t TICK_COUNT>
 void Ticks<TICK_COUNT>::findIndexes(int begin, int end){
+    if(TICK_COUNT <= 0){
+        return;
+    }
+    
     // Check is begin and end are reversed (for Y-axis)
     if(begin > end){
         // Reversed order, so swap begin and end values
@@ -103,5 +110,7 @@ Settings::Settings(){
     this->x_ticks.findIndexes(this->x_range.begin, this->x_range.end);
     this->y_ticks.findIndexes(this->y_range.begin, this->y_range.end);
 }
+
+} // Format namespace
 
 } // Graph namespace

@@ -17,7 +17,6 @@ Constructor: Sets up the fluorophore cache. Ment as the central spil of all (inu
     :param source: the (on the HDD) data object to request data from. CANNOT be a nullptr
 */
 Cache::Cache(Data::Factory& factory, Data::Fluorophores& source) :
-    counter(0),
     source_factory(factory),
     source_data(source),
     items(),
@@ -33,14 +32,97 @@ Reserves space for a defined amount of entrees in the counter. Checks for intege
 */
 unsigned int Cache::getCounter(unsigned int size) {
     if(UINT_MAX - size < this->counter){
-        // Add resetting of the counter value back to the minimum possible value in this->items and reset the value
-        qFatal("Cache::getCounter: max counter value surpassed");
+        qDebug() << "Cache::getCounter: counter overflow immenent, rebuilding counter";
+        this->rebuildCounter();
     }
 
     unsigned int current_counter = this->counter;
     this->counter += size;
 
     return current_counter;
+}
+
+/*
+The counter can only give a way a certain amount of index before overflowing.
+Before that happens use this function to redistribute the indexes
+*/
+void Cache::rebuildCounter() {
+    // Get the items, and redistribute the new index value
+    std::vector<CacheID> cache_state;
+    cache_state.reserve(this->items.size());
+    cache_state.insert(cache_state.end(), this->items.begin(), this->items.end());
+
+    std::sort(cache_state.begin(), cache_state.end(), 
+        [](const CacheID& obj_a, const CacheID& obj_b){
+            return obj_a.data->index() < obj_b.data->index();
+        }
+    );
+
+    for(std::size_t i=0; i<cache_state.size(); ++i){
+        cache_state[i].data->setIndex(static_cast<uint>(i));
+    }
+
+    this->counter = static_cast<uint>(cache_state.size());
+}
+
+/*
+The cache can store a big amount of fluorophore data. To prevent the cache from storing too many spectra, this function
+can be used to rebuild the cache to only contain the inuse cache elements
+    :param sync: whether to sync the cache before rebuilding. Cache has to be synchronized to prevent dangling pointers
+*/
+void Cache::rebuildCache(bool sync) {
+    if(sync){
+        this->sync();
+    }
+
+    // Get vector of keys in cache->data
+    std::vector<QString> data_state;
+    data_state.resize(this->data.size());
+
+    std::transform(
+        this->data.begin(),
+        this->data.end(),
+        data_state.begin(), 
+        [](const auto& pair){return pair.first;}
+    );
+    std::sort(data_state.begin(), data_state.end());
+
+    // Get vector of keys in cache->items
+    std::vector<QString> cache_state;
+    cache_state.resize(this->items.size());
+    std::transform(
+        this->items.begin(),
+        this->items.end(),
+        cache_state.begin(),
+        [](const auto& entree){return entree.id;}
+    );
+    std::sort(cache_state.begin(), cache_state.end());
+
+    std::vector<QString> difference;
+    difference.reserve(data_state.size());
+    std::set_difference(
+        data_state.begin(),
+        data_state.end(),
+        cache_state.begin(),
+        cache_state.end(),
+        std::back_inserter(difference)
+    );
+
+    // Check if all indexes are in use, if so increase minimum size
+    if(difference.size() == 0){
+        qDebug() << "Cache::rebuildCache: max size insufficient, increasing max size.";
+
+        this->max_cache_size = static_cast<uint>(this->items.size()) + 10;
+        return;
+    }
+
+    qDebug() << "Cache::rebuildCache: max cache size reached, removing" << difference.size() << "unused entrees.";
+
+    for(const QString& entree : difference){
+        this->data.erase(this->data.find(entree));
+    }
+
+    this->printState();
 }
 
 /*
@@ -88,7 +170,7 @@ void Cache::sortVector(std::vector<CacheID>& input, SortOption option){
     case SortOption::Alphabetical:{
         std::sort(input.begin(), input.end(), 
             [](const CacheID& obj_a, const CacheID& obj_b){
-                return obj_a.data->name() < obj_b.data->name();
+                return obj_a.name < obj_b.name;
             }
         );
         return;
@@ -96,7 +178,7 @@ void Cache::sortVector(std::vector<CacheID>& input, SortOption option){
     case SortOption::AlphabeticalReversed:{
         std::sort(input.begin(), input.end(), 
             [](const CacheID& obj_a, const CacheID& obj_b){
-                return obj_a.data->name() > obj_b.data->name();
+                return obj_a.name > obj_b.name;
             }
         );
         return;
@@ -105,7 +187,7 @@ void Cache::sortVector(std::vector<CacheID>& input, SortOption option){
         // Presort alphabetically
         std::sort(input.begin(), input.end(), 
             [](const CacheID& obj_a, const CacheID& obj_b){
-                return obj_a.data->name() < obj_b.data->name();
+                return obj_a.name < obj_b.name;
             }
         );
 
@@ -121,7 +203,7 @@ void Cache::sortVector(std::vector<CacheID>& input, SortOption option){
         // Presort alphabetically
         std::sort(input.begin(), input.end(), 
             [](const CacheID& obj_a, const CacheID& obj_b){
-                return obj_a.data->name() < obj_b.data->name();
+                return obj_a.name < obj_b.name;
             }
         );
 
@@ -137,7 +219,7 @@ void Cache::sortVector(std::vector<CacheID>& input, SortOption option){
         // Presort alphabetically
         std::sort(input.begin(), input.end(), 
             [](const CacheID& obj_a, const CacheID& obj_b){
-                return obj_a.data->name() < obj_b.data->name();
+                return obj_a.name < obj_b.name;
             }
         );
 
@@ -153,7 +235,7 @@ void Cache::sortVector(std::vector<CacheID>& input, SortOption option){
          // Presort alphabetically
         std::sort(input.begin(), input.end(), 
             [](const CacheID& obj_a, const CacheID& obj_b){
-                return obj_a.data->name() < obj_b.data->name();
+                return obj_a.name < obj_b.name;
             }
         );
 
@@ -173,18 +255,20 @@ Request a CacheSpectrum object of a specific id, if the id is already present ju
     :param id: the fluorophore ID, if ID is not found, will return a valid but all 0 object (see Data::Fluorophore standard behavior)
     :returns: pointer to the CacheSpectrum object of the requested ID
 */
-Data::CacheSpectrum* Cache::getData(const QString& id, const QString& name, const unsigned int counter){
+Data::CacheSpectrum* Cache::getData(const QString& id, const unsigned int counter){
     std::unordered_map<QString, Data::CacheSpectrum>::iterator spectrum = this->data.find(id);
     
     if(spectrum == this->data.end()){
         // Hash-miss so request spectrum data from HDD
-        auto insert = this->data.insert(std::pair<QString, Data::CacheSpectrum>(id, this->source_data.getCacheSpectrum(this->source_factory, id, name, counter)));
-    
+        auto insert = this->data.insert(std::pair<QString, Data::CacheSpectrum>(id, this->source_data.getCacheSpectrum(this->source_factory, id, counter)));
+
         return &insert.first->second;
     }else{
-        // Hash-hit, replace the name, and counter
-        spectrum->second.setName(name);
+        // Hash-hit, replace the counter
         spectrum->second.setIndex(counter);
+        // Reset to default - should be state dependent
+        spectrum->second.setVisibleEmission(true);
+        spectrum->second.setVisibleExcitation(false);
         return &spectrum->second;
     }
 }
@@ -202,7 +286,8 @@ void Cache::cacheAdd(std::set<Data::FluorophoreID>& fluorophores){
 
         if(cache_entree.second){
             // If succesfull, it is a new entree, so need to link the data pointer, and add the counter
-            cache_entree.first->data = this->getData(entree.id, entree.name, entree.order + current_counter);
+            cache_entree.first->data = this->getData(entree.id, entree.order + current_counter);
+
         }else{
             // If unsuccesfull, the entree already exists, no update needed
         }
@@ -211,13 +296,32 @@ void Cache::cacheAdd(std::set<Data::FluorophoreID>& fluorophores){
     this->printState();
 
     this->sync();
+
+    // Prevent the cache from growing to big
+    if(this->data.size() > this->max_cache_size){
+        this->rebuildCache();
+    }
+}
+
+/*
+Slot: requests the cache to sync its internal state
+*/
+void Cache::cacheRequestSync() {
+    this->sync();
+}
+
+/*
+Slot request the cache to update its internal state
+*/
+void Cache::cacheRequestUpdate() {
+    this->update();
 }
 
 /*
 Slot: receives fluorophores removals from the GUI. Removes the fluorophores ID from the items attributes.
     :param fluorophores: fluorophores to remove
 */
-void Cache::cacheRemove(std::set<Data::FluorophoreID>& fluorophores){
+void Cache::cacheRemove(std::vector<Data::FluorophoreID>& fluorophores){
     for(Data::FluorophoreID entree: fluorophores){
         CacheID id(entree.id, entree.name);
         this->items.erase(id);
@@ -232,29 +336,31 @@ void Cache::cacheRemove(std::set<Data::FluorophoreID>& fluorophores){
 Construct the necessary outputs for synchronization of the cache and GUI widgets
 */
 void Cache::sync() {
-    // The Fluor::LineEdit widgets require a sorted list of FluorophoreIDs & link to the CacheSpectrum data (for emission/excitation visibility stuff)
-
-    // The plan:
-    // transform set into vector
-    // based on the sorting property sort the vector
-    // emit sync signal
-
     // Convert items set into a vector (for custom ordering)
-    std::vector<CacheID> fluor_output;
-    fluor_output.reserve(this->items.size());
-
-    fluor_output.insert(fluor_output.end(), this->items.begin(), this->items.end());
+    std::vector<CacheID> cache_state;
+    cache_state.reserve(this->items.size());
+    cache_state.insert(cache_state.end(), this->items.begin(), this->items.end());
 
     // Sort based on sort qualifyer, when properly implemented this code has to request the sorting order somehow
-    this->sortVector(fluor_output, SortOption::Additive);
+    this->sortVector(cache_state, SortOption::Additive);
 
-    emit this->syncFluor(fluor_output);
+    emit this->cacheSync(cache_state);
+}
 
-    // The Graph widgets require a not-necessary sorted collection of pointer to CacheSpectrum data
+/*
+Constructs the necessary outputs for update of the cache state to the GUI widgets.
+In principle identical to sync() just calls different signals, allows for more optimized treatment by the GUI widgets
+*/
+void Cache::update() {
+    // Convert items set into a vector (for custom ordering)
+    std::vector<CacheID> cache_state;
+    cache_state.reserve(this->items.size());
+    cache_state.insert(cache_state.end(), this->items.begin(), this->items.end());
 
+    // Sort based on sort qualifyer, when properly implemented this code has to request the sorting order somehow
+    this->sortVector(cache_state, SortOption::Additive);
 
-
-
+    emit this->cacheUpdate(cache_state);
 }
 
 } // Cache namespace

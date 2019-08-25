@@ -26,8 +26,18 @@
 /**** DOC ******************************************************************
 ** The Fluorophore menu buttons
 **
-** :class: PushButton
-** A pushbutton to be shown if the FluorLineEdit is inactive
+** :class: Fluor::PushButton
+** A pushbutton to be shown if the FluorLineEdit is inactive, clicking the 
+** button shows the FluorLineEdit
+**
+** :class: Fluor::EmissionButton
+** A button for visualizing and settings the emission visibility of a fluorophore
+**
+** :class: Fluor::ExcitationButton
+** A button for visualizing and settings the excitation visibility of a fluorophore
+**
+** :class: Fluor::RemoveButton
+** A button for removing the flourophore from the layout
 **
 ***************************************************************************/
 

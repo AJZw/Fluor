@@ -8,28 +8,7 @@
 
 #include "data_spectrum.h"
 
-#include <QDebug>
-
 namespace Data {
-
-/*
-Constructor: Construct a standard Data::Color object (color=white (255, 255, 255))
-*/
-Color::Color() :
-    red(255), green(255), blue(255)
-{}
-
-/*
-Constructor: Construct a Data::Color object
-    :param red: red color value 0-255
-    :param green: green color value 0-255
-    :param blue: blue color value 0-255
-*/
-Color::Color(int red, int green, int blue) :
-    red(red), green(green), blue(blue)
-{}
-
-/* ######################################################################################### */
 
 /*
 Constructor: Construct a Meta object with default values of 0
@@ -50,240 +29,197 @@ Meta::Meta(int excitation_max, int emission_max) :
 /* ######################################################################################### */
 
 /*
-Constructor: Constructs a Spectrum object. Contains all necessary plotting data for a fluophore
+Constructor: Construct an empty Polygon object with a 0-1 curve
 */
-Spectrum::Spectrum(QString fluor_id) :
-    fluor_id(fluor_id),
-    excitation_wavelength(),
-    excitation_intensity(),
-    emission_wavelength(),
-    emission_intensity()
-{}
-
-Spectrum::Spectrum(
-    QString fluor_id,
-    std::vector<double> excitation_wavelength, 
-    std::vector<double> excitation_intensity, 
-    std::vector<double> emission_wavelength, 
-    std::vector<double> emission_intensity) :
-    fluor_id(fluor_id),
-    excitation_wavelength(excitation_wavelength),
-    excitation_intensity(excitation_intensity),
-    emission_wavelength(emission_wavelength),
-    emission_intensity(emission_intensity)
-{}
-
-/*
-Getter - returns the fluorophore id of the Spectrum object
-*/
-QString Spectrum::id() const {
-    return(this->fluor_id);
+Polygon::Polygon() :
+    x_min(-1.0),
+    x_max(-1.0),
+    y_min(-1.0),
+    y_max(-1.0),
+    line_color(0, 0, 0),
+    curve(2)
+{
+    // Build a mock curve to always have 'valid' data for calculations even if Polygon is empty
+    this->curve << QPointF(0, 0) << QPointF(1, 1);
 }
 
 /*
-Checks whether the excitation/emission parameters are valid
-    :returns: true if valid otherwise false
+Constructor: Construct a polygon object
+    :param x_min: global scale x[0] value in wavelength nanometers
+    :param x_max: global scale x[-1] value in wavelength nanometers
+    :param y_min: global scale y[0] value in intensity percentage
+    :param y_max: global scale y[-1] value in intensity percentage
 */
-bool Spectrum::isValid() const {
-    if(this->excitation_intensity.empty() || this->excitation_wavelength.empty()){
-        return(false);
-    }else if(this->emission_intensity.empty() || this->emission_wavelength.empty()){
-        return(false);
-    }else if(this->excitation_intensity.size() != this->excitation_wavelength.size()){
-        return(false);
-    }else if(this->emission_intensity.size() != this->emission_wavelength.size()){
-        return(false);
-    }else{
-        return(true);
+Polygon::Polygon(double x_min, double x_max, double y_min, double y_max, QPolygonF curve) :
+    x_min(x_min),
+    x_max(x_max),
+    y_min(y_min),
+    y_max(y_max),
+    line_color(0, 0, 0),
+    curve(curve)
+{}
+
+/*
+Copy constructor: copy construct a polygon object.
+Necessary cause the internal QVector<QPointF> of QPolygonF defaults to shallow copies. As polygon objects are copied for plotting they will always be modified.
+I would like to incur this performance hit upon curve adding and upon the first draw.
+*/
+Polygon::Polygon(const Polygon& other) :
+    x_min(other.x_min),
+    x_max(other.x_max),
+    y_min(other.y_min),
+    y_max(other.y_max),
+    line_color(other.line_color),
+    curve(other.curve)
+{
+    // Detach to make deepcopy
+    this->curve.detach();
+}
+
+/*
+Assignment operator. Deepcopies the QPolygonF curve.
+*/
+Polygon& Polygon::operator=(const Polygon& other) {
+    if(this != &other){
+        this->x_min = other.x_min;
+        this->x_max = other.x_max;
+        this->y_min = other.y_min;
+        this->y_max = other.y_max;
+        this->line_color = other.line_color;
+        this->curve = other.curve;
+        // Detach to make deepcopy
+        this->curve.detach();
     }
+    return *this;
+}
+
+//QDebug operator<<(QDebug stream, const Polygon& object){
+//    if(object.empty()){
+//        return stream << "Data::Polygon{}";
+//    }
+//    
+//    return stream << "Data::Polygon{" << object.x_min << "-" << object.x_max << ":" << object.curve[0] << "-" << object.curve[object.curve.size() - 1] << "}";
+//}
+
+
+/*
+Checks whether polygon is empty
+    :returns: whether the polygon is empty. Althought the object is empty it is always in a defined state
+*/
+bool Polygon::empty() const {
+    if(this->x_min != -1.0 && this->x_max != -1.0 && this->y_min != -1.0 && this->y_max != -1.0){
+        return false;
+    }
+    return true;
 }
 
 /*
-Sets all emission and excitation data to size 1 containing a 0
+Returns the intensity at the specified wavelength. Calculates the index to it and returns that wavelengt.
+Assumes a linear distribution of the curve to be able to calculate the index
+    :param wavelength: global wavelength in nanometers
+    :returns: intensity (0.0-1.0)
 */
-void Spectrum::setToZero(){
-    std::vector<double> vector_null{0.0};
-    
-    this->excitation_intensity = vector_null;
-    this->excitation_wavelength = vector_null;
-    this->emission_intensity = vector_null;
-    this->emission_wavelength = vector_null;
-}
+qreal Polygon::intensityAt(double wavelength, double cutoff) const {
+    if(wavelength < this->x_min || wavelength > this->x_max){
+        return 0.0;
+    }
 
-/*
-Setter for the excitation data, no validity checking
-    :param wavelength: sets the excitation wavelength
-    :param intensity: sets the excitation intensity
-*/
-void Spectrum::setExcitation(std::vector<double> wavelength, std::vector<double> intensity){
-    this->excitation_wavelength = wavelength;
-    this->excitation_intensity = intensity;
-}
+    double fraction = (wavelength - x_min) / (x_max - x_min);
+    fraction *= (this->curve.size() - 1);
+    int index = static_cast<int>(fraction);
 
-/*
-Setter for the emission data, no validity checking
-    :param wavelength: sets the emission wavelength
-    :param intensity: sets the emission intensity
-*/
-void Spectrum::setEmission(std::vector<double> wavelength, std::vector<double> intensity){
-    this->emission_wavelength = wavelength;
-    this->emission_intensity = intensity;
-}
+    qreal intensity = this->curve[index].y();
 
-/*
-Getter for the excitation wavelength
-    :returns: excitation wavelength
-*/
-std::vector<double> Spectrum::getExcitationWavelength() const {
-    return(this->excitation_wavelength);
-}
-
-/*
-Getter for the excitation intensity
-    :returns: excitation intensity
-*/
-std::vector<double> Spectrum::getExcitationIntensity() const {
-    return(this->excitation_intensity);
-}
-
-/*
-Getter for the emission wavelength
-    :returns: emission wavelength
-*/
-std::vector<double> Spectrum::getEmissionWavelength() const {
-    return(this->emission_wavelength);
-}
-
-/*
-Getter for the emission intensity
-    :returns: emission intensity
-*/
-std::vector<double> Spectrum::getEmissionIntensity() const {
-    return(this->emission_intensity);
-}
-
-/*
-Getter for the emission intensity after intensity correction
-    :param intensity: value in between 0%-100%
-    :param cutoff: intensity threshold, any value lower will return 0 intensity
-    :returns: corrected emission intensity 
-*/
-std::vector<double> Spectrum::getEmissionIntensity(const double intensity, const double cutoff) const {
-    // If intensity too low, no reason to transform the vector, build a new vector with only 0.0s
     if(intensity <= cutoff){
-        std::vector<double> zero_vector(this->emission_intensity.size());
-        std::fill(zero_vector.begin(), zero_vector.end(), 0.0);
-        return(zero_vector);
+        intensity = 0.0;
     }
 
-    // Check if no recalculation is necessary
-    if(intensity == 100.0){
-        return(this->emission_intensity);
+    return intensity;
+}
+
+/*
+Returns the intensity at the specified wavelength. Uses binary search to find the wavelength.
+    :param wavelength: global wavelength in nanometers
+    :returns: intensity (0.0-1.0)
+*/
+qreal Polygon::intensityAtIter(double wavelength, double cutoff) const {
+    if(wavelength < this->x_min || wavelength > this->x_max){
+        return 0.0;
     }
 
-    // Factorize the intensity
-    double intensity_factor;
-    intensity_factor = intensity / 100;
+    qreal fraction = (wavelength - x_min) / (x_max - x_min);
+    auto index = std::lower_bound(this->curve.cbegin(), this->curve.cend(), fraction, [](const QPointF& lhs, qreal rhs){return lhs.x() < rhs;});
 
-    // Transform a copy of the vector
-    std::vector<double> transpose_vector(this->emission_intensity.size());
-    std::transform(
-        this->emission_intensity.begin(),
-        this->emission_intensity.end(),
-        transpose_vector.begin(),
-        [intensity_factor](const double& emission_intensity){return emission_intensity * intensity_factor;}
-    );
-    return(transpose_vector);
-}
+    qreal intensity = index->y();
 
-/*
-(Static) General function that returns intensity of a specific wavelength using a binary search
-    :param wavelength: vector wavelength reference
-    :param intensity: vector intensity reference
-    :param at_wavelength: wavelength to return the intensity of
-    :returns: intensity at the specified wavelength. Out of bounds returns 0, unspecified at_wavelength returns the first specified higher value
-*/
-double Spectrum::intensityAt(const std::vector<double>& wavelength, const std::vector<double>& intensity, const int& at_wavelength){
-    // if vector is empty, any indexing causes undefined behavior. I dont want to check on every call, 
-    // use isValid() upon creation to make sure all assumptions are met
-
-    // Check if wavelength falls within the excitation_wavelength defined region
-    if(wavelength.front() > at_wavelength || wavelength.back() < at_wavelength){
-        return(0.0);
+    if(intensity <= cutoff){
+        intensity = 0.0;
     }
 
-    // I can use a binary search as the wavelength is sorted from low to high
-    // Should be impossible to not find a lower_bound as I have already checked the vectors bounds
-    std::vector<double>::const_iterator first;
-    first = std::lower_bound(wavelength.begin(), wavelength.end(), at_wavelength);
-    // first contains the first value that is lower or exact wavelength
-    // substract iterator location from the starting location to get the index
-    std::size_t index;
-    index = first - wavelength.begin();
-
-    // bound checking shouldnt be necessary as intensity and wavelength should be of equal length
-    // and wavelength should always be found inside the vector, but to prevent segfaults:
-    return(intensity.at(index));
+    return intensity;
 }
 
 /*
-Returns the excitation intensity at a specific wavelength
-    :param wavelength: the excitation wavelength
-    :returns: the excitation intensity, out of bounds returns 0, an unspecified wavelength returns the first specified higher value
+Finds the wavelength of the (first) highest y value. Technically could look for value >=1.0, but quite some uncleaned datasets dont reach that value.
+    :returns: wavelength in nanometers
 */
-double Spectrum::excitationAt(const int wavelength) const {
-    return (Spectrum::intensityAt(this->excitation_intensity, this->excitation_wavelength, wavelength));
-}
+double Polygon::intensityMax() const {
+    qreal max = 0.0;
+    int max_index = 0;
 
-/*
-Returns the emission intensity at a specific wavelength
-    :param wavelength: the emission wavelength
-    :returns: the emission intensity, out of bounds returns 0, an unspecified wavelength returns the first specified higher value
-*/
-double Spectrum::emissionAt(const int wavelength) const {
-    return(Spectrum::intensityAt(this->emission_intensity, this->emission_wavelength, wavelength));
-}
-
-/*
-Returns the wavelength of the maximum excitation intensity
-    :returns: the wavelength of the (first) maximum excitation
-*/
-double Spectrum::excitationMax() const {
-    // iterate over the excitation to get the maximum 
-    std::vector<double>::const_iterator max = this->excitation_intensity.begin();
-
-    std::vector<double>::const_iterator iter;
-    for(iter = this->excitation_intensity.begin(); iter < this->excitation_intensity.end(); ++iter){
-        if(*iter > *max){
-            max = iter;
+    for(int i=0; i < this->curve.size(); ++i){
+        if(this->curve[i].y() > max){
+            max = this->curve[i].y();
+            max_index = i;
         }
     }
 
-    std::size_t index;
-    index = max - this->excitation_intensity.begin();
+    // Transform back to global wavelength
+    double fraction = (this->x_max - this->x_min);
+    fraction *= this->curve[max_index].x();
+    fraction += this->x_min;
 
-    return(this->excitation_wavelength[index]);
+    return fraction;
 }
 
 /*
-Returns the wavelength of the maximum emission intensity
-    :returns: the wavelength of the (first) maximum emission
+Getter for the line color
+    :returns: line color
 */
-double Spectrum::emissionMax() const {
-    // iterate over the excitation to get the maximum 
-    std::vector<double>::const_iterator max = this->emission_intensity.begin();
+const QColor& Polygon::color() const {
+    return this->line_color;
+}
 
-    std::vector<double>::const_iterator iter;
-    for(iter = this->emission_intensity.begin(); iter < this->emission_intensity.end(); ++iter){
-        if(*iter > *max){
-            max = iter;
-        }
-    }
+/*
+Setter for the line color. Calculates the max intensity and uses that to determine the color
+*/
+void Polygon::setColor() {
+    double wavelength = this->intensityMax();
+    this->setColor(wavelength);
+}
 
-    std::size_t index;
-    index = max - this->emission_intensity.begin();
+/* 
+Setter for the line color. Uses the supplied wavelength to determine the color
+    :param wavelength: wavelength in nanometers
+*/
+void Polygon::setColor(double wavelength) {
+    this->line_color = Polygon::visibleSpectrum(wavelength);
+}
 
-    return(this->emission_wavelength[index]);
+/*
+Setter for the line color. Sets supplied QColor
+    :param color: line color
+*/
+void Polygon::setColor(QColor color) {
+    this->line_color = color;
+}
+
+/*
+Getter for the curve
+    :returns: the curve polygon
+*/
+QPolygonF& Polygon::polygon(){
+    return this->curve;
 }
 
 /*
@@ -292,7 +228,7 @@ Source: http://www.efg2.com/Lab/ScienceAndEngineering/Spectra.htm
     :param wavelength: wavelength to transform into visible RGB value
     :returns: Data::Color object; colors scale 0-255
 */
-Data::Color Spectrum::color(double wavelength){
+QColor Polygon::visibleSpectrum(double wavelength){
     double red, green, blue, intensity;
     if(wavelength >= 380.0 && wavelength < 440.0){
         red = -(wavelength - 440.0) / (440.0 - 380.0);
@@ -340,9 +276,281 @@ Data::Color Spectrum::color(double wavelength){
     blue = intensity * blue;
     green = intensity * green;
 
-    Data::Color color(static_cast<int>(red), static_cast<int>(green), static_cast<int>(blue));
+    return QColor(static_cast<int>(red), static_cast<int>(green), static_cast<int>(blue));
+}
 
-    return color;
+/*
+Scales the curve in the given/local space according to the global space
+    :param base: the unmodified original of this polygon; used as base for all the calculations
+    :param size: the local size the curve is fitted into
+    :param xg_begin: the global x begin value, eg wavelength (nm)
+    :param xg_end: the global x end value, eg wavelength (nm)
+    :param yg_begin: the global y begin value, eg intensity (%)
+    :param yg_end: the global y end value, eg intensity (%)
+    :param intensity: the y (intensity) scaling value
+*/
+void Polygon::scale(const Data::Polygon& base, const QRectF& size, const double xg_begin, const double xg_end, const double yg_begin, const double yg_end, const double intensity){
+    // Double check for base size, there should not be any resizing of the internal QVector
+    if(base.curve.capacity() != this->curve.capacity()){
+        qWarning() << "Data::Polygon::scale: base and this have different capacity QPolygonF, operation is not guaranteed to be safe, function is ignored.";
+        return;
+    }
+
+    // Check for fully out of bound curve
+    if(xg_begin > this->x_max || xg_end < this->x_min){
+        // Empty curve
+        this->curve.resize(0);
+        return;
+    }
+
+    // First resize polygon to base size to prevent undefined behavior
+    this->curve.resize(base.curve.size());
+
+    // Calculate x parameters
+    qreal x_fraction = size.width() / (xg_end - xg_begin);
+    qreal xl_start = (this->x_min - xg_begin) * x_fraction;
+    qreal xl_end = (this->x_max - xg_begin) * x_fraction;
+    qreal xl_diff = xl_end - xl_start;
+
+    // Calculate y parameters
+    qreal y_fraction = size.height() / (yg_end - yg_begin);
+    qreal yl_start = (this->y_min - yg_begin) * y_fraction;
+    qreal yl_end = (this->y_max - yg_begin) * y_fraction;
+    qreal yl_diff = yl_start - yl_end;
+
+    // Iterate through polygons, while keeping in mind the x-limits
+    int this_i = 0;
+    for(int base_i=0; base_i<base.curve.size(); ++base_i){
+        qreal x = base.curve.at(base_i).x();
+        qreal y = base.curve.at(base_i).y();
+
+        // Calculate scaled x and y; y has to be reversed because the local coordinate system of y is from top to bottom
+        x = xl_start + (x * xl_diff);
+        y = yl_start - (y * yl_diff * intensity);
+
+        // Make sure that the y values are not outside the size rectangle
+        if(y < size.top()){
+            y = size.top();
+        }else if(y > size.bottom()){
+            y = size.bottom();
+        }
+
+        // Make sure that x is within the size rectangle
+        if(x < size.left()){
+            this->curve[0].setX(size.left());
+            this->curve[0].setY(y);
+
+            // Set i to 1, to allow for normal continuation, but not throw-off repeated hits of this if statement
+            this_i = 1;
+            continue;
+        }else if(x > size.right()){
+            // further x-values are outside of the plotting rect
+            this->curve[this_i].setX(size.right());
+            this->curve[this_i].setY(y);
+            ++this_i;
+            break;
+        }
+
+        // Parse values
+        this->curve[this_i].setX(x);
+        this->curve[this_i].setY(y);
+        ++this_i;
+    }
+
+    // Remove unused polygon entrees
+    this->curve.remove(this_i, this->curve.size() - this_i);
+}
+
+/*
+Hard copies the curve data from base into the current polygon
+    :param base: base containing the curve data
+*/
+void Polygon::copyCurve(const Data::Polygon& base){
+    // First resize polygon to base size to prevent undefined behavior
+    this->curve = base.curve;
+    this->curve.detach();
+}
+
+/*
+Adds two coordinates at the end of the curve to 'close' the polygon.
+If you would draw a line from a[0] to a[-1], and connect a[0] & a[-1] you have a proper polygon (this is mainly for QPainter::drawPolygon())
+    :param rect: the local space allocated to the curve
+*/
+void Polygon::closeCurve(const QRectF& size){
+    // Make sure there is enough space for the additional two QPointF.
+    // Standard capacity of the curves should be enough for this
+    this->curve.resize(this->curve.size() + 2);
+
+    int length = this->curve.length();
+    this->curve[length - 2] = QPointF(this->curve[length -3].x(), size.bottom());
+    this->curve[length - 1] = QPointF(this->curve[0].x(), size.bottom());
+}
+
+/* ######################################################################################### */
+
+/*
+Constructor: Constructs a Spectrum object. Contains all necessary plotting data for a fluorophore
+    :param id: the spectrum id value
+*/
+Spectrum::Spectrum(QString id) :
+    absorption(false),
+    two_photon(false),
+    fluor_id(id),
+    polygon_excitation(Polygon()),
+    polygon_emission(Polygon())
+{}
+
+/*
+Constructor: Constructs a Spectrum object. Contains all necessary plotting data for a fluorophore
+    :param id: the spectrum id value
+    :param absorption: the absorption polygon
+    :param excitation: the excitation polygon
+    :param two_photon: the two_photon polygon
+    :param emission: the emission polygon
+*/
+Spectrum::Spectrum(QString id, Polygon excitation, Polygon emission) :
+    absorption(false),
+    two_photon(false),
+    fluor_id(id),
+    polygon_excitation(excitation),
+    polygon_emission(emission)
+{
+}
+
+/*
+Getter - returns the fluorophore id of the Spectrum object
+*/
+QString Spectrum::id() const {
+    return(this->fluor_id);
+}
+
+/*
+Checks whether the excitation/emission parameters are valid
+    :returns: true if valid otherwise false
+*/
+bool Spectrum::isValid() const {
+    if(this->polygon_emission.empty()){
+        return false;
+    }
+
+    if(this->polygon_excitation.empty()){
+        return false;
+    }
+
+    return true;
+}
+
+/*
+Getter for the excitation polygon
+    :returns: excitation polygon
+*/
+const Data::Polygon& Spectrum::excitation() const {
+    return this->polygon_excitation;
+}
+
+/*
+Getter for the emission polygon
+    :returns: emission polygon
+*/
+const Data::Polygon& Spectrum::emission() const {
+    return this->polygon_emission;
+}
+
+/*
+Setter for the excitation data,
+    :param polygon: the excitation curve
+*/
+void Spectrum::setExcitation(Polygon polygon){
+    this->polygon_excitation = std::move(polygon);
+}
+
+/*
+Setter for the emission data
+    :param polygon: the emission curve
+*/
+void Spectrum::setEmission(Polygon polygon){
+    this->polygon_emission = std::move(polygon);
+}
+
+/*
+Getter for the absorption flag
+    :returns: is the excitation curve actually an absorption curve
+*/
+bool Spectrum::absorptionFlag() const {
+    return this->absorption;
+}
+
+/*
+Getter for the two photon flag
+    :returns: is the emission curve actually an two photon curve
+*/
+bool Spectrum::twoPhotonFlag() const {
+    return this->two_photon;
+}
+
+/*
+Setter for the absorption flag; to-be used when instead of excitation an absorption polygon is used
+    :param flag: whether or not absorption is used
+*/
+void Spectrum::setAbsorptionFlag(bool flag){
+    this->absorption = flag;
+}
+
+/*
+Setter for the two_photon flag; to-be used when instead of emission a two_photon polygon is used
+    :param flag: whether or not absorption is used
+*/
+void Spectrum::setTwoPhotonFlag(bool flag){
+    this->two_photon = flag;
+}
+
+/*
+Returns the excitation intensity at a specific wavelength
+    :param wavelength: the excitation wavelength
+    :returns: the excitation intensity fraction, out of bounds returns 0.0, an unspecified wavelength returns the first specified lower value
+*/
+qreal Spectrum::excitationAt(double wavelength, double cutoff) const {
+    return this->polygon_excitation.intensityAt(wavelength, cutoff);
+}
+
+/*
+Returns the emission intensity at a specific wavelength
+    :param wavelength: the emission wavelength
+    :returns: the emission intensity fraction, out of bounds returns 0.0, an unspecified wavelength returns the first specified higher value
+*/
+double Spectrum::emissionAt(double wavelength, double cutoff) const {
+    return this->polygon_emission.intensityAt(wavelength, cutoff);
+}
+
+/*
+Returns the wavelength of the maximum excitation intensity
+    :returns: the wavelength of the (first) maximum excitation
+*/
+double Spectrum::excitationMax() const {
+    return this->polygon_excitation.intensityMax();
+}
+
+/*
+Returns the wavelength of the maximum emission intensity
+    :returns: the wavelength of the (first) maximum emission
+*/
+double Spectrum::emissionMax() const {
+    return this->polygon_emission.intensityMax();
+}
+
+/*
+Scales the emission and intensity curves in the given/local space according to the global space
+    :param base: the unmodified original of this polygon; used as base for all the calculations
+    :param size: the local size the curve is fitted into
+    :param xg_begin: the global x begin value, eg wavelength (nm)
+    :param xg_end: the global x end value, eg wavelength (nm)
+    :param yg_begin: the global y begin value, eg intensity (%)
+    :param yg_end: the global y end value, eg intensity (%)
+    :param intensity: the y (intensity) emission scaling value
+*/
+void Spectrum::scale(const Data::Polygon& base, const QRectF& size, const double xg_begin, const double xg_end, const double yg_begin, const double yg_end, const double intensity){
+    this->polygon_excitation.scale(base, size, xg_begin, xg_end, yg_begin, yg_end, 1.0);
+    this->polygon_emission.scale(base, size, xg_begin, xg_end, yg_begin, yg_end, intensity);
 }
 
 /* ######################################################################################### */
@@ -351,36 +559,23 @@ Data::Color Spectrum::color(double wavelength){
 Constructor: Constructs a CacheSpectrum object. Combines a Spectrum object with additional cache parameters
 */
 CacheSpectrum::CacheSpectrum(unsigned int index, Data::Spectrum spectrum) :
-    build_index{index},
-    modified{false},
-    fluor_spectrum{std::move(spectrum)},
-    fluor_name{std::move(this->fluor_spectrum.id())},
-    fluor_meta{},
-    fluor_visible_excitation{false},
-    fluor_visible_emission{true},
-    fluor_intensity_cutoff{0.0}
+    cache_index(index),
+    spectrum_data(std::move(spectrum)),
+    spectrum_meta(),
+    visible_excitation(false),
+    visible_emission(true),
+    intensity_cutoff(0.0),
+    modified(false)
 {}
 
-CacheSpectrum::CacheSpectrum(unsigned int index, QString fluor_name, Data::Spectrum spectrum) :
-    build_index{index},
-    modified{false},
-    fluor_spectrum{std::move(spectrum)},
-    fluor_name{std::move(fluor_name)},
-    fluor_meta{},
-    fluor_visible_excitation{false},
-    fluor_visible_emission{true},
-    fluor_intensity_cutoff{0.0}
-{}
-
-CacheSpectrum::CacheSpectrum(unsigned int index, QString fluor_name, Data::Spectrum spectrum, Data::Meta meta) :
-    build_index{index},
-    modified{false},
-    fluor_spectrum{std::move(spectrum)},
-    fluor_name{std::move(fluor_name)},
-    fluor_meta{std::move(meta)},
-    fluor_visible_excitation{false},
-    fluor_visible_emission{true},
-    fluor_intensity_cutoff{0.0}
+CacheSpectrum::CacheSpectrum(unsigned int index, Data::Spectrum spectrum, Data::Meta meta) :
+    cache_index(index),
+    spectrum_data(std::move(spectrum)),
+    spectrum_meta(std::move(meta)),
+    visible_excitation(false),
+    visible_emission(true),
+    intensity_cutoff(0.0),
+    modified(false)
 {}
 
 /*
@@ -388,7 +583,7 @@ Getter for the build index
     :returns: build index
 */
 unsigned int CacheSpectrum::index() const {
-    return(this->build_index);
+    return(this->cache_index);
 }
 
 /*
@@ -396,7 +591,7 @@ Setter for the build index
     :param: index
 */
 void CacheSpectrum::setIndex(unsigned int index){
-    this->build_index = index;
+    this->cache_index = index;
 }
 
 /*
@@ -404,23 +599,7 @@ Getter for the fluorophore id
     :returns: fluorophore id
 */
 QString CacheSpectrum::id() const {
-    return(this->fluor_spectrum.id());
-}
-
-/*
-Getter for the fluorophore name
-    :returns: fluorophore name
-*/
-QString CacheSpectrum::name() const {
-    return(this->fluor_name);
-}
-
-/*
-Setter for the fluorophore name
-    :param: name
-*/
-void CacheSpectrum::setName(const QString& name){
-    this->fluor_name = name;
+    return(this->spectrum_data.id());
 }
 
 /*
@@ -428,10 +607,10 @@ Getter for the wavelength of the max excitation
     :returns: wavelength of the maximum excitation
 */
 double CacheSpectrum::excitationMax() const {
-    if(this->fluor_meta.excitation_max == -1){
-        return(this->fluor_spectrum.excitationMax());
+    if(this->spectrum_meta.excitation_max == -1){
+        return(this->spectrum_data.excitationMax());
     }else{
-        return(this->fluor_meta.excitation_max);
+        return(this->spectrum_meta.excitation_max);
     }
 }
 
@@ -440,10 +619,10 @@ Getter for the wavelength of the max emission
     :returns: wavelength of the maximum emission
 */
 double CacheSpectrum::emissionMax() const {
-    if(this->fluor_meta.emission_max == -1){
-        return(this->fluor_spectrum.emissionMax());
+    if(this->spectrum_meta.emission_max == -1){
+        return(this->spectrum_data.emissionMax());
     }else{
-        return(this->fluor_meta.emission_max);
+        return(this->spectrum_meta.emission_max);
     }
 }
 
@@ -452,7 +631,7 @@ Getter for the visibility of the excitation plot
     :returns: excitation visibility
 */
 bool CacheSpectrum::visibleExcitation() const {
-    return(this->fluor_visible_excitation);
+    return(this->visible_excitation);
 }
 
 /*
@@ -460,7 +639,7 @@ Getter for the visibility of the emission plot
     :returns: emission visibility
 */
 bool CacheSpectrum::visibleEmission() const {
-    return(this->fluor_visible_emission);
+    return(this->visible_emission);
 }
 
 /*
@@ -468,8 +647,8 @@ Setter for the visibility of the excitation plot
     :params: excitation visibility
 */
 void CacheSpectrum::setVisibleExcitation(bool visibility) {
-    if(visibility != this->fluor_visible_excitation){
-        this->fluor_visible_excitation = visibility;
+    if(visibility != this->visible_excitation){
+        this->visible_excitation = visibility;
         this->modified = true;
     }
 }
@@ -479,8 +658,8 @@ Setter for the visibility of the emission plot
     :params: emission visibility
 */
 void CacheSpectrum::setVisibleEmission(bool visibility) {
-    if(visibility != this->fluor_visible_emission){
-        this->fluor_visible_emission = visibility;
+    if(visibility != this->visible_emission){
+        this->visible_emission = visibility;
         this->modified = true;
     }
 }
@@ -490,7 +669,7 @@ Getter for the intensity cutoff
     :returns: intensity cutoff
 */
 double CacheSpectrum::intensityCutoff() const {
-    return(this->fluor_intensity_cutoff);
+    return(this->intensity_cutoff);
 }
 
 /*
@@ -498,48 +677,54 @@ Setter for the intensity cutoff
     :params: intensity cutoff
 */
 void CacheSpectrum::setIntensityCutoff(const double cutoff) {
-    this->fluor_intensity_cutoff = cutoff;
+    this->intensity_cutoff = cutoff;
 }
 
 /*
-Getter for the excitation wavelength
-    :returns: excitation wavelength
+Getter for the internal spectrum object
+    :returns: spectrum reference
 */
-std::vector<double> CacheSpectrum::getExcitationWavelength() const {
-    return(this->fluor_spectrum.getExcitationWavelength());
+const Data::Spectrum& CacheSpectrum::spectrum() const {
+    return this->spectrum_data;
 }
 
 /*
-Getter for the excitation intensity
-    :returns: excitation intensity
+Getter for the internal spectrum object.
+    :returns: a copy of the spectrum
 */
-std::vector<double> CacheSpectrum::getExcitationIntensity() const {
-    return(this->fluor_spectrum.getExcitationIntensity());
+Data::Spectrum CacheSpectrum::copySpectrum() const {
+    return this->spectrum_data;
 }
 
 /*
-Getter for the emission wavelength
-    :returns: emission wavelength
+Getter for the polygon absorption flag
+    :returns: absorption flag
 */
-std::vector<double> CacheSpectrum::getEmissionWavelength() const {
-    return(this->fluor_spectrum.getEmissionWavelength());
+bool CacheSpectrum::absorptionFlag() const {
+    return this->spectrum_data.absorptionFlag();
 }
 
 /*
-Getter for the emission intensity
-    :returns: emission intensity
+Getter for the polygon two photon flag
+    :returns: two photon flag
 */
-std::vector<double> CacheSpectrum::getEmissionIntensity() const{
-    return(this->fluor_spectrum.getEmissionIntensity());
+bool CacheSpectrum::twoPhotonFlag() const {
+    return this->spectrum_data.twoPhotonFlag();
 }
 
 /*
-Getter for the intensity adjusted emission intensity
-    :param intensity: the intensity percentage between 0-100
-    :returns: intensity corrected emission intensity
+Returns the excitation intensity (0.0 - 1.0) at the specified wavelength, uses the intensity_cutoff attribute
+    :param wavelength: the wavelength to find the intensity of
 */
-std::vector<double> CacheSpectrum::getEmissionIntensity(const double intensity) const {
-    return(this->fluor_spectrum.getEmissionIntensity(std::move(intensity), this->fluor_intensity_cutoff));
+qreal CacheSpectrum::excitationAt(double wavelength) const {
+    return this->spectrum_data.excitationAt(wavelength, this->intensity_cutoff);
+}
+/*
+Returns the emission intensity (0.0 - 1.0) at the specified wavelength, uses the intensity_cutoff attribute
+    :param wavelength: the wavelength to find the intensity of
+*/
+qreal CacheSpectrum::emissionAt(double wavelength) const {
+    return this->spectrum_data.emissionAt(wavelength, this->intensity_cutoff);
 }
 
 } // Data namespace

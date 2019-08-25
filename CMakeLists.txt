@@ -50,8 +50,8 @@ add_executable(fluor
     widgets/src/graph_controller.cpp
     widgets/header/graph_graphicsscene.h
     widgets/src/graph_graphicsscene.cpp
-    widgets/header/graph_settings.h
-    widgets/src/graph_settings.cpp
+    widgets/header/graph_format.h
+    widgets/src/graph_format.cpp
     widgets/header/graph_graphicsview.h
     widgets/src/graph_graphicsview.cpp
     widgets/header/graph_graphicsitems.h

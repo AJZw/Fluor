@@ -64,8 +64,10 @@ Controller::Controller(QWidget* parent) :
     QObject::connect(widget_lineedit, &Fluor::LineEdit::output, this, &Fluor::Controller::receiveCacheAdd);
     
     // Forward events to/from ScrollController
-    QObject::connect(this, &Fluor::Controller::sendSync, widget_scrollarea, &Fluor::ScrollController::syncButtons);
-    QObject::connect(this, &Fluor::Controller::sendSync, widget_lineedit, &Fluor::LineEdit::sync);
+    QObject::connect(this, &Fluor::Controller::sendCacheSync, widget_scrollarea, &Fluor::ScrollController::syncButtons);
+    QObject::connect(this, &Fluor::Controller::sendCacheUpdate, widget_scrollarea, &Fluor::ScrollController::updateButtons);
+    QObject::connect(this, &Fluor::Controller::sendCacheSync, widget_lineedit, &Fluor::LineEdit::sync);
+    QObject::connect(widget_scrollarea, &Fluor::ScrollController::sendCacheRequestUpdate, this, &Fluor::Controller::receiveCacheRequestUpdate);
     QObject::connect(widget_scrollarea, &Fluor::ScrollController::sendRemove, this, &Fluor::Controller::receiveCacheRemove);
 }
 
@@ -103,6 +105,13 @@ void Controller::receiveGlobalSize(const QWidget* widget){
 }
 
 /*
+Slot: forwards the request to the cache to update
+*/
+void Controller::receiveCacheRequestUpdate(){
+    emit this->sendCacheRequestUpdate();
+}
+
+/*
 Slot: receives and sends output from the internal lineedit and forwards towards cache
 */
 void Controller::receiveCacheAdd(std::set<Data::FluorophoreID>& output){
@@ -112,15 +121,22 @@ void Controller::receiveCacheAdd(std::set<Data::FluorophoreID>& output){
 /*
 Slot: receives and sends output from the scroll/button controllers and forwards towards cache
 */
-void Controller::receiveCacheRemove(std::set<Data::FluorophoreID>& output){
+void Controller::receiveCacheRemove(std::vector<Data::FluorophoreID>& output){
     emit this->sendCacheRemove(output);
 }
 
 /*
-Slot: receives and sends synchronisation input to the scrollcontroller
+Slot: receives and sends cache's synchronisation state to the scrollcontroller
 */
-void Controller::receiveSync(const std::vector<Cache::CacheID>& input){
-    emit this->sendSync(input);
+void Controller::receiveCacheSync(const std::vector<Cache::CacheID>& cache_state){
+    emit this->sendCacheSync(cache_state);
+}
+
+/*
+Slot: receives and sends cache's update state to the scrollcontroller
+*/
+void Controller::receiveCacheUpdate(const std::vector<Cache::CacheID>& cache_state){
+    emit this->sendCacheUpdate(cache_state);
 }
 
 /*
@@ -175,30 +191,32 @@ ScrollController::ScrollController(QWidget* parent) :
 }
 
 /*
-Synchronizes the internal ButtonsController widgets to the input. Adds/removes the necessary
+Synchronizes the internal ButtonsController widgets to the cache_state. Adds/removes the necessary
 ButtonsController and resets the name, id, cache pointers.
-    :param inputs: the to-be-synced ids
+    :param cache_state: the to-be-synced ids
 */
-void ScrollController::syncButtons(const std::vector<Cache::CacheID>& inputs){
+void ScrollController::syncButtons(const std::vector<Cache::CacheID>& cache_state){
     // qDebug() << "ScrollController::syncButtons:" << this->button_widgets.size() << ":" << inputs.size();
     
     // First add/remove to requested buttonControllers count
-    if(this->button_widgets.size() < inputs.size()){
-        for(std::size_t i=this->button_widgets.size(); i<inputs.size(); ++i){
+    if(this->button_widgets.size() < cache_state.size()){
+        for(std::size_t i=this->button_widgets.size(); i<cache_state.size(); ++i){
             // Build new widget
             ButtonsController* widget = new ButtonsController(this->widget());
             static_cast<QVBoxLayout*>(this->widget()->layout())->insertWidget(static_cast<int>(i), widget);
 
+            QObject::connect(widget, &Fluor::ButtonsController::requestUpdate, this, &Fluor::ScrollController::receiveCacheRequestUpdate);
             QObject::connect(widget, &Fluor::ButtonsController::sendRemove, this, &Fluor::ScrollController::receiveRemove);
 
             // Add to lookup vector
             this->button_widgets.push_back(widget);
         }
-    }else if(this->button_widgets.size() > inputs.size()){
-        for(std::size_t i=this->button_widgets.size(); i>inputs.size(); --i){
+    }else if(this->button_widgets.size() > cache_state.size()){
+        for(std::size_t i=this->button_widgets.size(); i>cache_state.size(); --i){
             // Get last widget and remove it
             ButtonsController* widget = this->button_widgets[i-1];
 
+            QObject::disconnect(widget, &Fluor::ButtonsController::requestUpdate, this, &Fluor::ScrollController::receiveCacheRequestUpdate);
             QObject::disconnect(widget, &Fluor::ButtonsController::sendRemove, this, &Fluor::ScrollController::receiveRemove);
 
             delete widget;
@@ -209,14 +227,31 @@ void ScrollController::syncButtons(const std::vector<Cache::CacheID>& inputs){
 
     // Now sync the ButtonsControllers
     for(std::size_t i=0; i<this->button_widgets.size(); ++i){
-        this->button_widgets[i]->syncButtons(inputs[i]);
+        this->button_widgets[i]->syncButtons(cache_state[i]);
     }
+}
+
+/*
+Updates the internal ButtonsController widgets to the cache_state. Assumes synchronized state. Doesnt add or remove widgets
+    :param cache_state: the state to update to
+*/
+void ScrollController::updateButtons(const std::vector<Cache::CacheID>& cache_state){
+    for(std::size_t i=0; i<this->button_widgets.size(); ++i){
+        this->button_widgets[i]->updateButtons(cache_state[i]);
+    }
+}
+
+/*
+Slot: forwards the request to the cache to update
+*/
+void ScrollController::receiveCacheRequestUpdate(){
+    emit this->sendCacheRequestUpdate();
 }
 
 /*
 Slot: receives and forwards remove fluorophore request
 */
-void ScrollController::receiveRemove(std::set<Data::FluorophoreID>& fluorophores){
+void ScrollController::receiveRemove(std::vector<Data::FluorophoreID>& fluorophores){
     emit this->sendRemove(fluorophores);
 }
 
@@ -270,41 +305,55 @@ void ButtonsController::paintEvent(QPaintEvent* event) {
 
 /*
 Sync the buttonsController and internal widgets with a CacheID
-    :param input: cacheid (assumed to have a valid data pointer)
+    :param cache_state: cacheid (assumed to have a valid data pointer)
 */
-void ButtonsController::syncButtons(const Cache::CacheID& input){
-    this->id = input.id;
-    this->name = input.name;
-    this->data = input.data;
+void ButtonsController::syncButtons(const Cache::CacheID& cache_state){
+    this->id = cache_state.id;
+    this->name = cache_state.name;
+    this->data = cache_state.data;
 
     this->widget_emission->setText(this->name);
+
+    // Finally update the button active state
+    this->updateButtons(cache_state);
+}
+
+/*
+Update the buttonsController and internal widgets with the CacheID
+    :param cache_state: the state of the cache
+*/
+void ButtonsController::updateButtons(const Cache::CacheID& cache_state){
+    this->widget_excitation->setActive(cache_state.data->visibleExcitation());
+    this->widget_emission->setActive(cache_state.data->visibleEmission());
 }
 
 /*
 Slot: receives the click from the emission button. Forwards the change to the relevant cache/spectrum object
 */
 void ButtonsController::receiveEmissionClick(bool active){
-    // Just constructor, not syncID'd ButtonsController has a nullptr as data
+    // Just constructed, not synced to ButtonsController
     // This shouldnt happen, but to prevent segfaults
     if(!this->data){
         return;
     }
 
-    this->data->setVisibleEmission(!active);
+    this->data->setVisibleEmission(active);
+    emit this->requestUpdate();
 }
 
 /*
 Slot: receives the click from the excitation button. Forwards the change to the relevant cache/spectrum object
 */
 void ButtonsController::receiveExcitationClick(bool active){
-    // Just constructor, not syncID'd ButtonsController has a nullptr as data
+    // Just constructed, not synced to ButtonsController
     // This shouldnt happen, but to prevent segfaults
     if(!this->data){
         return;
     }
 
-    this->data->setVisibleExcitation(!active);
-}
+    this->data->setVisibleExcitation(active);
+    emit this->requestUpdate();
+}   
 
 
 /*
@@ -312,11 +361,10 @@ Slot: receives the click from the remove button. Emits removal request
 */
 void ButtonsController::receiveRemoveClick(){
     // Unknown spectrum id's wont cause errors in the cache, so no need to check
-
     // Build ID, the counter is irrelevant for removal requests
     Data::FluorophoreID id = {this->id, this->name, 0};
-    std::set<Data::FluorophoreID> fluorophores;
-    fluorophores.insert(id);
+    std::vector<Data::FluorophoreID> fluorophores;
+    fluorophores.push_back(id);
     
     emit this->sendRemove(fluorophores);
 }

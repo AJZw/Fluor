@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.2
-** Date:       2019-04-10
+** Version:    v0.9.4
+** Date:       2019-07-22
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -14,13 +14,12 @@
 #include <QIcon>
 #include <QDebug>
 
-/// Custom QApplication for setting Application wide stylesheet and WindowIcon
 Application::Application(int &argc, char **argv) :
     QApplication(argc, argv)
 {
     this->setOrganizationName("AJZw");
     this->setApplicationName("Fluor");
-    this->setApplicationVersion("v0.9.3");
+    this->setApplicationVersion("v0.9.4");
 
     this->installEventFilter(this);
 

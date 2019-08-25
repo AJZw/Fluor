@@ -42,16 +42,19 @@ Controller::Controller(QWidget* parent) :
     QObject::connect(this, &Main::Controller::resized, controller_widget, &Central::Controller::receiveGlobalSize);
     QObject::connect(this, &Main::Controller::moved, controller_widget, &Central::Controller::receiveGlobalSize);
     QObject::connect(this, &Main::Controller::sendData, controller_widget, &Central::Controller::receiveData);
-    QObject::connect(this, &Main::Controller::sendSyncFluor, controller_widget, &Central::Controller::receiveSyncFluor);
 
-    QObject::connect(controller_widget, &Central::Controller::sendLaser, this, &Main::Controller::receiveLaser);
+    QObject::connect(this, &Main::Controller::sendCacheSync, controller_widget, &Central::Controller::receiveCacheSync);
+    QObject::connect(this, &Main::Controller::sendCacheUpdate, controller_widget, &Central::Controller::receiveCacheUpdate);
+
+    QObject::connect(controller_widget, &Central::Controller::sendCacheRequestUpdate, this, &Main::Controller::receiveCacheRequestUpdate);
     QObject::connect(controller_widget, &Central::Controller::sendCacheAdd, this, &Main::Controller::receiveCacheAdd);
     QObject::connect(controller_widget, &Central::Controller::sendCacheRemove, this, &Main::Controller::receiveCacheRemove);
+    QObject::connect(controller_widget, &Central::Controller::sendLaser, this, &Main::Controller::receiveLaser);
 
 }
 
 /*
-eventFilter - captures MouseClickEvent, resize, and close event
+eventFilter - captures resize, move, and close event
     :param obj: source object
     :param event: the event
 */
@@ -82,6 +85,13 @@ void Controller::receiveGlobalEvent(QEvent* event){
 }
 
 /*
+Slot: forwards the request to the cache to update
+*/
+void Controller::receiveCacheRequestUpdate(){
+    emit this->sendCacheRequestUpdate();
+}
+
+/*
 Slot: forwards the cache add event
 */
 void Controller::receiveCacheAdd(std::set<Data::FluorophoreID>& flourophores){
@@ -91,7 +101,7 @@ void Controller::receiveCacheAdd(std::set<Data::FluorophoreID>& flourophores){
 /*
 Slot: forwards the cache remove event
 */
-void Controller::receiveCacheRemove(std::set<Data::FluorophoreID>& flourophores){
+void Controller::receiveCacheRemove(std::vector<Data::FluorophoreID>& flourophores){
     emit this->sendCacheRemove(flourophores);
 }
 
@@ -103,10 +113,17 @@ void Controller::receiveLaser(int wavelenght){
 }
 
 /*
-Slot: forwards the synchronisation request of the fluor buttons
+Slot: forwards the cache'ssynchronisation request
 */
-void Controller::receiveSyncFluor(const std::vector<Cache::CacheID>& input){
-    emit this->sendSyncFluor(input);
+void Controller::receiveCacheSync(const std::vector<Cache::CacheID>& cache_state){
+    emit this->sendCacheSync(cache_state);
+}
+
+/*
+Slot: forwards the cache's update request
+*/
+void Controller::receiveCacheUpdate(const std::vector<Cache::CacheID>& cache_state){
+    emit this->sendCacheUpdate(cache_state);
 }
 
 } // Main namespace

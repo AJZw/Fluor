@@ -24,7 +24,13 @@
 ***************************************************************************/
 
 /**** DOC ******************************************************************
+** The graphicsscene object of a graph
 **
+** :class: Graph::GraphicsScene
+** The graphicsscene holding all QGraphicsItem
+**
+** :class: Graph::GraphicsPlot
+** ?? Will i use this one ever, or temperarily? Idea of coupling the base and the spectrum apart could be quite handy
 ** 
 ***************************************************************************/
 
@@ -35,7 +41,7 @@
 #include <QWidget>
 #include <QSize>
 
-#include "graph_settings.h"
+#include "graph_format.h"
 #include "graph_graphicsitems.h"
 
 namespace Graph {
@@ -49,32 +55,34 @@ class GraphicsScene : public QGraphicsScene {
         GraphicsScene& operator=(const GraphicsScene &obj) = delete;
         GraphicsScene(GraphicsScene&&) = delete;
         GraphicsScene& operator=(GraphicsScene&&) = delete;
-        ~GraphicsScene() = default;
+        virtual ~GraphicsScene();
 
     private:
-        Graph::Settings settings;
+        Graph::Format::Settings settings;
 
-        Graph::GraphBackground* item_background;
+        Graph::Background* item_background;
 
-        Graph::AxisTitleX* item_x_axis_title;
-        Graph::AxisTickLabelsX item_x_axis_labels;
-        //Graph::AxisTicksX item_x_axis_ticks;
+        Graph::Axis::LabelX* item_x_axis_label;
+        Graph::Axis::GridLabelsX* item_x_axis_gridlabels;
+        //Graph::Axis::TicksX* item_x_axis_ticks;
+        Graph::Axis::GridLinesX* item_x_axis_gridlines;
         Graph::Colorbar* item_x_colorbar;
-        Graph::AxisLinesX item_x_axis_lines;
 
-        Graph::AxisTitleY* item_y_axis_title;
-        Graph::AxisTickLabelsY item_y_axis_labels;
-        //Graph::AxisTicksY item_y_axis_ticks;
-        Graph::AxisLinesY item_y_axis_lines;
+        Graph::Axis::LabelY* item_y_axis_label;
+        Graph::Axis::GridLabelsY* item_y_axis_gridlabels;
+        //Graph::Axis::TicksY* item_y_axis_ticks;
+        Graph::Axis::GridLinesY* item_y_axis_gridlines;
 
-        Graph::GraphOutline* item_outline;
+        Graph::Spectra* item_spectra;
+
+        Graph::Outline* item_outline;
 
         void calculateSizes(const QSize& rect);
 
-
     public slots:
         virtual void resizeScene(const QSize& rect);
-        //void resizeScene(const QRectF& rect);
+        void sync(const std::vector<Cache::CacheID>& cache_state);
+        void update(const std::vector<Cache::CacheID>& cache_state);
 
 };
 
@@ -87,7 +95,7 @@ class GraphicsPlot : public GraphicsScene {
         GraphicsPlot& operator=(const GraphicsPlot &obj) = delete;
         GraphicsPlot(GraphicsPlot&&) = delete;
         GraphicsPlot& operator=(GraphicsPlot&&) = delete;
-        ~GraphicsPlot() = default;
+        virtual ~GraphicsPlot() = default;
 
     public slots:
         virtual void resizeScene(const QSize& rect);

@@ -683,7 +683,8 @@ void LineEdit::unfocus(QEvent* event){
 
     // Clicks on the popup do not propagate to the Main::Controller
     // But clicks moved into the popup do propagate, so check
-    if(static_cast<Fluor::Completer*>(this->completer())->popup()->rect().contains(this->mapFromGlobal(mouse_event->globalPos()))){
+    Fluor::Popup* popup = static_cast<Fluor::Completer*>(this->completer())->popup();
+    if(popup->rect().contains(popup->mapFromGlobal(mouse_event->globalPos()))){
         return;
     }
 

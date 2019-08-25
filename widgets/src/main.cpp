@@ -38,8 +38,7 @@ int main(int argc, char **argv)
     Data::Factory FACTORY;
 
     // Load Default stylesheet (to make the warnings look pretty)
-    Data::StyleBuilder STYLE;
-    STYLE.loadStyle(FACTORY, "BLACKBLUE");
+    Data::Style::Builder STYLE;
     APP.setStyleSheet(STYLE.getStyleSheet());
 
     // Run error/warning messages and quits when invalid DataFactory
@@ -48,6 +47,10 @@ int main(int argc, char **argv)
         APP.quit();
         return 1;
     }
+
+    // Factory is fully valid, load proper stylesheet
+    STYLE.loadStyle(FACTORY, "BLACKBLUE");
+    APP.setStyleSheet(STYLE.getStyleSheet());
     
     // Start data import etc
     Data::Fluorophores DATA;
@@ -56,8 +59,6 @@ int main(int argc, char **argv)
     // Build Cache
     Cache::Cache CACHE(FACTORY, DATA);
 
-    // std::unique_ptr<DataSpectrum> color = data.getSpectrum(settings, "APC");
-
     // Loads GUI
     Main::Controller GUI;
     GUI.show();
@@ -65,11 +66,15 @@ int main(int argc, char **argv)
     // Connect Cache to GUI
     QObject::connect(&GUI, &Main::Controller::sendCacheAdd, &CACHE, &Cache::Cache::cacheAdd);
     QObject::connect(&GUI, &Main::Controller::sendCacheRemove, &CACHE, &Cache::Cache::cacheRemove);
-    QObject::connect(&CACHE, &Cache::Cache::syncFluor, &GUI, &Main::Controller::receiveSyncFluor);
+    QObject::connect(&GUI, &Main::Controller::sendCacheRequestUpdate, &CACHE, &Cache::Cache::cacheRequestUpdate);
+    
+    QObject::connect(&CACHE, &Cache::Cache::cacheSync, &GUI, &Main::Controller::receiveCacheSync);
+    QObject::connect(&CACHE, &Cache::Cache::cacheUpdate, &GUI, &Main::Controller::receiveCacheUpdate);
 
     // Start data loading
     emit GUI.sendData(DATA);
 
+    
 
     return APP.exec();
 }

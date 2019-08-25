@@ -26,7 +26,7 @@
 /**** DOC ******************************************************************
 ** Controller of the main widget
 **
-** :class: Controller
+** :class: Main::Controller
 ** Controls the signal and slots of the main widgets
 ** 
 ***************************************************************************/
@@ -63,13 +63,15 @@ class Controller : public QMainWindow {
         void receiveGlobalEvent(QEvent* event);
 
         void receiveLaser(int wavelength);
-        void receiveCacheAdd(std::set<Data::FluorophoreID>& fluorophores);
-        void receiveCacheRemove(std::set<Data::FluorophoreID>& fluorophores);
 
-        void receiveSyncFluor(const std::vector<Cache::CacheID>& input);
+        void receiveCacheRequestUpdate();
+        void receiveCacheAdd(std::set<Data::FluorophoreID>& fluorophores);
+        void receiveCacheRemove(std::vector<Data::FluorophoreID>& fluorophores);
+
+        void receiveCacheSync(const std::vector<Cache::CacheID>& cache_state);
+        void receiveCacheUpdate(const std::vector<Cache::CacheID>& cache_state);
 
     signals:
-        void clicked();
         void resized(const QWidget* widget);
         void moved(const QWidget* widget);
 
@@ -77,10 +79,13 @@ class Controller : public QMainWindow {
         void sendData(const Data::Fluorophores& data);
 
         void sendLaser(int wavelength);
-        void sendCacheAdd(std::set<Data::FluorophoreID>& fluorophores);
-        void sendCacheRemove(std::set<Data::FluorophoreID>& fluorophores);
 
-        void sendSyncFluor(const std::vector<Cache::CacheID>& input);
+        void sendCacheRequestUpdate();
+        void sendCacheAdd(std::set<Data::FluorophoreID>& fluorophores);
+        void sendCacheRemove(std::vector<Data::FluorophoreID>& fluorophores);
+
+        void sendCacheSync(const std::vector<Cache::CacheID>& cache_state);
+        void sendCacheUpdate(const std::vector<Cache::CacheID>& cache_state);
 };
 
 } // Main namespace

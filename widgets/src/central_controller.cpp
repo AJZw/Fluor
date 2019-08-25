@@ -58,16 +58,19 @@ Controller::Controller(QWidget* parent) :
     QObject::connect(this, &Central::Controller::sendGlobalEvent, controller_fluor, &Fluor::Controller::receiveGlobalEvent);
     QObject::connect(this, &Central::Controller::sendData, controller_fluor, &Fluor::Controller::receiveData);
     QObject::connect(this, &Central::Controller::sendGlobalSize, controller_fluor, &Fluor::Controller::receiveGlobalSize);
-    
+    QObject::connect(this, &Central::Controller::sendCacheSync, controller_fluor, &Fluor::Controller::receiveCacheSync);
+    QObject::connect(this, &Central::Controller::sendCacheUpdate, controller_fluor, &Fluor::Controller::receiveCacheUpdate);
+
     QObject::connect(this, &Central::Controller::sendGlobalEvent, controller_laser, &Laser::Controller::receiveGlobalEvent);
     QObject::connect(this, &Central::Controller::sendGlobalSize, controller_laser, &Laser::Controller::receiveGlobalSize);
+
+    QObject::connect(this, &Central::Controller::sendCacheSync, controller_graph, &Graph::Controller::receiveCacheSync);
+    QObject::connect(this, &Central::Controller::sendCacheUpdate, controller_graph, &Graph::Controller::receiveCacheUpdate);
 
     QObject::connect(controller_laser, &Laser::Controller::sendOutput, this, &Central::Controller::receiveLaser);
     QObject::connect(controller_fluor, &Fluor::Controller::sendCacheAdd, this, &Central::Controller::receiveCacheAdd);
     QObject::connect(controller_fluor, &Fluor::Controller::sendCacheRemove, this, &Central::Controller::receiveCacheRemove);
-
-    QObject::connect(this, &Central::Controller::sendSyncFluor, controller_fluor, &Fluor::Controller::receiveSync);
-
+    QObject::connect(controller_fluor, &Fluor::Controller::sendCacheRequestUpdate, this, &Central::Controller::receiveCacheRequestUpdate);
 }
 
 /*
@@ -104,6 +107,13 @@ void Controller::receiveGlobalSize(const QWidget* widget){
 }
 
 /*
+Slot: forwards the request to the cache to update
+*/
+void Controller::receiveCacheRequestUpdate(){
+    emit this->sendCacheRequestUpdate();
+}
+
+/*
 Slot: receives and forwards the cache adding input
 */
 void Controller::receiveCacheAdd(std::set<Data::FluorophoreID>& fluorophores){
@@ -113,8 +123,22 @@ void Controller::receiveCacheAdd(std::set<Data::FluorophoreID>& fluorophores){
 /*
 Slot: receives and forwards the cache remove input
 */
-void Controller::receiveCacheRemove(std::set<Data::FluorophoreID>& fluorophores){
+void Controller::receiveCacheRemove(std::vector<Data::FluorophoreID>& fluorophores){
     emit this->sendCacheRemove(fluorophores);
+}
+
+/*
+Slot: receives and forwards the synchronisation request of the fluor buttons
+*/
+void Controller::receiveCacheSync(const std::vector<Cache::CacheID>& cache_state){
+    emit this->sendCacheSync(cache_state);
+}
+
+/*
+Slot: forwards the synchronisation request to the graph
+*/
+void Controller::receiveCacheUpdate(const std::vector<Cache::CacheID>& cache_state){
+    emit this->sendCacheUpdate(cache_state);
 }
 
 /*
@@ -122,13 +146,6 @@ Slot: receives and forwards the laser wavelength input
 */
 void Controller::receiveLaser(int wavelength){
     emit this->sendLaser(wavelength);
-}
-
-/*
-Slot: receives and forwards the synchronisation request of the fluor buttons
-*/
-void Controller::receiveSyncFluor(const std::vector<Cache::CacheID>& input){
-    emit this->sendSyncFluor(input);
 }
 
 } // Central namespace

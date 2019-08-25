@@ -26,7 +26,7 @@
 /**** DOC ******************************************************************
 ** The Laser menu buttons
 **
-** :class: PushButton
+** :class: Laser::PushButton
 ** A pushbutton to be shown if the LaserLineEdit is inactive
 **
 ***************************************************************************/

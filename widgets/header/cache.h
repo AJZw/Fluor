@@ -24,7 +24,20 @@
 ***************************************************************************/
 
 /**** DOC ******************************************************************
-** 
+** The storage and handling of the global Spectra objects, named the cache 
+**
+** :enum: Cache::SortOption
+** [Should be moved to the State] The ways the cache items can be ordered for
+** presentation in the GUI
+**
+** :class: Cache::CacheID
+** Struct of the Spectrum ID, name, and data pointer. This is the way spectra
+** are stored within the cache items
+**
+** :class: Cache::Cache
+** Caching, handling, and synchronisation of Spectra for showing in the GUI
+** Keeps a std::set 'items' for all currently active spectra, stored as CacheID
+** Keeps a std::unordered_map 'data' for all loaded spectra data
 **
 ***************************************************************************/
 
@@ -82,7 +95,8 @@ class Cache : public QObject {
         void printState() const;
 
     private:
-        unsigned int counter;
+        unsigned int counter = 0;
+        unsigned int max_cache_size = 25;
 
         const Data::Factory& source_factory;
         const Data::Fluorophores& source_data;
@@ -91,17 +105,25 @@ class Cache : public QObject {
         std::unordered_map<QString, Data::CacheSpectrum> data;
 
         unsigned int getCounter(unsigned int size);
-        Data::CacheSpectrum* getData(const QString& id, const QString& name, const unsigned int counter);
+        Data::CacheSpectrum* getData(const QString& id, const unsigned int counter);
+        void rebuildCounter();
+        void rebuildCache(bool sync=true);
 
         void sync();
+        void update();
         static void sortVector(std::vector<CacheID>& input, SortOption option);
 
     public slots:
         void cacheAdd(std::set<Data::FluorophoreID>& fluorophores);
-        void cacheRemove(std::set<Data::FluorophoreID>& fluorophores);
+        void cacheRemove(std::vector<Data::FluorophoreID>& fluorophores);
+        void cacheRequestSync();
+        void cacheRequestUpdate();
 
     signals:
-        void syncFluor(const std::vector<CacheID>& input);
+        // sync signals are for adding and removing cache entrees
+        void cacheSync(const std::vector<CacheID>& cache_state);
+        // update signals are for updating the state of the widgets, no adding and removing
+        void cacheUpdate(const std::vector<CacheID>& cache_state);
 
 };
 

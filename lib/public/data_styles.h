@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.1
-** Date:       2018-12-08
+** Version:    v0.9.5
+** Date:       2019-07-30
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -41,11 +41,15 @@
 
 namespace Data {
 
-class DATALIB_EXPORT StyleBuilder {
+namespace Style {
+
+class DATALIB_EXPORT Builder {
     public:
-        StyleBuilder();
+        Builder();
+
         QString getStyleSheet() const;
         std::vector<QString> getStyleIDs(const Data::Factory& data) const;
+
         void loadStyle(const Data::Factory& data, const QString& style_id);
 
     private:
@@ -148,7 +152,10 @@ class DATALIB_EXPORT StyleBuilder {
         QString graph_plot_focus;
         QString graph_axis;
         QString graph_grid;
-        QString graph_font;
+        QString graph_excitation_width;
+        QString graph_excitation_style;
+        QString graph_emission_width;
+        QString graph_emission_style;
         QString graph_detector;
 
         void buildStylesheet();
@@ -164,6 +171,9 @@ class DATALIB_EXPORT StyleBuilder {
         QString buildFluorMenu() const;
         QString buildGraph() const;
 };
+
+
+} // Style namespace
 
 } // Data namespace
 

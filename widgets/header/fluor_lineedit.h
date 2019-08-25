@@ -26,11 +26,15 @@
 /**** DOC ******************************************************************
 ** The fluorophore menu lineedit
 **
-** :class: LineEdit
-** The fluorophore menu lineedit
+** :class: Fluor::LineEdit
+** The fluorophore menu lineedit. Completes the input text, and allows for 
+** multiple comma separated inputs
 **
-** :class: Completer
-** The fluorophore completer
+** :class: Fluor::Popup
+** The popup of the completer, presents a list of possible completion solutions
+**
+** :class: Fluor::Completer
+** Completes the inputs of the LineEdit by comparison to fluorophore data
 **
 ***************************************************************************/
 

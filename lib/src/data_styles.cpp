@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.2
-** Date:       2018-04-10
+** Version:    v0.9.5
+** Date:       2019-07-30
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -8,14 +8,19 @@
 
 #include "data_styles.h"
 
+#include <QFont>
+#include <QFontMetrics>
+#include <QApplication>
 #include <QDebug>
 
 namespace Data {
 
+namespace Style {
+
 /* 
 (Constructor) Builds a CSS stylesheet (from QSettings)
 */
-StyleBuilder::StyleBuilder() :
+Builder::Builder() :
     stylesheet(""),
     
     icons("light"),
@@ -113,7 +118,10 @@ StyleBuilder::StyleBuilder() :
     graph_plot_focus("#AAAAAA"),
     graph_axis("#000000"),
     graph_grid("#000000"),
-    graph_font(this->graph_text),
+    graph_excitation_width("2px"),
+    graph_excitation_style("Dash"),
+    graph_emission_width("2px"),
+    graph_emission_style("Dash"),
     graph_detector("#000000")
 {
     this->buildStylesheet();
@@ -123,7 +131,7 @@ StyleBuilder::StyleBuilder() :
 Getter: returns the StyleBuilder.stylesheet
     :returns: stylesheet
 */
-QString StyleBuilder::getStyleSheet() const {
+QString Builder::getStyleSheet() const {
     return(this->stylesheet);
 }
 
@@ -132,7 +140,7 @@ Getter: returns all style names from the settings file
     :param data: a data factory
     :returns: vector of style_id(s)
 */
-std::vector<QString> StyleBuilder::getStyleIDs(const Data::Factory& data) const {
+std::vector<QString> Builder::getStyleIDs(const Data::Factory& data) const {
     std::unique_ptr<QSettings> style;
     style = data.get(Data::Factory::styles);
     
@@ -147,7 +155,7 @@ Loads attributes from settings file
     :param data: a data factory
     :param style_id: the id of the style to load
 */
-void StyleBuilder::loadStyle(const Data::Factory& data, const QString& style_id){
+void Builder::loadStyle(const Data::Factory& data, const QString& style_id){
     std::unique_ptr<QSettings> style;
     style = data.get(Data::Factory::styles);
 
@@ -253,9 +261,12 @@ void StyleBuilder::loadStyle(const Data::Factory& data, const QString& style_id)
     this->graph_text_weight = style->value("graph_text_weight", this->pushbutton_text_weight).toString();
     this->graph_plot = style->value("graph_plot", this->background).toString();
     this->graph_plot_focus = style->value("graph_plot_focus", "#AAAAAA").toString();
-    this->graph_axis = style->value("graph_axis", "#000000").toString();
-    this->graph_grid = style->value("graph_grid", "#000000").toString();
-    this->graph_font = style->value("graph_font", this->graph_text).toString();
+    this->graph_axis = style->value("graph_axis", this->pushbutton_text).toString();
+    this->graph_grid = style->value("graph_grid", this->pushbutton_text).toString();
+    this->graph_excitation_width = style->value("graph_excitation_width", "2px").toString();
+    this->graph_excitation_style = style->value("graph_excitation_style", "dash").toString();
+    this->graph_emission_width = style->value("graph_emission_width", "2px").toString();
+    this->graph_emission_style = style->value("graph_emission_style", "solid").toString();
     this->graph_detector = style->value("graph_detector", "#000000").toString();
 
     style->endGroup();
@@ -266,7 +277,7 @@ void StyleBuilder::loadStyle(const Data::Factory& data, const QString& style_id)
 /*
 Combines all individual stylesheet sections and sets StyleBuilder.stylesheet with the build stylesheet
 */
-void StyleBuilder::buildStylesheet(){
+void Builder::buildStylesheet(){
     QString stylesheet;
     stylesheet.append(this->buildLabel());
     stylesheet.append(this->buildPushButton());
@@ -287,7 +298,7 @@ void StyleBuilder::buildStylesheet(){
 Builds the stylesheet for QLabel
     :returns: stylesheet
 */
-QString StyleBuilder::buildLabel() const {
+QString Builder::buildLabel() const {
     QString style;
     style = "QLabel {"
             " background-color: %1;"
@@ -319,7 +330,7 @@ QString StyleBuilder::buildLabel() const {
 Builds the stylesheet for QPushButton
     :returns: stylesheet
 */
-QString StyleBuilder::buildPushButton() const {
+QString Builder::buildPushButton() const {
     QString style;
     style = "QPushButton {"
             " background-color: %1;"
@@ -410,7 +421,7 @@ QString StyleBuilder::buildPushButton() const {
 Builds the stylesheet for QLineEdit
     :returns: stylesheet
 */
-QString StyleBuilder::buildLineEdit() const {
+QString Builder::buildLineEdit() const {
     QString style;
     style = "QLineEdit {"
             " background-color: %1;"
@@ -488,7 +499,7 @@ QString StyleBuilder::buildLineEdit() const {
 Builds the stylesheet for QListView
     :returns: stylesheet
 */
-QString StyleBuilder::buildListView() const {
+QString Builder::buildListView() const {
     QString style;
     style = "QListView {"
             " background-color: %1;"
@@ -549,7 +560,7 @@ QString StyleBuilder::buildListView() const {
 Builds the stylesheet for QTabWidget
     :returns: stylesheet
 */
-QString StyleBuilder::buildTabWidget() const {
+QString Builder::buildTabWidget() const {
     QString style;
     style = "QTabWidget::pane {"
             " padding: 0px;"
@@ -600,7 +611,7 @@ QString StyleBuilder::buildTabWidget() const {
 Builds the stylesheet for QScrollBar
     :returns: stylesheet
 */
-QString StyleBuilder::buildScrollBar() const {
+QString Builder::buildScrollBar() const {
     QString style;
     style = "QScrollBar::vertical {"
             " background: none #000000;"
@@ -608,7 +619,7 @@ QString StyleBuilder::buildScrollBar() const {
             " border-bottom: %1 solid %2;"
             " border-left: %1 solid %2;"
             " border-right: %1 solid %2;"
-            " width: 8px;"
+            " width: 0.3em;"
             " margin: 0px 0px 0px 0px;"
             "} "
             "QScrollBar::handle::vertical {"
@@ -644,7 +655,7 @@ QString StyleBuilder::buildScrollBar() const {
 Builds the stylesheet for central_window
     :returns: stylesheet
 */
-QString StyleBuilder::buildCentralWindow() const {
+QString Builder::buildCentralWindow() const {
     QString style;
     style = "QMainWindow {"
             " background: %1;"
@@ -657,7 +668,7 @@ QString StyleBuilder::buildCentralWindow() const {
 Builds the stylesheet for the toolbar
     :returns: stylesheet
 */
-QString StyleBuilder::buildToolBar() const {
+QString Builder::buildToolBar() const {
     QString style;
     style = "Bar--IconPushButton[active=true] {"
             " padding: 0px;"
@@ -731,7 +742,14 @@ QString StyleBuilder::buildToolBar() const {
 Builds the stylesheet for laser_menu
     :returns: stylesheet
 */
-QString StyleBuilder::buildLaserMenu() const {
+QString Builder::buildLaserMenu() const {
+    // The scrollbar needs to be the same width as the buttons
+    // This is effectively 0.5em + 3px (= margin correction)
+    // Margin correction is necessary as Qt's width is the content+padding+border+margin
+    QFontMetrics font_metric = QFontMetrics(static_cast<QApplication*>(QApplication::instance())->font());
+    double width_m = static_cast<double>(font_metric.width('M'));
+    double scrollbar_margin = (3.0 / width_m) + 0.3;
+    
     QString style;
     style = "Laser--PushButton {"
             " min-width: 10em;"
@@ -744,10 +762,13 @@ QString StyleBuilder::buildLaserMenu() const {
             "} "
             "Laser--Popup QScrollBar::vertical {"
             " margin: 0px 0px 0px 3px;"
-            " width: 13px;"
+            " width: %2em;"
             "} ";
     
-    style = style.arg(this->lasermenu_popup);
+    style = style.arg(
+        this->lasermenu_popup,
+        QString::number(scrollbar_margin, 'f', 3)
+    );
     return(style);
 }
 
@@ -755,7 +776,14 @@ QString StyleBuilder::buildLaserMenu() const {
 Builds the stylesheet for the fluor_menu
     :returns: stylesheet
 */
-QString StyleBuilder::buildFluorMenu() const {
+QString Builder::buildFluorMenu() const {
+    // The scrollbar needs to be the same width as the buttons
+    // This is effectively 0.5em + 3px (= margin correction)
+    // Margin correction is necessary as Qt's width is the content+padding+border+margin
+    QFontMetrics font_metric = QFontMetrics(static_cast<QApplication*>(QApplication::instance())->font());
+    double width_m = static_cast<double>(font_metric.width('M'));
+    double scrollbar_margin = (3.0 / width_m) + 0.3;
+
     QString style;
     style = "Fluor--PushButton {"
             " min-width: 10em;"
@@ -765,12 +793,12 @@ QString StyleBuilder::buildFluorMenu() const {
             "} "
             "Fluor--ExcitationButton {"
             " padding: 6px 0px 6px 0px;"
-            " width: 5px;"
+            " width: 0.3em;"
             "} "
             "Fluor--RemoveButton[active=true] {"
             " background-color: %1;"
             " padding: 6px 0px 6px 0px;"
-            " width: 5px;"
+            " width: 0.3em;"
             "} "
             "Fluor--RemoveButton::hover[active=true] {"
             " background-color: %2;"
@@ -789,11 +817,11 @@ QString StyleBuilder::buildFluorMenu() const {
             "} "
             "Fluor--Popup QScrollBar::vertical {"
             " margin: 0px 0px 0px 3px;"
-            " width: 10px;"
+            " min-width: %6em;"
             "} "
             "Fluor--ScrollController QScrollBar::vertical {"
             " margin: 0px 0px 0px 3px;"
-            " width: 10px;"
+            " min-width: %6em;"
             "} ";
     
     style = style.arg(
@@ -801,7 +829,8 @@ QString StyleBuilder::buildFluorMenu() const {
         this->fluormenu_remove_hover,
         this->fluormenu_remove_press,
         this->fluormenu_popup,
-        this->fluormenu_background
+        this->fluormenu_background,
+        QString::number(scrollbar_margin, 'f', 3)
     );
     return(style);
 }
@@ -810,14 +839,9 @@ QString StyleBuilder::buildFluorMenu() const {
 Builds the stylesheet for graph
     :returns: stylesheet
 */
-QString StyleBuilder::buildGraph() const {
+QString Builder::buildGraph() const {
     QString style;
-    style = "Graph--ScrollArea QWidget QLabel {"
-            " background: %1;"
-            " color: %2;"
-            " font: %3;"
-            "} "
-            "Graph--ScrollArea .QWidget {"
+    style = "Graph--ScrollArea .QWidget {"
             " background: %1;"
             "} "
             "Graph--ScrollArea QScrollBar::vertical {"
@@ -826,11 +850,11 @@ QString StyleBuilder::buildGraph() const {
             "} ";
     
     style = style.arg(
-        this->graph_background,
-        this->graph_text,
-        this->graph_text_weight
+        this->graph_background
     );
     return(style);
 }
+
+} // Style namespace
 
 } // Data namespace

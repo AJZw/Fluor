@@ -24,8 +24,11 @@
 ***************************************************************************/
 
 /**** DOC ******************************************************************
-**
+** The view into a graph. Receives outside events
 ** 
+** :class: Graph::GraphicsView
+** Receives and forwards outside events towards the scene
+**
 ***************************************************************************/
 
 #ifndef GRAPH_GRAPHICSVIEW_H
@@ -54,6 +57,7 @@ class GraphicsView : public QGraphicsView {
 
     private:
         void resizeEvent(QResizeEvent* event);
+        bool eventFilter(QObject* obj, QEvent* event);
 
     signals:
         void resizedView(const QSize space);

@@ -55,7 +55,7 @@ class DATALIB_EXPORT Factory {
     public:
         Factory();
         Factory(const QString settings, const QString styles, const QString cytometers, const QString fluorophores);
-        Factory(const Factory&) = default;         // Copy/Move - not sure whether you would want to, but should be fine
+        Factory(const Factory&) = default;         // Copy/Move - not sure whether you would want to, but should be fine because it doesnt do any file IO itself
         Factory& operator=(const Factory&) = default;
         Factory(Factory&&) = default;
         Factory& operator=(Factory&&) = default;

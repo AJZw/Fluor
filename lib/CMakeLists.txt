@@ -43,7 +43,12 @@ target_compile_options(data_library PRIVATE
     -Wsign-compare
     -Wsign-conversion
     -Wsign-promo
+    #-fsanitize=address
 )
+
+#target_link_options(data_library PRIVATE
+#    -fsanitize=address
+#)
 
 set_target_properties(data_library PROPERTIES
     OUTPUT_NAME _data

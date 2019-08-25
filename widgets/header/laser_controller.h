@@ -26,7 +26,7 @@
 /**** DOC ******************************************************************
 ** Controller of the laser selection widgets
 **
-** :class: Controller
+** :class: Laser::Controller
 ** Controls the signal and slots of the laser selection
 ** 
 ***************************************************************************/

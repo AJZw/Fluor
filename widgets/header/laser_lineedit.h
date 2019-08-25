@@ -26,10 +26,10 @@
 /**** DOC ******************************************************************
 ** The laser menu lineedit
 **
-** :class: Popup
+** :class: Laser::Popup
 ** The nonmodal laser popup
 **
-** :class: LineEdit
+** :class: Laser::LineEdit
 ** The laser lineedit
 **
 ***************************************************************************/

@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.1
-** Date:       2018-12-08
+** Version:    v0.9.4
+** Date:       2019-07-20
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -8,8 +8,8 @@
 
 #include "data_fluorophores.h"
 
+#include <QPolygonF>
 #include <QDebug>
-#include <QVariant>
 
 namespace Data {
 
@@ -112,23 +112,28 @@ Data::Spectrum Fluorophores::getSpectrum(const Data::Factory& data, const QStrin
 
     fluorophores->beginGroup(id);
 
-    // Load data and transform to vector of double
-    std::vector<double> excitation_wavelength{Fluorophores::toStdVector(fluorophores->value("excitation_wavelength", "0.0").toStringList())};
-    std::vector<double> excitation_intensity{Fluorophores::toStdVector(fluorophores->value("excitation_intensity", "0.0").toStringList())};
-    std::vector<double> emission_wavelength{Fluorophores::toStdVector(fluorophores->value("emission_wavelength", "0.0").toStringList())};
-    std::vector<double> emission_intensity{Fluorophores::toStdVector(fluorophores->value("emission_intensity", "0.0").toStringList())};
+    // Load data and transform to Data::Polygon's
+    QStringList excitation_wavelength = fluorophores->value("excitation_wavelength", "0.0,0.0").toStringList();
+    QStringList excitation_intensity = fluorophores->value("excitation_intensity", "0.0,0.0").toStringList();
+    Data::Polygon excitation = this->toPolygon(excitation_wavelength, excitation_intensity);
+
+    QStringList emission_wavelength = fluorophores->value("emission_wavelength", "0.0,0.0").toStringList();
+    QStringList emission_intensity = fluorophores->value("emission_intensity", "0.0,0.0").toStringList();
+    Data::Polygon emission = this->toPolygon(emission_wavelength, emission_intensity);
 
     fluorophores->endGroup();
 
-    // Check if valid -> if not send qWarning and build a new (empty) DataSpectrum
-    Data::Spectrum spectrum(id, excitation_wavelength, excitation_intensity, emission_wavelength, emission_intensity);
+    // Set linecolor, cannot use the meta-data shortcut as spectrum doesnt request this info
+    emission.setColor();
+    excitation.setColor(emission.color());
 
     // Verify validity, if invalid return
-    if(!spectrum.isValid()){
-        qWarning() << "Data::Fluorophores::getSpectrum: DataSpectrum object of id " << id << " is invalid.";
-
-        spectrum.setToZero();
+    Data::Spectrum spectrum(id, excitation, emission);
+    
+    if(!spectrum.isValid()){      
+        qWarning() << "Data::Fluorophores::getSpectrum: DataSpectrum object of id " << id << " is invalid. Is the Data complete?";
     }
+
     return spectrum;
 }
 
@@ -136,40 +141,51 @@ Data::Spectrum Fluorophores::getSpectrum(const Data::Factory& data, const QStrin
 Fluorophore CacheSpectrum accessor
     :param data: the DataFactory which builds a QSettings object containing the fluorophore data
     :param id: the fluorophore id, if id is invalid returns are empty vectors
-    :param name: the fluorophore name
     :param index: the creation index
     :returns: CacheSpectrum object
 */
-Data::CacheSpectrum Fluorophores::getCacheSpectrum(const Data::Factory& data, const QString& id, const QString& name, unsigned int index) const {
+Data::CacheSpectrum Fluorophores::getCacheSpectrum(const Data::Factory& data, const QString& id, unsigned int index) const {
     // Retrieve QSetting
     std::unique_ptr<QSettings> fluorophores = data.get(Data::Factory::fluorophores);
 
     fluorophores->beginGroup(id);
 
-    // Load data and transform to vector of double
-    std::vector<double> excitation_wavelength{Fluorophores::toStdVector(fluorophores->value("excitation_wavelength", "0.0").toStringList())};
-    std::vector<double> excitation_intensity{Fluorophores::toStdVector(fluorophores->value("excitation_intensity", "0.0").toStringList())};
-    std::vector<double> emission_wavelength{Fluorophores::toStdVector(fluorophores->value("emission_wavelength", "0.0").toStringList())};
-    std::vector<double> emission_intensity{Fluorophores::toStdVector(fluorophores->value("emission_intensity", "0.0").toStringList())};
+    // Load data and transform to Data::Polygon's
+    // Needs to do proper selection and flag setting for absorption / excitation curves - for now ignore two_photon
+    QStringList excitation_wavelength = fluorophores->value("excitation_wavelength", "0.0,0.0").toStringList();
+    QStringList excitation_intensity = fluorophores->value("excitation_intensity", "0.0,0.0").toStringList();
+    Data::Polygon excitation = this->toPolygon(excitation_wavelength, excitation_intensity);
 
+    QStringList emission_wavelength = fluorophores->value("emission_wavelength", "0.0,0.0").toStringList();
+    QStringList emission_intensity = fluorophores->value("emission_intensity", "0.0,0.0").toStringList();
+    Data::Polygon emission = this->toPolygon(emission_wavelength, emission_intensity);
+
+    // Get meta data
     Data::Meta meta;
     meta.excitation_max = fluorophores->value("excitation_max", -1).toInt();
     meta.emission_max = fluorophores->value("emission_max", -1).toInt();
 
     fluorophores->endGroup();
 
+    // Set linecolor
+    if(meta.emission_max != -1){
+        emission.setColor(meta.emission_max);
+    }else{
+        emission.setColor();
+    }
+    excitation.setColor(emission.color());
+
     // Verify validity, if invalid return
-    Data::Spectrum spectrum(id, excitation_wavelength, excitation_intensity, emission_wavelength, emission_intensity);
+    Data::Spectrum spectrum(id, excitation, emission);
     
     if(!spectrum.isValid()){      
-        qWarning() << "Data::Fluorophores::getSpectrum: DataSpectrum object of id " << id << " is invalid.";
-        
-        spectrum.setToZero();
+        qWarning() << "Data::Fluorophores::getCacheSpectrum: DataSpectrum object of id " << id << " is invalid. Is the Data complete?";
     }
     
-    Data::CacheSpectrum cache(index, name, std::move(spectrum), std::move(meta));
+    // Wrap in cache
+    Data::CacheSpectrum cache(index, std::move(spectrum), std::move(meta));
 
-    return(cache);
+    return cache;
 }
 
 /*
@@ -197,19 +213,53 @@ const std::unordered_map<QString, QStringList>& Fluorophores::getFluorNames() co
 }
 
 /*
-(Static) Converts a QStringList into a std::vector of doubles
-    :returns: vector of double typeconverted QStrings
+(Static) Convers a QStringList into a Data::Polygon object.
+    :param list_x: the list containing the values for the x-axis
+    :param list_y: the list containing the values for the y-axis
+    :returns: a Data::Polygon object containing the curve
 */
-std::vector<double> Fluorophores::toStdVector(const QStringList& stringlist){
-    std::vector<double> double_vector(static_cast<std::size_t>(stringlist.size()));
-
-    // Iterate using index, because I need to read the input to the output at the same time   
-    for(int i=0; i<stringlist.size(); ++i){
-        double_vector[static_cast<std::size_t>(i)] = stringlist[i].toDouble();
+Data::Polygon Fluorophores::toPolygon(const QStringList& list_x, const QStringList& list_y){
+    if(list_x.size() != list_y.size()){
+        qWarning() << "Fluorophores::toPolygon: x and y stringlist are of unequal size, cannot be parsed, returns default Data::Polygon";
+        return Data::Polygon();
     }
 
-    return double_vector;
-} 
+    // Reserve enough space, with two additional entrees, which can be used to make a properly closed polygon
+    QPolygonF temp_polygon = QPolygonF();
+    temp_polygon.reserve(list_x.size() + 2);
+    temp_polygon.resize(list_x.size());
+
+    // Get calculation temporaries
+    // Uses 'ydiff multiplication) optimisation to get rid of a looped floating point division. This does introduce imprecisions
+    double x_min = list_x[0].toDouble();
+    double x_max = list_x[list_x.size() - 1].toDouble();
+    double x_diff = 1 / (x_max - x_min);
+
+    double y_min = 0.0;
+    double y_max = 100.0;
+    double y_diff = 1 / (y_max - y_min);
+
+    // Fill temp QPolygonF
+    for(int i=0; i < list_x.size(); ++i){
+        // Retreive x and correct to a value between 0-1
+        double x = list_x[i].toDouble();
+        x -= x_min;
+        x *= x_diff;
+
+        // Retreive y and correct to a value between 0-1
+        double y = list_y[i].toDouble();
+        y -= y_min;
+        y *= y_diff;
+
+        // Set QPointF values        
+        temp_polygon[i].setX(x);
+        temp_polygon[i].setY(y);
+    }
+
+    Data::Polygon polygon(x_min, x_max, y_min, y_max, std::move(temp_polygon));
+
+    return polygon;
+}
 
 /*
 (Static) Debugging functions, unpacks Map/Set for parsing to qDebug()
