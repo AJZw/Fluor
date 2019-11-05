@@ -46,6 +46,7 @@ namespace Laser {
 
 class Popup : public QListView {
     Q_OBJECT
+    Q_PROPERTY(QString viewport_margins_scroll_bar READ viewportMarginsScrollBar WRITE setViewportMarginsScrollBar)
 
     public:
         explicit Popup(QWidget* parent=nullptr);
@@ -55,10 +56,14 @@ class Popup : public QListView {
         Popup& operator=(Popup&&) = delete;
         ~Popup() = default;
 
+        QString viewportMarginsScrollBar() const;
+        void setViewportMarginsScrollBar(QString layout_spacing_scroll_bar);
+
         bool updateKeyUp();
         bool updateKeyDown();
 
     private:
+        int margin_scrollbar;
         const int max_visible_items;
         QRect max_size;
 
@@ -71,6 +76,10 @@ class Popup : public QListView {
         void dblClicked(const QModelIndex& index);
         void output(int wavelength);
         void highlighted(const QModelIndex& index);
+
+    private slots:
+        void hidingScrollBar();
+        void showingScrollBar();
 
     public slots:
         void showPopup();

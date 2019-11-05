@@ -49,6 +49,7 @@
 #include <QStringList>
 #include <QPolygonF>
 #include <QColor>
+#include <QPointF>
 #include <QRectF>
 #include <QDebug>
 
@@ -87,6 +88,8 @@ class DATALIB_EXPORT Polygon {
 
         QPolygonF& polygon();
 
+        bool contains(const QPointF& point) const;
+
         // Polygon scaling/moving - note: the cache is supposed to keep unmodified originals
         void scale(const Polygon& base, const QRectF& size, const double xg_start, const double xg_end, const double yg_start, const double yg_end, const qreal intensity=1.0);
         void copyCurve(const Polygon& base);
@@ -101,7 +104,6 @@ class DATALIB_EXPORT Polygon {
         QPolygonF curve;
 };
 
-// Note: polygon_emission_fill is always instantiated as an empty object to save space. Scale will auto construct the fill curve data
 class DATALIB_EXPORT Spectrum {
     public:
         Spectrum(QString id);
@@ -172,6 +174,10 @@ class DATALIB_EXPORT CacheSpectrum {
         // General plotting parameters
         bool visible_excitation;
         bool visible_emission;
+
+        bool select_excitation;
+        bool select_emission;
+
         double intensity_cutoff;
 
         // Flags
@@ -191,8 +197,15 @@ class DATALIB_EXPORT CacheSpectrum {
         void setVisibleExcitation(bool visibility);
         void setVisibleEmission(bool visibility);
 
+        bool selectExcitation() const;
+        bool selectEmission() const;
+        void setSelectExcitation(bool select);
+        void setSelectEmission(bool select);
+
         double intensityCutoff() const;
         void setIntensityCutoff(const double cutoff);
+
+        void resetModified();
 
         // Data::Spectrum getters, internally forwarded to the Data::Spectrum
         const Data::Spectrum& spectrum() const;

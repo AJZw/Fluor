@@ -7,7 +7,8 @@
 ***************************************************************************/
 
 #include "laser_lineedit.h"
-#include "fluor_lineedit.h"
+#include "general_widgets.h"
+#include "application.h"
 
 #include <QStyle>
 #include <QChar>
@@ -36,6 +37,7 @@ Constructor: Builds the popup for the Laser::LineEdit
 */
 Popup::Popup(QWidget* widget) :
     QListView(widget),
+    margin_scrollbar(3),
     max_visible_items(50),
     max_size()
 {
@@ -51,8 +53,17 @@ Popup::Popup(QWidget* widget) :
     this->setWindowFlag(Qt::WindowDoesNotAcceptFocus);
     
     // Set delegate for proper stylesheet usage.
+    auto old_delegate = this->itemDelegate();
     QStyledItemDelegate* delegate_popup = new QStyledItemDelegate{this};
     this->setItemDelegate(delegate_popup);
+    delete old_delegate;
+
+    // Replace scrollbar to be able to hook into hide/show events
+    General::ScrollBar* vertical_scrollbar = new General::ScrollBar(this);
+    this->setVerticalScrollBar(vertical_scrollbar);
+
+    QObject::connect(static_cast<General::ScrollBar*>(this->verticalScrollBar()), &General::ScrollBar::showing, this, &Laser::Popup::showingScrollBar);
+    QObject::connect(static_cast<General::ScrollBar*>(this->verticalScrollBar()), &General::ScrollBar::hiding, this, &Laser::Popup::hidingScrollBar);
 
     // Set sample data
     std::vector<int> data_example = {350, 405, 562, 640, 900};
@@ -60,6 +71,26 @@ Popup::Popup(QWidget* widget) :
 
     // Set eventfilter on the viewport to capture mouvemove events
     this->viewport()->installEventFilter(this);
+    this->setViewportMargins(0, 0, this->margin_scrollbar, 0);
+}
+
+/*
+Getter for layout spacing property, as it has to return a QString it returns the value in pixels
+*/
+QString Popup::viewportMarginsScrollBar() const {
+    return QString::number(this->margin_scrollbar, 'f', 0);
+}
+
+/*
+Receives layout scaling properties from the stylesheet
+*/
+void Popup::setViewportMarginsScrollBar(QString layout_spacing_scroll_bar){
+    this->margin_scrollbar = layout_spacing_scroll_bar.toInt();
+    if(this->verticalScrollBar()->isVisible()){
+        this->setViewportMargins(0, 0, layout_spacing_scroll_bar.toInt(), 0);
+    }else{
+        this->setViewportMargins(0, 0, 0, 0);
+    }
 }
 
 /*
@@ -153,14 +184,26 @@ void Popup::buildModel(const std::vector<int>& wavelengths){
 }
 
 /*
+Slot: Receives hiding signal from the vertical scrollbar and removes scrollbar margin
+*/
+void Popup::hidingScrollBar(){
+    this->setViewportMargins(0, 0, 0, 0);
+}
+
+/*
+Slot: Receives showing signal from the vertical scrollbar and adds scrollbar margin
+*/
+void Popup::showingScrollBar(){
+    this->setViewportMargins(0, 0, this->margin_scrollbar, 0);
+}
+
+/*
 Modified QCompleter::showPopup() to correct the popup size to not be bigger then a specified QWidget
 */
 void Popup::showPopup(){
     QWidget* parent_widget = static_cast<QWidget*>(this->parent());
 
-    // Set height of the QListView
-    // +14 depends on padding stylesheet parameter
-    // Calculate height-necessary-to-fit-columns
+    // sizeHintForRow is not updated until the listview has been painted with the new (DPI adjusted) font
     int height = this->sizeHintForRow(0) * std::min(this->max_visible_items, this->model()->rowCount()) + 14;
 
     QScrollBar* horizontal_scrollbar = this->horizontalScrollBar();
@@ -200,6 +243,11 @@ void Popup::showPopup(){
     this->setGeometry(pos.x(), pos.y(), width, height);
 
     if(!this->isVisible()){
+        // Upon dpi changes, not only the row height/width changes. This change is only updated upon painting of the listview
+        // Secondly, setGeometry fails somewhere downstream in Qt (i think). Running show/hide/show makes it work...
+        // NOT nice! but it works...
+        this->show();
+        this->hide();
         this->show();
     }
 }

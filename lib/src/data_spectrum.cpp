@@ -223,6 +223,34 @@ QPolygonF& Polygon::polygon(){
 }
 
 /*
+Calculates whether a point is contained within the polygon.
+Note: this function assumes an linearly divided x coordinates. This function is not correct if the curve has been closed
+Note: doesnt check for lower bounds of the curve. 
+    :param point: the point to check, in local coordinates
+    :returns: true if the point is on or beneath the polygon, otherwise false.
+*/
+bool Polygon::contains(const QPointF& point) const{
+    double start = this->curve[0].x();
+    double end = this->curve[this->curve.size()-1].x();
+    
+    // Determine if point is within the curve range
+    if(point.x() >= start && point.x() <= end){
+        // Now determine the entree 
+        double fraction = (point.x() - start) / (end - start);
+        double entree_x = fraction * this->curve.size();
+
+        // Round to nearest integer (=index)
+        int entree_i = static_cast<int>(entree_x + 0.5);
+
+        double entree_y = this->curve[entree_i].y();
+
+        return point.y() >= entree_y;
+    }
+
+    return false;
+}
+
+/*
 (Static) Returns the color of the maximum emission intensity, uses linear approximation
 Source: http://www.efg2.com/Lab/ScienceAndEngineering/Spectra.htm
     :param wavelength: wavelength to transform into visible RGB value
@@ -292,7 +320,7 @@ Scales the curve in the given/local space according to the global space
 void Polygon::scale(const Data::Polygon& base, const QRectF& size, const double xg_begin, const double xg_end, const double yg_begin, const double yg_end, const double intensity){
     // Double check for base size, there should not be any resizing of the internal QVector
     if(base.curve.capacity() != this->curve.capacity()){
-        qWarning() << "Data::Polygon::scale: base and this have different capacity QPolygonF, operation is not guaranteed to be safe, function is ignored.";
+        qWarning() << "Data::Polygon::scale: base and this object have different capacity QPolygonF, operation is not guaranteed to be safe, function call is ignored.";
         return;
     }
 
@@ -564,6 +592,8 @@ CacheSpectrum::CacheSpectrum(unsigned int index, Data::Spectrum spectrum) :
     spectrum_meta(),
     visible_excitation(false),
     visible_emission(true),
+    select_excitation(false),
+    select_emission(false),
     intensity_cutoff(0.0),
     modified(false)
 {}
@@ -574,6 +604,8 @@ CacheSpectrum::CacheSpectrum(unsigned int index, Data::Spectrum spectrum, Data::
     spectrum_meta(std::move(meta)),
     visible_excitation(false),
     visible_emission(true),
+    select_excitation(false),
+    select_emission(false),
     intensity_cutoff(0.0),
     modified(false)
 {}
@@ -631,7 +663,8 @@ Getter for the visibility of the excitation plot
     :returns: excitation visibility
 */
 bool CacheSpectrum::visibleExcitation() const {
-    return(this->visible_excitation);
+    //qDebug() << "ex get:" << this->spectrum_data.id() << this->visible_excitation;
+    return this->visible_excitation;
 }
 
 /*
@@ -639,7 +672,8 @@ Getter for the visibility of the emission plot
     :returns: emission visibility
 */
 bool CacheSpectrum::visibleEmission() const {
-    return(this->visible_emission);
+    //qDebug() << "em get:" << this->spectrum_data.id() << this->visible_emission;
+    return this->visible_emission;
 }
 
 /*
@@ -665,6 +699,44 @@ void CacheSpectrum::setVisibleEmission(bool visibility) {
 }
 
 /*
+Getter for the select parameter of the excitation plot
+    :returns: excitation select
+*/
+bool CacheSpectrum::selectExcitation() const {
+    return this->select_excitation;
+}
+
+/*
+Getter for the select parameter of the emission plot
+    :returns: emission select
+*/
+bool CacheSpectrum::selectEmission() const {
+    return this->select_emission;
+}
+
+/*
+Setter for the select parameter of the excitation plot
+    :params: excitation select
+*/
+void CacheSpectrum::setSelectExcitation(bool select) {
+    if(select != this->select_excitation){
+        this->select_excitation = select;
+        this->modified = true;
+    }
+}
+
+/*
+Setter for the select parameter of the emission plot
+    :params: emission select
+*/
+void CacheSpectrum::setSelectEmission(bool select) {
+    if(select != this->select_emission){
+        this->select_emission = select;
+        this->modified = true;
+    }
+}
+
+/*
 Getter for the intensity cutoff
     :returns: intensity cutoff
 */
@@ -678,6 +750,13 @@ Setter for the intensity cutoff
 */
 void CacheSpectrum::setIntensityCutoff(const double cutoff) {
     this->intensity_cutoff = cutoff;
+}
+
+/*
+Resets the modified flag to unmodified
+*/
+void CacheSpectrum::resetModified() {
+    this->modified = false;
 }
 
 /*

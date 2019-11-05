@@ -1,14 +1,14 @@
 /**** General **************************************************************
-** Version:    v0.9.1
-** Date:       2018-04-10
+** Version:    v0.9.5
+** Date:       2019-09-01
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
 ***************************************************************************/
 
 /**** LGPLv3 License *******************************************************
-** application.h is part of Fluor
-** 
+** general_widgets.h is part of Fluor
+**        
 ** Fluor is free software: you can redistribute it and/or
 ** modify it under the terms of the Lesser GNU General Public License as
 ** published by the Free Software Foundation, either version 3 of the
@@ -24,34 +24,40 @@
 ***************************************************************************/
 
 /**** DOC ******************************************************************
-** The event manager
+** The fluorophore menu lineedit
 **
-** :class: Application
-** A QApplication subclass singleton, contains additional styling parameters,
-** and captures and forwards global events
+** :class: General::ScrollBar
+** A QScrollBar that emits signals upon showing and hiding
 **
 ***************************************************************************/
 
-#ifndef VIEWER_CENTRAL_WIDGET_H
-#define VIEWER_CENTRAL_WIDGET_H
+#ifndef GENERAL_WIDGETS_H
+#define GENERAL_WIDGETS_H
 
-#include <QApplication>
-#include <QFont>
-#include "data_styles.h"
+#include <QScrollBar>
 
-class Application : public QApplication {
+namespace General {
+
+class ScrollBar : public QScrollBar {
     Q_OBJECT
 
-    private:
-        bool eventFilter(QObject* obj, QEvent* event);
-
     public:
-        Application(int &argc, char **argv);
+        explicit ScrollBar(QWidget* parent=nullptr);
+        ScrollBar(const ScrollBar &obj) = delete;
+        ScrollBar& operator=(const ScrollBar &obj) = delete;
+        ScrollBar(ScrollBar&&) = delete;
+        ScrollBar& operator=(ScrollBar&&) = delete;
+        virtual ~ScrollBar() = default;
+    
+    protected:
+        void hideEvent(QHideEvent* );
+        void showEvent(QShowEvent* );
 
     signals:
-        void globalMouseButtonRelease(QEvent* event);
-
+        void hiding();
+        void showing();
 };
 
-#endif //VIEWER_CENTRAL_WIDGET_H
+} // general namespace
 
+#endif // GENERAL_WIDGETS_H

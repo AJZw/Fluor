@@ -19,7 +19,7 @@ Application::Application(int &argc, char **argv) :
 {
     this->setOrganizationName("AJZw");
     this->setApplicationName("Fluor");
-    this->setApplicationVersion("v0.9.4");
+    this->setApplicationVersion("v0.9.5");
 
     this->installEventFilter(this);
 
@@ -53,7 +53,7 @@ eventFilter
 */
 bool Application::eventFilter(QObject* obj, QEvent* event){
     switch(event->type()){
-    case QEvent::MouseButtonRelease:
+    case QEvent::MouseButtonRelease:{
         // The object name depends on the QMainWindow widget name
         // So if that is changed, the object name changes!
         // If not used multiple events will be send upon each click
@@ -61,18 +61,11 @@ bool Application::eventFilter(QObject* obj, QEvent* event){
             emit this->globalMouseButtonRelease(event);
         }
         return false;
+    }
     default:
         return false;
     }
 }
-
-/*
-Set application stylesheet
-*/
-void Application::setStyleSheet(QString stylesheet){
-    QApplication::setStyleSheet(stylesheet);
-}
-
 
 /* 
 

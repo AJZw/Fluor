@@ -57,11 +57,9 @@ class GraphicsView : public QGraphicsView {
 
     private:
         void resizeEvent(QResizeEvent* event);
-        bool eventFilter(QObject* obj, QEvent* event);
 
     signals:
         void resizedView(const QSize space);
-
 };
 
 

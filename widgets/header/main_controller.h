@@ -35,14 +35,20 @@
 #define MAIN_CONTROLLER_H
 
 #include <QMainWindow>
-#include <set>
+#include "global.h"
 #include "data_fluorophores.h"
 #include "cache.h"
+#include <vector>
+
+#include <QScreen>
+#include <QShowEvent>
+#include <QHideEvent>
 
 namespace Main {
 
 class Controller : public QMainWindow {
     Q_OBJECT
+    Q_PROPERTY(QString layout_margins READ layoutMargins WRITE setLayoutMargins)
 
     public:
         explicit Controller(QWidget *parent = nullptr);
@@ -52,40 +58,58 @@ class Controller : public QMainWindow {
         Controller& operator=(Controller&&) = delete;
         ~Controller() = default;
 
+        QString layoutMargins() const;
+        void setLayoutMargins(QString layout_spacing);
+
     private:
         QString window_title;
+        QScreen* window_screen;
         int window_width;
         int window_height;
 
         bool eventFilter(QObject *obj, QEvent *event);
-    
+
     public slots:
+        virtual void show();
+        virtual void hide();
+
+        void receiveScreenChanged(QScreen* screen);
+        void receiveDPIChanged(qreal dpi);
+
         void receiveGlobalEvent(QEvent* event);
 
         void receiveLaser(int wavelength);
 
         void receiveCacheRequestUpdate();
-        void receiveCacheAdd(std::set<Data::FluorophoreID>& fluorophores);
+        void receiveCacheAdd(std::vector<Data::FluorophoreID>& fluorophores);
         void receiveCacheRemove(std::vector<Data::FluorophoreID>& fluorophores);
 
         void receiveCacheSync(const std::vector<Cache::CacheID>& cache_state);
         void receiveCacheUpdate(const std::vector<Cache::CacheID>& cache_state);
 
+        void receiveToolbarStateChange(Bar::ButtonType type, bool active, bool enable);
+        void receiveToolbarStateUpdate(Bar::ButtonType type, bool active, bool enable);
+
     signals:
         void resized(const QWidget* widget);
         void moved(const QWidget* widget);
+        void screenChanged(QWidget* widget);
+        void screenDPIChanged(QWidget* widget);
 
         void sendGlobalEvent(QEvent* event);
         void sendData(const Data::Fluorophores& data);
 
-        void sendLaser(int wavelength);
-
         void sendCacheRequestUpdate();
-        void sendCacheAdd(std::set<Data::FluorophoreID>& fluorophores);
+        void sendCacheAdd(std::vector<Data::FluorophoreID>& fluorophores);
         void sendCacheRemove(std::vector<Data::FluorophoreID>& fluorophores);
 
         void sendCacheSync(const std::vector<Cache::CacheID>& cache_state);
         void sendCacheUpdate(const std::vector<Cache::CacheID>& cache_state);
+
+        void sendLaser(int wavelength);
+
+        void sendToolbarStateChange(Bar::ButtonType type, bool active, bool enable=true);
+        void sendToolbarStateUpdate(Bar::ButtonType type, bool active, bool enable=true);
 };
 
 } // Main namespace

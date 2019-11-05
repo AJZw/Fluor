@@ -45,6 +45,8 @@
 #define FLUOR_BUTTONS_H
 
 #include <QPushButton>
+#include <QObject>
+#include <QEvent>
 
 namespace Fluor {
 
@@ -80,9 +82,13 @@ class EmissionButton : public QPushButton {
         QString tooltip_inactive;
 
         void setToolTip();
+        bool eventFilter(QObject* obj, QEvent* event);
     
     signals:
         void clicked(bool active);
+        void selected();
+        void hoverEntered();
+        void hoverLeaved();
 
     private slots:
         void click(bool checked);
@@ -90,6 +96,7 @@ class EmissionButton : public QPushButton {
     public slots:
         void toggleActive(bool checked);
         void setActive(bool active);
+        void setSelect(bool select);
 };
 
 class ExcitationButton : public QPushButton {
@@ -108,13 +115,16 @@ class ExcitationButton : public QPushButton {
         QString tooltip_inactive;
     
         void setToolTip();
+        bool eventFilter(QObject* obj, QEvent* event);
     
     signals:
         void clicked(bool active);
+        void hoverEntered();
+        void hoverLeaved();
 
     private slots:
         void click(bool checked);
-
+        
     public slots:
         void toggleActive(bool checked);
         void setActive(bool active);
@@ -136,9 +146,12 @@ class RemoveButton : public QPushButton {
         QString tooltip_inactive;
 
         void setToolTip();
+        bool eventFilter(QObject* obj, QEvent* event);
     
     signals:
         void clicked(bool active);
+        void hoverEntered();
+        void hoverLeaved();
 
     private slots:
         void click(bool checked);

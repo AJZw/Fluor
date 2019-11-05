@@ -135,6 +135,7 @@ class AbstractLabel : public QGraphicsSimpleTextItem {
         int minimumHeight() const;
 
         virtual void setPosition(const QRectF& space) = 0;   // Pure virtual <- implement
+        void updatePainter(const Graph::Format::Style* style);
 };
 
 class LabelX : public Axis::AbstractLabel {
@@ -176,6 +177,7 @@ class GridLine : public QGraphicsLineItem {
 
         void setLocation(int location);
         int location() const;
+        void updatePainter(const Graph::Format::Style* style);
 
     private:
         int line_location;
@@ -215,6 +217,7 @@ class AbstractGridLines : public QGraphicsItem {
 
         virtual void setPosition(const Graph::Format::Settings& settings, const QRectF& space) = 0;      // pure virtual <- implement
         virtual void setLines(const Graph::Format::Settings& settings) = 0;                              // pure virutal <- implement
+        void updatePainter(const Graph::Format::Style* style);
 };
 
 class TicksX : public Axis::AbstractGridLines {
@@ -292,6 +295,7 @@ class GridLabel : public QGraphicsSimpleTextItem {
 
         void setLocation(int location);
         int location() const;
+        void updatePainter(const Graph::Format::Style* style);
 
     private:
         int label_location;
@@ -331,6 +335,7 @@ class AbstractGridLabels : public QGraphicsItem {
 
         virtual void setPosition(const Graph::Format::Settings& settings, const QRectF& space) = 0;     // pure virtual <- implement
         virtual void setLabels(const Graph::Format::Settings& settings) = 0;                            // pure virtual <- implement
+        void updatePainter(const Graph::Format::Style* style);
 };
 
 class GridLabelsX : public Axis::AbstractGridLabels {
@@ -389,6 +394,7 @@ class Background : public QGraphicsRectItem {
         int minimumHeight() const;
 
         void setPosition(const QRectF& space);
+        void updatePainter(const Graph::Format::Style* style);
 };
 
 class Outline : public QGraphicsRectItem {
@@ -413,6 +419,7 @@ class Outline : public QGraphicsRectItem {
         int minimumHeight() const;
 
         void setPosition(const QRectF& space);
+        void updatePainter(const Graph::Format::Style* style);
 };
 
 class Colorbar : public QGraphicsRectItem {
@@ -439,11 +446,12 @@ class Colorbar : public QGraphicsRectItem {
         int minimumHeight() const;
 
         void setPosition(const Graph::Format::Settings& settings, const QRectF& space);
+        void updatePainter(const Graph::Format::Style* style);
 };
 
 class Spectrum : public QGraphicsItem {
     public:
-        explicit Spectrum(const Data::Spectrum* data, QGraphicsItem* parent=nullptr);
+        explicit Spectrum(Data::CacheSpectrum& data, QGraphicsItem* parent=nullptr);
         Spectrum(const Spectrum &obj) = delete;
         Spectrum& operator=(const Spectrum &obj) = delete;
         Spectrum(Spectrum&&) = delete;
@@ -451,7 +459,7 @@ class Spectrum : public QGraphicsItem {
         virtual ~Spectrum() = default;
 
     private:
-        const Data::Spectrum* spectrum_source;
+        Data::CacheSpectrum& spectrum_source;
         Data::Polygon spectrum_excitation;
         Data::Polygon spectrum_emission;
         Data::Polygon spectrum_emission_fill;
@@ -464,11 +472,24 @@ class Spectrum : public QGraphicsItem {
 
         bool visible_excitation;
         bool visible_emission;
+
+        bool select_excitation;
+        bool select_emission;
+
+        QPen pen_excitation;
+        QPen pen_emission;
+        QBrush brush_emission;
+
+        QPen pen_excitation_select;
+        QPen pen_emission_select;
+        QBrush brush_emission_select;
+
         double intensity_coefficient;
     
     public:
         virtual QRectF boundingRect() const override;
         virtual void paint(QPainter *painter, const QStyleOptionGraphicsItem* option, QWidget* widget) override;
+        virtual bool contains(const QPointF& point) const override;
         
         void setMargins(int left, int top, int right, int bottom);
         const QMargins& margins() const;
@@ -478,9 +499,12 @@ class Spectrum : public QGraphicsItem {
 
         void calculateMinimumSize();
         void setPosition(const Graph::Format::Settings& settings, const QRectF& space);
-        void updateSpectrum(bool visible_excitation, bool visible_emission);
+        void updateSpectrum(const Data::CacheSpectrum& cache_spectrum);
+        void updatePainter(const Graph::Format::Style* style);
 
-        const Data::Spectrum* source() const;
+        Data::CacheSpectrum& source() const;
+
+        void setSelect(bool selection);
 };
 
 class Spectra : public QGraphicsItem {
@@ -494,6 +518,7 @@ class Spectra : public QGraphicsItem {
 
     private:
         std::vector<Graph::Spectrum*> spectra_items;
+        const Graph::Format::Style* spectra_style;
 
         int minimum_width;
         int minimum_height;
@@ -503,7 +528,8 @@ class Spectra : public QGraphicsItem {
     public:
         virtual QRectF boundingRect() const override;
         virtual void paint(QPainter *painter, const QStyleOptionGraphicsItem* option, QWidget* widget) override;
-        
+        std::vector<Spectrum*> containsSpectrum(const QPointF& point) const;
+
         std::size_t size() const;
 
         int minimumWidth() const;
@@ -511,12 +537,14 @@ class Spectra : public QGraphicsItem {
 
         void calculateMinimumSize();
         void setPosition(const Graph::Format::Settings& settings, const QRectF& space);
+        void setSelect(bool select);
 
         void syncSpectra(const std::vector<Cache::CacheID>& cache_state, const Graph::Format::Settings& settings);
         void updateSpectra(const std::vector<Cache::CacheID>& cache_state);
+        void updatePainter(const Graph::Format::Style* style);
 
     private:
-        std::size_t findIndex(const Data::Spectrum* id, std::size_t index_start) const;
+        std::size_t findIndex(const Data::CacheSpectrum& id, std::size_t index_start) const;
 };
 
 } // Graph namespace

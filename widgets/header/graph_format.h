@@ -40,13 +40,24 @@
 ** :class: Graph::Format::Settings
 ** Storage class for all axis data of a graph
 **
+** :class: Graph::Format::Style
+** Storage class for the pens/brushes as used during painting.
+** Receives input from QSS stylesheet using QProperties
+**
 ***************************************************************************/
 
 #ifndef GRAPH_FORMAT_H
 #define GRAPH_FORMAT_H
 
-#include <QString>
 #include <array>
+
+#include <Qt>
+#include <QWidget>
+#include <QString>
+#include <QColor>
+#include <QFont>
+#include <QBrush>
+#include <QPen>
 
 namespace Graph {
 
@@ -151,6 +162,123 @@ struct Settings {
         Format::Tick(80, "80"), 
         Format::Tick(100, "100")
     }};
+};
+
+class Style : public QWidget {
+    Q_OBJECT
+    Q_PROPERTY(QString scene READ scene WRITE setScene)
+    Q_PROPERTY(QString background READ background WRITE setBackground)
+    Q_PROPERTY(QString background_hover READ backgroundHover WRITE setBackgroundHover)
+    Q_PROPERTY(QString background_press READ backgroundPress WRITE setBackgroundPress)
+    Q_PROPERTY(QString label READ label WRITE setLabel)
+    Q_PROPERTY(QString label_weight READ labelWeight WRITE setLabelWeight)
+    Q_PROPERTY(QString grid_label READ gridLabel WRITE setGridLabel)
+    Q_PROPERTY(QString grid_label_weight READ gridLabelWeight WRITE setGridLabelWeight)
+    Q_PROPERTY(QString axis READ axis WRITE setAxis)
+    Q_PROPERTY(QString axis_hover READ axisHover WRITE setAxisHover)
+    Q_PROPERTY(QString axis_press READ axisPress WRITE setAxisPress)
+    Q_PROPERTY(QString absorption_width READ absorptionWidth WRITE setAbsorptionWidth)
+    Q_PROPERTY(QString absorption_style READ absorptionStyle WRITE setAbsorptionStyle)
+    Q_PROPERTY(QString excitation_width READ excitationWidth WRITE setExcitationWidth)
+    Q_PROPERTY(QString excitation_style READ excitationStyle WRITE setExcitationStyle)
+    Q_PROPERTY(QString emission_width READ emissionWidth WRITE setEmissionWidth)
+    Q_PROPERTY(QString emission_style READ emissionStyle WRITE setEmissionStyle)
+
+    public:
+        explicit Style(QWidget* parent=nullptr);
+        Style(const Style &obj) = default;
+        Style& operator=(const Style &obj) = default;
+        Style(Style&&) = default;
+        Style& operator=(Style&&) = default;
+        ~Style() = default;
+
+        QString scene() const;
+        void setScene(QString scene);
+        QString background() const;
+        void setBackground(QString background);
+        QString backgroundHover() const;
+        void setBackgroundHover(QString background_hover);
+        QString backgroundPress() const;
+        void setBackgroundPress(QString background_press);
+        QString label() const;
+        void setLabel(QString label);
+        QString labelWeight() const;
+        void setLabelWeight(QString label_weight);
+        QString gridLabel() const;
+        void setGridLabel(QString grid_label);
+        QString gridLabelWeight() const;
+        void setGridLabelWeight(QString grid_label_weight);
+        QString axis() const;
+        void setAxis(QString axis);
+        QString axisHover() const;
+        void setAxisHover(QString axis_hover);
+        QString axisPress() const;
+        void setAxisPress(QString axis_press);
+        QString absorptionWidth() const;
+        void setAbsorptionWidth(QString absorption_width);
+        QString absorptionStyle() const;
+        void setAbsorptionStyle(QString absorption_style);
+        QString excitationWidth() const;
+        void setExcitationWidth(QString excitation_width);
+        QString excitationStyle() const;
+        void setExcitationStyle(QString excitation_style);
+        QString emissionWidth() const;
+        void setEmissionWidth(QString emission_width);
+        QString emissionStyle() const;
+        void setEmissionStyle(QString emission_style);
+
+    private:
+        QColor style_scene;
+        QColor style_background;
+        QColor style_background_hover;
+        QColor style_background_press;
+        QColor style_label;
+        QFont::Weight style_label_weight;
+        QColor style_grid_label;
+        QFont::Weight style_grid_label_weight;
+        QColor style_axis;
+        QColor style_axis_hover;
+        QColor style_axis_press;
+        int absorption_width;
+        Qt::PenStyle absorption_style;
+        int excitation_width;
+        Qt::PenStyle excitation_style;
+        int emission_width;
+        Qt::PenStyle emission_style;
+
+        static QFont::Weight textToFontWeight(const QString& text, QFont::Weight fallback=QFont::Bold);
+        static QString fontWeightToText(QFont::Weight weight);
+        static Qt::PenStyle textToPenStyle(const QString& text, Qt::PenStyle fallback=Qt::DashDotLine);
+        static QString penStyleToText(Qt::PenStyle style);
+
+        bool eventFilter(QObject*, QEvent*);
+    
+    public:
+        QBrush brushScene() const;
+        QBrush brushLabel() const;
+        QBrush brushGridLabel() const;
+        QBrush brushBackground() const;
+        QBrush brushBackgroundHover() const;
+        QBrush brushBackgroundPress() const;
+        QBrush brushEmission(QColor color) const;
+        QBrush brushEmissionSelect(QColor color) const;
+
+        QFont fontLabel() const;
+        QFont fontGridLabel() const;
+
+        QPen penAxis() const;
+        QPen penAxisHover() const;
+        QPen penAxisPress() const;
+        QPen penAbsorption(QColor color) const;
+        QPen penExcitation(QColor color) const;
+        QPen penEmission(QColor color) const;
+        QPen penAbsorptionSelect(QColor color) const;
+        QPen penExcitationSelect(QColor color) const;
+        QPen penEmissionSelect(QColor color) const;
+    
+    signals:
+        void styleChanged();
+
 };
 
 } // Format namespace

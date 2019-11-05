@@ -64,6 +64,7 @@ class DATALIB_EXPORT Factory {
         enum type{settings, defaults, styles, cytometers, fluorophores};
 
         bool isValid() const;
+        bool isValid(Factory::type type) const;
         bool isWarning() const;
 
         void execMessages() const;

@@ -10,6 +10,7 @@
 #include "central_controller.h"
 #include "application.h"
 #include <QApplication>
+#include <QWindow>
 #include <QEvent>
 #include <QDebug>
 
@@ -20,8 +21,9 @@ Initiliaser - builds a QMainWindow widget and set the connections
 */
 Controller::Controller(QWidget* parent) :
     QMainWindow(parent),
+    window_screen(nullptr),
     window_width(800),
-    window_height(200)
+    window_height(300)
 {
     // Set MainWindow properties
     this->setWindowTitle("Fluor");
@@ -43,14 +45,30 @@ Controller::Controller(QWidget* parent) :
     QObject::connect(this, &Main::Controller::moved, controller_widget, &Central::Controller::receiveGlobalSize);
     QObject::connect(this, &Main::Controller::sendData, controller_widget, &Central::Controller::receiveData);
 
-    QObject::connect(this, &Main::Controller::sendCacheSync, controller_widget, &Central::Controller::receiveCacheSync);
-    QObject::connect(this, &Main::Controller::sendCacheUpdate, controller_widget, &Central::Controller::receiveCacheUpdate);
-
     QObject::connect(controller_widget, &Central::Controller::sendCacheRequestUpdate, this, &Main::Controller::receiveCacheRequestUpdate);
     QObject::connect(controller_widget, &Central::Controller::sendCacheAdd, this, &Main::Controller::receiveCacheAdd);
     QObject::connect(controller_widget, &Central::Controller::sendCacheRemove, this, &Main::Controller::receiveCacheRemove);
     QObject::connect(controller_widget, &Central::Controller::sendLaser, this, &Main::Controller::receiveLaser);
+    QObject::connect(this, &Main::Controller::sendCacheSync, controller_widget, &Central::Controller::receiveCacheSync);
+    QObject::connect(this, &Main::Controller::sendCacheUpdate, controller_widget, &Central::Controller::receiveCacheUpdate);
 
+    QObject::connect(controller_widget, &Central::Controller::sendToolbarStateChange, this, &Main::Controller::receiveToolbarStateChange);
+    QObject::connect(this, &Main::Controller::sendToolbarStateUpdate, controller_widget, &Central::Controller::receiveToolbarStateUpdate);
+}
+
+/*
+Getter for layout spacing property, as it has to return a QString it returns the value in pixels
+*/
+QString Controller::layoutMargins() const {
+    return QString::number(this->contentsMargins().left(), 'f', 0);
+}
+
+/*
+Receives layout scaling properties from the stylesheet
+*/
+void Controller::setLayoutMargins(QString layout_margins){
+    int layout_margin_px = layout_margins.toInt();
+    this->setContentsMargins(layout_margin_px, layout_margin_px, layout_margin_px, layout_margin_px);
 }
 
 /*
@@ -78,6 +96,50 @@ bool Controller::eventFilter(QObject *obj, QEvent *event){
 }
 
 /*
+Shows the widget. Additionally connects the widget to screenChanged and logicalDotsPerInchChanged signals
+*/
+void Controller::show(){
+    QMainWindow::show();
+    
+    QObject::connect(this->windowHandle(), &QWindow::screenChanged, this, &Main::Controller::receiveScreenChanged);
+    this->window_screen = this->windowHandle()->screen();
+    QObject::connect(this->window_screen, &QScreen::logicalDotsPerInchChanged, this, &Main::Controller::receiveDPIChanged);
+}
+
+/*
+Hides the widget. Additionally disconnects the widget from screenChanged and logicalDotsPerInchChanged signals
+*/
+void Controller::hide(){
+    QObject::disconnect(this->windowHandle(), &QWindow::screenChanged, this, &Main::Controller::receiveScreenChanged);
+    QObject::disconnect(this->window_screen, &QScreen::logicalDotsPerInchChanged, this, &Main::Controller::receiveDPIChanged);
+    this->window_screen = nullptr;
+
+    QMainWindow::hide();
+}
+
+/*
+Slot: receives screen change event of this window.
+*/
+void Controller::receiveScreenChanged(QScreen* screen){
+    QObject::disconnect(this->window_screen, &QScreen::logicalDotsPerInchChanged, this, &Main::Controller::receiveDPIChanged);
+    this->window_screen = screen;
+    QObject::connect(this->window_screen, &QScreen::logicalDotsPerInchChanged, this, &Main::Controller::receiveDPIChanged);
+
+    //qDebug() << "screenChanged > em:" << QFontMetrics(this->font(), this).width("M") << "px";
+    emit this->screenChanged(this);
+}
+
+/*
+Slot: receives screen DPI change events of this window
+*/
+void Controller::receiveDPIChanged(qreal dpi){
+    Q_UNUSED(dpi);
+
+    //qDebug() << "dpiChanged" << dpi << "> em:" << QFontMetrics(this->font(), this).width("M") << "px";
+    emit this->screenDPIChanged(this);
+}
+
+/*
 Slot: forwards the event to this->sendGlobalEvent();
 */
 void Controller::receiveGlobalEvent(QEvent* event){
@@ -94,7 +156,7 @@ void Controller::receiveCacheRequestUpdate(){
 /*
 Slot: forwards the cache add event
 */
-void Controller::receiveCacheAdd(std::set<Data::FluorophoreID>& flourophores){
+void Controller::receiveCacheAdd(std::vector<Data::FluorophoreID>& flourophores){
     emit this->sendCacheAdd(flourophores);
 }
 
@@ -124,6 +186,26 @@ Slot: forwards the cache's update request
 */
 void Controller::receiveCacheUpdate(const std::vector<Cache::CacheID>& cache_state){
     emit this->sendCacheUpdate(cache_state);
+}
+
+/*
+Slot: receives and forwards Toolbar State changes
+    :param type: the button that sends the change
+    :param active: the active state
+    :param enable: the enable state
+*/
+void Controller::receiveToolbarStateChange(Bar::ButtonType type, bool active, bool enable){
+    emit this->sendToolbarStateChange(type, active, enable);
+}
+
+/*
+Slot: receives and forwards Toolbar State update
+    :param type: the button that should receive the update
+    :param active: the active state
+    :param enable: the enable state
+*/
+void Controller::receiveToolbarStateUpdate(Bar::ButtonType type, bool active, bool enable){
+    emit this->sendToolbarStateUpdate(type, active, enable);
 }
 
 } // Main namespace

@@ -87,6 +87,17 @@ int AbstractLabel::minimumHeight() const {
     return this->minimum_height;
 }
 
+/*
+Updates the brush used by the painter to the brush as build by the style
+    :param style: brush factory
+*/
+void AbstractLabel::updatePainter(const Graph::Format::Style* style){
+    this->setBrush(style->brushLabel());
+    this->setFont(style->fontLabel());
+
+    this->calculateMinimumSize();
+}
+
 /* ############################################################################################################## */
 
 /*
@@ -206,6 +217,14 @@ int GridLine::location() const {
     return this->line_location;
 }
 
+/*
+Updates the pen used by the painter to the brush as build by the style
+    :param style: brush factory
+*/
+void GridLine::updatePainter(const Graph::Format::Style* style){
+    this->setPen(style->penAxis());
+}
+
 /* ############################################################################################################## */
 
 /*
@@ -280,6 +299,16 @@ Return the minimum height of the ticks
 */
 int AbstractGridLines::minimumHeight() const {
     return this->minimum_height;
+}
+
+/*
+Forwards the brush update to its contained GridLabels items
+    :param style: brush factory
+*/
+void AbstractGridLines::updatePainter(const Graph::Format::Style* style){
+    for(Graph::Axis::GridLine* label : this->items){
+        label->updatePainter(style);
+    }
 }
 
 /* ############################################################################################################## */
@@ -741,6 +770,15 @@ int GridLabel::location() const {
     return this->label_location;
 }
 
+/*
+Updates the brush used by the painter to the brush as build by the style
+    :param style: brush factory
+*/
+void GridLabel::updatePainter(const Graph::Format::Style* style){
+    this->setBrush(style->brushGridLabel());
+    this->setFont(style->fontGridLabel());
+}
+
 /* ############################################################################################################## */
 
 /*
@@ -826,6 +864,17 @@ void AbstractGridLabels::setFont(const QFont& font){
     }
 }
 
+/*
+Forwards the brush update to its contained GridLabels items
+    :param style: brush factory
+*/
+void AbstractGridLabels::updatePainter(const Graph::Format::Style* style){
+    for(Graph::Axis::GridLabel* label : this->items){
+        label->updatePainter(style);
+    }
+    this->calculateMinimumSize();
+}
+
 /* ############################################################################################################## */
 
 /*
@@ -906,7 +955,7 @@ void GridLabelsX::setPosition(const Graph::Format::Settings& settings, const QRe
 
         // Make sure the x coordinate doesnt go outside of the assigned space
         x_item = std::max(0.0 - this->space_offset, x_item);
-        x_item = std::min(space.width() - item_width + this->space_offset, x_item);
+        x_item = std::min(space.width() - item_width, x_item);
 
         item->setPos(x_item, y_item);
     }
@@ -1124,14 +1173,8 @@ Background::Background(QGraphicsItem* parent) :
     minimum_width(0),
     minimum_height(0)
 {
-    // Create empty pen to block outline from drawing
-    QPen item_pen{};
-    item_pen.setStyle(Qt::NoPen);
-    this->setPen(item_pen);
-
-    // Create brush to fill the background
-    QBrush item_brush(QColor("#E0E0E0"));
-    this->setBrush(item_brush);
+    this->setPen(Qt::NoPen);
+    this->setBrush(Qt::NoBrush);
 }
 
 /*
@@ -1178,6 +1221,14 @@ Sets the location of the item within the space allocated, assumes enough space t
 */
 void Background::setPosition(const QRectF& space){
     this->setRect(space.marginsRemoved(this->margins()));
+}
+
+/*
+Updates the brush used by the painter to the brush as build by the style
+    :param style: brush factory
+*/
+void Background::updatePainter(const Graph::Format::Style* style){
+    this->setBrush(style->brushBackground());
 }
 
 /* ############################################################################################################## */
@@ -1241,6 +1292,14 @@ Sets the location of the item within the space allocated, assumes enough space t
 */
 void Outline::setPosition(const QRectF& space){
     this->setRect(space.marginsRemoved(this->margins()));
+}
+
+/*
+Updates the pen used by the painter to the pen as build by the style
+    :param style: pen factory
+*/
+void Outline::updatePainter(const Graph::Format::Style* style){
+    this->setPen(style->penAxis());
 }
 
 /* ############################################################################################################## */
@@ -1332,6 +1391,14 @@ void Colorbar::setPosition(const Graph::Format::Settings& settings, const QRectF
     this->setRect(space.marginsRemoved(this->margins()));
 }
 
+/*
+Updates the pen used by the painter to the pen as build by the style
+    :param style: pen factory
+*/
+void Colorbar::updatePainter(const Graph::Format::Style* style){
+    this->setPen(style->penAxis());
+}
+
 /* ############################################################################################################## */
 
 /*
@@ -1339,18 +1406,26 @@ Constructor: builds a Spectrum - contains two QPolygonF curves. Handles all draw
     :param data: source data, the curves uses this as base for most calculations
     :param parent: parent
 */
-Spectrum::Spectrum(const Data::Spectrum* data, QGraphicsItem* parent) :
+Spectrum::Spectrum(Data::CacheSpectrum& data, QGraphicsItem* parent) :
     QGraphicsItem(parent),
     spectrum_source(data),
-    spectrum_excitation(this->spectrum_source->excitation()),
-    spectrum_emission(this->spectrum_source->emission()),
-    spectrum_emission_fill(this->spectrum_source->emission()),
+    spectrum_excitation(this->spectrum_source.spectrum().excitation()),
+    spectrum_emission(this->spectrum_source.spectrum().emission()),
+    spectrum_emission_fill(this->spectrum_source.spectrum().emission()),
     spectrum_space(0.0, 0.0, 0.0, 0.0),
     item_margins(2, 2, 3, 2),
     minimum_width(0),
     minimum_height(0),
     visible_excitation(true),
     visible_emission(true),
+    select_excitation(false),
+    select_emission(false),
+    pen_excitation(Qt::NoPen),
+    pen_emission(Qt::NoPen),
+    brush_emission(Qt::NoBrush),
+    pen_excitation_select(Qt::NoPen),
+    pen_emission_select(Qt::NoPen),
+    brush_emission_select(Qt::NoBrush),
     intensity_coefficient(1.0)
 {
 }
@@ -1366,8 +1441,8 @@ QRectF Spectrum::boundingRect() const {
 /*
 Paints the excitation and emission curve
     :param painter: the painter
-    :param option: the style options
-    :param widget: (optional) if provided, paints to the widget being painted on
+    :param option: (unused) the style options
+    :param widget: (unused) if provided, paints to the widget being painted on
 */
 void Spectrum::paint(QPainter *painter, const QStyleOptionGraphicsItem* option, QWidget* widget) {
     Q_UNUSED(option);
@@ -1375,46 +1450,62 @@ void Spectrum::paint(QPainter *painter, const QStyleOptionGraphicsItem* option, 
     painter->save();
     painter->setRenderHint(QPainter::Antialiasing);
     
-    // build pens
-    // excitation
-    QColor color_ex = this->spectrum_excitation.color();
-    color_ex.setAlpha(178);
-    QPen pen_excitation(std::move(color_ex));
-    pen_excitation.setWidth(2);
-    if(this->spectrum_source->absorptionFlag()){
-        pen_excitation.setStyle(Qt::DotLine);
-    }else{
-        pen_excitation.setStyle(Qt::DashLine);
-    }
-
-    // emission
-    QColor color_em = this->spectrum_emission.color();
-    QColor color_em_fill = this->spectrum_emission.color();
-    color_em.setAlpha(178);
-    color_em_fill.setAlpha(75);
-    QPen pen_emission(color_em);
-    QBrush brush_em(color_em_fill, Qt::SolidPattern);
-
-    pen_emission.setWidth(2);
-    pen_emission.setStyle(Qt::SolidLine);
-
     if(this->visible_excitation){
-        painter->setPen(pen_excitation);
+        if(this->select_excitation){
+            painter->setPen(this->pen_excitation_select);
+        }else{
+            painter->setPen(this->pen_excitation);
+        }
+        painter->setBrush(Qt::NoBrush);
         painter->drawPolyline(this->spectrum_excitation.polygon());
     }
 
     if(this->visible_emission){
-        painter->setPen(pen_emission);
-        painter->setBrush(brush_em);
+        if(this->select_emission){
+            painter->setPen(this->pen_emission_select);
+        }else{
+            painter->setPen(this->pen_emission);
+        }
+        painter->setBrush(Qt::NoBrush);
         painter->drawPolyline(this->spectrum_emission.polygon());
 
         painter->setPen(Qt::NoPen);
+        if(this->select_emission){
+            painter->setBrush(this->brush_emission_select);
+        }else{
+            painter->setBrush(this->brush_emission);
+        }
         painter->drawPolygon(this->spectrum_emission_fill.polygon());
     }
 
     painter->restore();
-    return;
 }
+
+/*
+Function is called to determine if this Spectrum is underneath the cursor.
+    :param point: point to determine if it is contained in the object in scene coordinates.
+    :returns: true if the item contains point, otherwise false is returned
+*/
+bool Spectrum::contains(const QPointF& point) const {
+    // Quick check is it within the boundingRect?
+    if(!this->spectrum_space.contains(this->mapFromScene(point))){
+        return false;
+    }
+
+    // Within bounding box, now determine if it is on or below the excitation/emission curves
+    if(this->visible_excitation){
+        if(this->spectrum_excitation.contains(this->mapFromScene(point))){
+            return true;
+        }
+    }
+
+    if(this->visible_emission){
+        return this->spectrum_emission.contains(this->mapFromScene(point));
+    }
+
+    return false;
+}
+
 
 /*
 Sets margins of the item, be carefull this should aline with all other gridlines/labels items
@@ -1437,7 +1528,6 @@ Get margins
 const QMargins& Spectrum::margins() const {
     return this->item_margins;
 }
-
 
 /*
 Getter for minimum width of the item.
@@ -1472,15 +1562,13 @@ void Spectrum::setPosition(const Graph::Format::Settings& settings, const QRectF
     this->setPos(space.topLeft());
 
     // Set bounding region
-    // QRectF bounding_rect = QRectF(0, 0, space.width(), space.height());
     // Bouding box can be more precise if we check the left and right values after scaling
-
     if(space != this->spectrum_space){
         this->spectrum_space = space;
         this->prepareGeometryChange();
     }
 
-    // Adjust x and y ranges for margins
+        // Adjust x and y ranges for margins
     // Note for later - correct for line thickness
     double x_begin = settings.x_range.begin;
     double x_end = settings.x_range.end;
@@ -1494,10 +1582,15 @@ void Spectrum::setPosition(const Graph::Format::Settings& settings, const QRectF
     y_begin -= (y_fraction * this->item_margins.top());
     y_end += (y_fraction * this->item_margins.bottom());
 
-    // Scale intensity first
+    // Correct plotting space for line width
+    QRectF plot_space = this->spectrum_space;
+    double pen_adjust = this->pen_excitation.widthF() * 0.5;
+    plot_space.adjust(pen_adjust, pen_adjust, -pen_adjust, -pen_adjust);
+
+    // Scale excitation first
     this->spectrum_excitation.scale(
-        this->spectrum_source->excitation(),
-        this->spectrum_space,
+        this->spectrum_source.spectrum().excitation(),
+        plot_space,
         x_begin,
         x_end,
         y_begin,
@@ -1505,10 +1598,15 @@ void Spectrum::setPosition(const Graph::Format::Settings& settings, const QRectF
         1.0
     );
 
+    // Correct plotting space for line width
+    plot_space = this->spectrum_space;
+    pen_adjust = this->pen_emission.widthF() * 0.5;
+    plot_space.adjust(pen_adjust, pen_adjust, -pen_adjust, -pen_adjust);
+
     // Scale emission second
     this->spectrum_emission.scale(
-        this->spectrum_source->emission(),
-        this->spectrum_space,
+        this->spectrum_source.spectrum().emission(),
+        plot_space,
         x_begin,
         x_end,
         y_begin,
@@ -1524,20 +1622,53 @@ void Spectrum::setPosition(const Graph::Format::Settings& settings, const QRectF
 /*
 Update the internal state to the source state
 */
-void Spectrum::updateSpectrum(bool visible_excitation, bool visible_emission) {
-    this->visible_excitation = visible_excitation;
-    this->visible_emission = visible_emission;
+void Spectrum::updateSpectrum(const Data::CacheSpectrum& cache_spectrum) {
+    this->visible_excitation = cache_spectrum.visibleExcitation();
+    this->visible_emission = cache_spectrum.visibleEmission();
+    this->select_excitation = cache_spectrum.selectExcitation();
+    this->select_emission = cache_spectrum.selectEmission();
+    
+    // Now plot the updated curve
     this->update(this->boundingRect());
+}
+
+/*
+Updates the pen's and brushes used by the painter
+    :param style: pen factory
+*/
+void Spectrum::updatePainter(const Graph::Format::Style* style){
+    if(this->spectrum_source.absorptionFlag()){
+        this->pen_excitation = style->penAbsorption(this->spectrum_emission.color());
+        this->pen_emission_select = style->penAbsorptionSelect(this->spectrum_emission.color());
+    }else{
+        this->pen_excitation = style->penExcitation(this->spectrum_emission.color());
+        this->pen_excitation_select = style->penExcitationSelect(this->spectrum_emission.color());
+    }
+    this->pen_emission = style->penEmission(this->spectrum_emission.color());
+    this->pen_emission_select = style->penEmissionSelect(this->spectrum_emission.color());
+
+    this->brush_emission = style->brushEmission(this->spectrum_emission.color());
+    this->brush_emission_select = style->brushEmissionSelect(this->spectrum_emission.color());
 }
 
 /*
 Getter for the source data
     :returns: pointer to source data
 */
-const Data::Spectrum* Spectrum::source() const {
+Data::CacheSpectrum& Spectrum::source() const {
     return this->spectrum_source;
 }
 
+/*
+Sets selection state of the curves
+    :param select: the state to change into
+*/
+void Spectrum::setSelect(bool selection) {
+    this->select_excitation = selection;
+    this->select_emission = selection;
+    this->source().setSelectExcitation(selection);
+    this->source().setSelectEmission(selection);
+}
 
 /* ############################################################################################################## */
 
@@ -1548,6 +1679,7 @@ Constructor: container for the specturm widgets. Handles mainly the adding and r
 Spectra::Spectra(QGraphicsItem* parent) :
     QGraphicsItem(parent),
     spectra_items(),
+    spectra_style(nullptr),
     minimum_width(0),
     minimum_height(0),
     spectra_space(0.0, 0.0, 0.0, 0.0)
@@ -1574,6 +1706,27 @@ void Spectra::paint(QPainter *painter, const QStyleOptionGraphicsItem* option, Q
     Q_UNUSED(option);
     Q_UNUSED(widget);
     return;
+}
+
+/*
+Builds a vector of Graph::Spectrum items contain the point
+    :param point: the point to contain in scene coordinates
+    :returns: a vector of all contained Spectrum, can be empty!
+*/
+std::vector<Spectrum*> Spectra::containsSpectrum(const QPointF& point) const {
+    if(!this->spectra_space.contains(this->mapFromScene(point))){
+        return std::vector<Spectrum*>();
+    }
+
+    std::vector<Spectrum*> is_contained;
+    is_contained.reserve(20);
+    for(auto* item : this->spectra_items){
+        if(item->contains(point)){
+            is_contained.push_back(item);
+        }
+    }
+
+    return is_contained;
 }
 
 /*
@@ -1625,6 +1778,16 @@ void Spectra::setPosition(const Graph::Format::Settings& settings, const QRectF&
 }
 
 /*
+Sets the select parameters of all contained spectrum to the specified value
+    :param select: the select state
+*/
+void Spectra::setSelect(bool select) {
+    for(Spectrum* item : this->spectra_items){
+        item->setSelect(select);
+    }
+}
+
+/*
 Synchronizes all the spectra to the Cache state. Handles adding, order and removing of spectrum graphicsitems.
     :param input: a (ordered) vector of the cache state. Ordering is not required for proper functioning of the graph plotting
     :param settings: the graph settings, necessary for correct positioning of the new items
@@ -1643,11 +1806,16 @@ void Spectra::syncSpectra(const std::vector<Cache::CacheID>& cache_state, const 
     std::size_t index_current = 0;
     for(const Cache::CacheID& id : cache_state){
         // First look for index (if available)
-        std::size_t index_item = this->findIndex(&id.data->spectrum(), index_current);
+        std::size_t index_item = this->findIndex(*id.data, index_current);
 
         if(index_item >= this->spectra_items.size()){
             // item was not found - create new one
-            Graph::Spectrum* item_new = new Graph::Spectrum(&id.data->spectrum(), this);
+            Graph::Spectrum* item_new = new Graph::Spectrum(*id.data, this);
+
+            // Give new item the correct properties
+            if(this->spectra_style){    // Can be nullptr
+                item_new->updatePainter(this->spectra_style);
+            }
             item_new->setPosition(settings, this->spectra_space);
 
             this->spectra_items.insert(
@@ -1692,25 +1860,36 @@ Updates the internal spectra to the cache state. Assumes that the cache has been
 */
 void Spectra::updateSpectra(const std::vector<Cache::CacheID>& cache_state){
     for(std::size_t i=0; i<this->spectra_items.size(); ++i){
-        this->spectra_items[i]->updateSpectrum(cache_state[i].data->visibleExcitation(), cache_state[i].data->visibleEmission());
+        this->spectra_items[i]->updateSpectrum(*cache_state[i].data);
+    }
+}
+
+/*
+Stores the style object pointer, and updates current spectrum objects
+    :param style: pen factory
+*/
+void Spectra::updatePainter(const Graph::Format::Style* style){
+    this->spectra_style = style;
+
+    for(Graph::Spectrum* item : this->spectra_items){
+        item->updatePainter(style);
     }
 }
 
 /*
 Finds the index of a Graph::Spectrum with identical .source() pointer in the spectra_items vector. 
-Returns the index or if not found the size of the vector
+Returns the index or if not found the size of the vector (if this->spectra_items is empty it returns 1)
     :param id: the data to compare to
     :param index_start: starts the index search at the specified start. Undefined behavior for values > size() -1
 */
-std::size_t Spectra::findIndex(const Data::Spectrum* id, std::size_t index_start) const {
-    std::size_t i;
-
+std::size_t Spectra::findIndex(const Data::CacheSpectrum& id, std::size_t index_start) const {
     if(this->spectra_items.empty()){
         return 1;
     }
 
-	for(i=index_start; i<this->spectra_items.size() -1; ++i){
-		if(this->spectra_items[i]->source() == id){
+    std::size_t i;
+	for(i=index_start; i < this->spectra_items.size(); ++i){
+		if(&this->spectra_items[i]->source() == &id){
 			return i;
 		}
 	}

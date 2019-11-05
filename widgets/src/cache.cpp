@@ -20,7 +20,8 @@ Cache::Cache(Data::Factory& factory, Data::Fluorophores& source) :
     source_factory(factory),
     source_data(source),
     items(),
-    data(20)
+    data(20),
+    state()
 {
 
 }
@@ -67,7 +68,7 @@ void Cache::rebuildCounter() {
 
 /*
 The cache can store a big amount of fluorophore data. To prevent the cache from storing too many spectra, this function
-can be used to rebuild the cache to only contain the inuse cache elements
+can be used to rebuild the cache to only contain the currently used cache elements
     :param sync: whether to sync the cache before rebuilding. Cache has to be synchronized to prevent dangling pointers
 */
 void Cache::rebuildCache(bool sync) {
@@ -122,13 +123,14 @@ void Cache::rebuildCache(bool sync) {
         this->data.erase(this->data.find(entree));
     }
 
-    this->printState();
+    //this->printState();
 }
 
 /*
 Print the internal state of the cache to the QDebug stream
 */
 void Cache::printState() const {
+    return;
     QDebug stream = qDebug();
     
     stream << "Cache::items:";
@@ -149,9 +151,9 @@ Sort a vector based on the SortOption
     :param input: the vector to sort
     :param option: the way to sort he vector
 */
-void Cache::sortVector(std::vector<CacheID>& input, SortOption option){
+void Cache::sortVector(std::vector<CacheID>& input, State::SortOption option){
     switch(option){
-    case SortOption::Additive:{
+    case State::SortOption::Additive:{
         std::sort(input.begin(), input.end(), 
             [](const CacheID& obj_a, const CacheID& obj_b){
                 return obj_a.data->index() < obj_b.data->index();
@@ -159,7 +161,7 @@ void Cache::sortVector(std::vector<CacheID>& input, SortOption option){
         );
         return;
     }
-    case SortOption::AdditiveReversed:{
+    case State::SortOption::AdditiveReversed:{
         std::sort(input.begin(), input.end(), 
             [](const CacheID& obj_a, const CacheID& obj_b){
                 return obj_a.data->index() > obj_b.data->index();
@@ -167,7 +169,7 @@ void Cache::sortVector(std::vector<CacheID>& input, SortOption option){
         );
         return;
     }
-    case SortOption::Alphabetical:{
+    case State::SortOption::Alphabetical:{
         std::sort(input.begin(), input.end(), 
             [](const CacheID& obj_a, const CacheID& obj_b){
                 return obj_a.name < obj_b.name;
@@ -175,7 +177,7 @@ void Cache::sortVector(std::vector<CacheID>& input, SortOption option){
         );
         return;
     }
-    case SortOption::AlphabeticalReversed:{
+    case State::SortOption::AlphabeticalReversed:{
         std::sort(input.begin(), input.end(), 
             [](const CacheID& obj_a, const CacheID& obj_b){
                 return obj_a.name > obj_b.name;
@@ -183,7 +185,7 @@ void Cache::sortVector(std::vector<CacheID>& input, SortOption option){
         );
         return;
     }
-    case SortOption::Emission:{
+    case State::SortOption::Emission:{
         // Presort alphabetically
         std::sort(input.begin(), input.end(), 
             [](const CacheID& obj_a, const CacheID& obj_b){
@@ -199,7 +201,7 @@ void Cache::sortVector(std::vector<CacheID>& input, SortOption option){
         );
         return;
     }
-    case SortOption::EmissionReversed:{
+    case State::SortOption::EmissionReversed:{
         // Presort alphabetically
         std::sort(input.begin(), input.end(), 
             [](const CacheID& obj_a, const CacheID& obj_b){
@@ -215,7 +217,7 @@ void Cache::sortVector(std::vector<CacheID>& input, SortOption option){
         );
         return;
     }
-    case SortOption::Excitation:{
+    case State::SortOption::Excitation:{
         // Presort alphabetically
         std::sort(input.begin(), input.end(), 
             [](const CacheID& obj_a, const CacheID& obj_b){
@@ -231,7 +233,7 @@ void Cache::sortVector(std::vector<CacheID>& input, SortOption option){
         );
         return;
     }
-    case SortOption::ExcitationReversed:{
+    case State::SortOption::ExcitationReversed:{
          // Presort alphabetically
         std::sort(input.begin(), input.end(), 
             [](const CacheID& obj_a, const CacheID& obj_b){
@@ -262,13 +264,17 @@ Data::CacheSpectrum* Cache::getData(const QString& id, const unsigned int counte
         // Hash-miss so request spectrum data from HDD
         auto insert = this->data.insert(std::pair<QString, Data::CacheSpectrum>(id, this->source_data.getCacheSpectrum(this->source_factory, id, counter)));
 
+        // Set visibility to default
+        insert.first->second.setVisibleExcitation(this->state.visible_excitation);
+        insert.first->second.setVisibleEmission(this->state.visible_emission);
+
         return &insert.first->second;
     }else{
         // Hash-hit, replace the counter
         spectrum->second.setIndex(counter);
-        // Reset to default - should be state dependent
-        spectrum->second.setVisibleEmission(true);
-        spectrum->second.setVisibleExcitation(false);
+        // Reset to default
+        spectrum->second.setVisibleExcitation(this->state.visible_excitation);
+        spectrum->second.setVisibleEmission(this->state.visible_emission);
         return &spectrum->second;
     }
 }
@@ -277,11 +283,11 @@ Data::CacheSpectrum* Cache::getData(const QString& id, const unsigned int counte
 Slot: receives fluorophores additions from the GUI. Adds the fluorophores ID to the items & data attributes
     :param fluorophores: fluorophores to add
 */
-void Cache::cacheAdd(std::set<Data::FluorophoreID>& fluorophores){
-    // Taking for granted that std::size_t is much bigger then unsigned int, but so be it, highly unlikely that you can ever add more then INT_MAX options in one go
+void Cache::cacheAdd(std::vector<Data::FluorophoreID>& fluorophores){
+    // Taking for granted that std::size_t is much bigger then unsigned int, but so be it, highly unlikely that you ever add more then INT_MAX options in one go
     unsigned int current_counter = this->getCounter(static_cast<unsigned int>(fluorophores.size()));
 
-    for(Data::FluorophoreID entree : fluorophores){
+    for(const Data::FluorophoreID& entree : fluorophores){
         std::pair<std::set<CacheID>::iterator, bool> cache_entree = this->items.emplace(entree.id, entree.name);
 
         if(cache_entree.second){
@@ -293,7 +299,7 @@ void Cache::cacheAdd(std::set<Data::FluorophoreID>& fluorophores){
         }
     }
 
-    this->printState();
+    //this->printState();
 
     this->sync();
 
@@ -301,6 +307,21 @@ void Cache::cacheAdd(std::set<Data::FluorophoreID>& fluorophores){
     if(this->data.size() > this->max_cache_size){
         this->rebuildCache();
     }
+}
+
+/*
+Slot: receives fluorophores removals from the GUI. Removes the fluorophores ID from the items attributes.
+    :param fluorophores: fluorophores to remove
+*/
+void Cache::cacheRemove(std::vector<Data::FluorophoreID>& fluorophores){
+    for(const Data::FluorophoreID& entree: fluorophores){
+        CacheID id(entree.id, entree.name);
+        this->items.erase(id);
+    }
+
+    this->printState();
+
+    this->sync();
 }
 
 /*
@@ -318,21 +339,6 @@ void Cache::cacheRequestUpdate() {
 }
 
 /*
-Slot: receives fluorophores removals from the GUI. Removes the fluorophores ID from the items attributes.
-    :param fluorophores: fluorophores to remove
-*/
-void Cache::cacheRemove(std::vector<Data::FluorophoreID>& fluorophores){
-    for(Data::FluorophoreID entree: fluorophores){
-        CacheID id(entree.id, entree.name);
-        this->items.erase(id);
-    }
-
-    this->printState();
-
-    this->sync();
-}
-
-/*
 Construct the necessary outputs for synchronization of the cache and GUI widgets
 */
 void Cache::sync() {
@@ -341,14 +347,15 @@ void Cache::sync() {
     cache_state.reserve(this->items.size());
     cache_state.insert(cache_state.end(), this->items.begin(), this->items.end());
 
-    // Sort based on sort qualifyer, when properly implemented this code has to request the sorting order somehow
-    this->sortVector(cache_state, SortOption::Additive);
+    // Sort based on sort qualifyer
+    this->sortVector(cache_state, this->state.sort_option);
 
     emit this->cacheSync(cache_state);
 }
 
 /*
 Constructs the necessary outputs for update of the cache state to the GUI widgets.
+Assumes that the order and specific items didnt change.
 In principle identical to sync() just calls different signals, allows for more optimized treatment by the GUI widgets
 */
 void Cache::update() {
@@ -358,9 +365,68 @@ void Cache::update() {
     cache_state.insert(cache_state.end(), this->items.begin(), this->items.end());
 
     // Sort based on sort qualifyer, when properly implemented this code has to request the sorting order somehow
-    this->sortVector(cache_state, SortOption::Additive);
+    this->sortVector(cache_state, this->state.sort_option);
 
     emit this->cacheUpdate(cache_state);
+}
+
+/*
+Slot: Sets the cache state and sync these changes
+    :param state: the new cache state
+*/
+void Cache::cacheStateSet(CacheState state) {
+    this->state = state;
+
+    for(auto& item : this->items){
+        item.data->setVisibleExcitation(this->state.visible_excitation);
+        item.data->setVisibleEmission(this->state.visible_emission);
+    }
+
+   // Sync as the sorting order can be changed
+   this->sync();
+}
+
+/*
+Slot: set the cache state excitation visibility and updates this change to all loaded spectra. Updates afterwards
+    :param visible: visibility of the excitation
+*/
+void Cache::cacheStateSetExcitation(bool visible) {
+    this->state.visible_excitation = visible;
+
+    for(auto& item : this->items){
+        item.data->setVisibleExcitation(visible);
+    }
+
+    this->update();
+
+}
+
+/*
+Slot: set the cache state emission visibility and updates this change to all loaded spectra. Updates afterwards
+    :param visible: visibility of the emission
+*/
+void Cache::cacheStateSetEmission(bool visible) {
+    this->state.visible_emission = visible;
+
+    for(auto& item : this->items){
+        item.data->setVisibleEmission(visible);
+    }
+
+    this->update();
+}
+
+/*
+Slot: set the cache state sorting option and sync's this.
+    :param option: the new sorting option
+*/
+void Cache::cacheStateSetSorting(State::SortOption option) {
+    if(option == this->state.sort_option){
+        return;
+    }
+
+    this->state.sort_option = option;
+
+    this->sync();
 }
 
 } // Cache namespace

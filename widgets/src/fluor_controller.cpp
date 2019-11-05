@@ -7,6 +7,7 @@
 ***************************************************************************/
 
 #include "fluor_controller.h"
+#include "general_widgets.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -36,6 +37,8 @@ Controller::Controller(QWidget* parent) :
     // Set layout
     QVBoxLayout* controller_layout = new QVBoxLayout(this);
     controller_layout->setContentsMargins(0, 0, 0, 0);
+    controller_layout->setSpacing(6);
+
     this->setLayout(controller_layout);
 
     // Add buttons
@@ -84,6 +87,20 @@ void Controller::paintEvent(QPaintEvent* event) {
 }
 
 /*
+Getter for layout spacing property, as it has to return a QString it returns the value in pixels
+*/
+QString Controller::layoutSpacing() const {
+    return QString::number(this->layout()->spacing(), 'f', 0);
+}
+
+/*
+Receives layout scaling properties from the stylesheet
+*/
+void Controller::setLayoutSpacing(QString layout_spacing){
+    this->layout()->setSpacing(layout_spacing.toInt());
+}
+
+/*
 Slot: unfocus the widget
 */
 void Controller::receiveGlobalEvent(QEvent* event){
@@ -114,7 +131,7 @@ void Controller::receiveCacheRequestUpdate(){
 /*
 Slot: receives and sends output from the internal lineedit and forwards towards cache
 */
-void Controller::receiveCacheAdd(std::set<Data::FluorophoreID>& output){
+void Controller::receiveCacheAdd(std::vector<Data::FluorophoreID>& output){
     emit this->sendCacheAdd(output);
 }
 
@@ -163,7 +180,8 @@ Contructor: builds the fluorophore menu scrollarea
 */
 ScrollController::ScrollController(QWidget* parent) :
     QScrollArea(parent),
-    button_widgets()
+    button_widgets(),
+    margin_scrollbar(0)
 {
     // Set Scrollarea properties
     this->setFocusPolicy(Qt::NoFocus);
@@ -182,16 +200,65 @@ ScrollController::ScrollController(QWidget* parent) :
     widget_internal->setLayout(layout_internal);
     this->setWidget(widget_internal);
 
-    // Need to re-polish the scrollbar for proper stylesheet handling, not sure why
-    this->verticalScrollBar()->style()->unpolish(this->verticalScrollBar());
-    this->verticalScrollBar()->style()->polish(this->verticalScrollBar());
+    General::ScrollBar* vertical_scrollbar = new General::ScrollBar(this);
+    this->setVerticalScrollBar(vertical_scrollbar);
+
+    QObject::connect(static_cast<General::ScrollBar*>(this->verticalScrollBar()), &General::ScrollBar::showing, this, &Fluor::ScrollController::showingScrollBar);
+    QObject::connect(static_cast<General::ScrollBar*>(this->verticalScrollBar()), &General::ScrollBar::hiding, this, &Fluor::ScrollController::hidingScrollBar);
 
     // Reserve vector space
     this->button_widgets.reserve(20);
 }
 
 /*
-Synchronizes the internal ButtonsController widgets to the cache_state. Adds/removes the necessary
+Getter for layout spacing property, as it has to return a QString it returns the value in pixels
+*/
+QString ScrollController::layoutMarginsScrollBar() const {
+    return QString::number(this->margin_scrollbar, 'f', 0);
+}
+
+/*
+Receives layout scaling properties from the stylesheet
+*/
+void ScrollController::setLayoutMarginsScrollBar(QString layout_spacing_scroll_bar){
+    this->margin_scrollbar = layout_spacing_scroll_bar.toInt();
+    if(this->verticalScrollBar()->isVisible()){
+        this->widget()->layout()->setContentsMargins(0, 0, this->margin_scrollbar, 0);
+    }else{
+        this->widget()->layout()->setContentsMargins(0, 0, 0, 0);
+    }
+}
+
+/*
+Getter for layout spacing property, as it has to return a QString it returns the value in pixels
+*/
+QString ScrollController::layoutSpacing() const {
+    return QString::number(this->widget()->layout()->spacing(), 'f', 0);
+}
+
+/*
+Receives layout scaling properties from the stylesheet
+*/
+void ScrollController::setLayoutSpacing(QString layout_spacing){
+    this->widget()->layout()->setSpacing(layout_spacing.toInt());
+}
+
+/*
+Receives hiding signal from the vertical scrollbar and removes scrollbar margin
+*/
+void ScrollController::hidingScrollBar(){
+    this->widget()->layout()->setContentsMargins(0, 0, 0, 0);
+}
+
+/*
+Receives showing signal from the vertical scrollbar and adds scrollbar margin
+*/
+void ScrollController::showingScrollBar(){
+    this->widget()->layout()->setContentsMargins(0, 0, this->margin_scrollbar, 0);
+}
+
+/*
+Slot: Synchronizes the internal ButtonsController widgets to the cache_state. Adds/removes the necessary
 ButtonsController and resets the name, id, cache pointers.
     :param cache_state: the to-be-synced ids
 */
@@ -207,6 +274,7 @@ void ScrollController::syncButtons(const std::vector<Cache::CacheID>& cache_stat
 
             QObject::connect(widget, &Fluor::ButtonsController::requestUpdate, this, &Fluor::ScrollController::receiveCacheRequestUpdate);
             QObject::connect(widget, &Fluor::ButtonsController::sendRemove, this, &Fluor::ScrollController::receiveRemove);
+            QObject::connect(widget, &Fluor::ButtonsController::sendSelected, this, &Fluor::ScrollController::receiveSelected);
 
             // Add to lookup vector
             this->button_widgets.push_back(widget);
@@ -218,6 +286,7 @@ void ScrollController::syncButtons(const std::vector<Cache::CacheID>& cache_stat
 
             QObject::disconnect(widget, &Fluor::ButtonsController::requestUpdate, this, &Fluor::ScrollController::receiveCacheRequestUpdate);
             QObject::disconnect(widget, &Fluor::ButtonsController::sendRemove, this, &Fluor::ScrollController::receiveRemove);
+            QObject::disconnect(widget, &Fluor::ButtonsController::sendSelected, this, &Fluor::ScrollController::receiveSelected);
 
             delete widget;
 
@@ -232,7 +301,7 @@ void ScrollController::syncButtons(const std::vector<Cache::CacheID>& cache_stat
 }
 
 /*
-Updates the internal ButtonsController widgets to the cache_state. Assumes synchronized state. Doesnt add or remove widgets
+Slot: Updates the internal ButtonsController widgets to the cache_state. Assumes synchronized state. Doesnt add or remove widgets
     :param cache_state: the state to update to
 */
 void ScrollController::updateButtons(const std::vector<Cache::CacheID>& cache_state){
@@ -253,6 +322,16 @@ Slot: receives and forwards remove fluorophore request
 */
 void ScrollController::receiveRemove(std::vector<Data::FluorophoreID>& fluorophores){
     emit this->sendRemove(fluorophores);
+}
+
+/*
+Slot: receives selected signal. Scrolls the scrollarea to show the widget
+    :param widget: the widget to ensure visibility
+*/
+void ScrollController::receiveSelected(QWidget* widget){
+    if(!this->underMouse()){
+        this->ensureWidgetVisible(widget, 0, 2);
+    }
 }
 
 // ####################################################################################### //
@@ -289,6 +368,10 @@ ButtonsController::ButtonsController(QWidget* parent) :
     QObject::connect(this->widget_emission, &Fluor::EmissionButton::clicked, this, &Fluor::ButtonsController::receiveEmissionClick);
     QObject::connect(this->widget_excitation, &Fluor::ExcitationButton::clicked, this, &Fluor::ButtonsController::receiveExcitationClick);
     QObject::connect(this->widget_remove, &Fluor::RemoveButton::clicked, this, &Fluor::ButtonsController::receiveRemoveClick);
+
+    QObject::connect(this->widget_emission, &Fluor::EmissionButton::hoverEntered, this, &Fluor::ButtonsController::hoverEntered);
+    QObject::connect(this->widget_emission, &Fluor::EmissionButton::hoverLeaved, this, &Fluor::ButtonsController::hoverLeaved);
+    QObject::connect(this->widget_emission, &Fluor::EmissionButton::selected, this, &Fluor::ButtonsController::receiveSelected);
 }
 
 /*
@@ -301,6 +384,20 @@ void ButtonsController::paintEvent(QPaintEvent* event) {
     style_option.initFrom(this);
     QPainter painter(this);
     this->style()->drawPrimitive(QStyle::PE_Widget, &style_option, &painter, this);
+}
+
+/*
+Getter for layout spacing property, as it has to return a QString it returns the value in pixels
+*/
+QString ButtonsController::layoutSpacing() const {
+    return QString::number(this->layout()->spacing(), 'f', 0);
+}
+
+/*
+Receives layout scaling properties from the stylesheet
+*/
+void ButtonsController::setLayoutSpacing(QString layout_spacing){
+    this->layout()->setSpacing(layout_spacing.toInt());
 }
 
 /*
@@ -323,8 +420,10 @@ Update the buttonsController and internal widgets with the CacheID
     :param cache_state: the state of the cache
 */
 void ButtonsController::updateButtons(const Cache::CacheID& cache_state){
+    //qDebug() << cache_state.data->visibleExcitation() << cache_state.data->visibleEmission();
     this->widget_excitation->setActive(cache_state.data->visibleExcitation());
     this->widget_emission->setActive(cache_state.data->visibleEmission());
+    this->widget_emission->setSelect(cache_state.data->selectEmission());
 }
 
 /*
@@ -367,6 +466,33 @@ void ButtonsController::receiveRemoveClick(){
     fluorophores.push_back(id);
     
     emit this->sendRemove(fluorophores);
+}
+
+/*
+Slot: receives the button hover entered signal. Updates the CacheSpectrum select attribute and requests update
+*/
+void ButtonsController::hoverEntered(){
+    this->data->setSelectEmission(true);
+    this->data->setSelectExcitation(true);
+
+    emit this->requestUpdate();
+}
+
+/*
+Slot: receives the button hover leaved signal. Updates the CacheSpectrum select attribute and requests update
+*/
+void ButtonsController::hoverLeaved(){
+    this->data->setSelectEmission(false);
+    this->data->setSelectExcitation(false);
+
+    emit this->requestUpdate();
+}
+
+/*
+Slot: receives selected event. Means that the internal widget has been selected, needs to be forwarded to scrollarea for scroll update
+*/
+void ButtonsController::receiveSelected(){
+    emit this->sendSelected(this);
 }
 
 

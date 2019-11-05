@@ -49,11 +49,15 @@ EmissionButton::EmissionButton(QWidget* parent) :
     tooltip_active("Toggle emission (on)"),
     tooltip_inactive("Toggle emission (off)")
 {
+    this->installEventFilter(this);
+
     this->setEnabled(true);
     this->setText("");
 
     this->setProperty("active", true);
     this->setToolTip();
+
+    this->setProperty("select", false);
 
     QObject::connect(this, &QAbstractButton::clicked, this, &EmissionButton::toggleActive);
     QObject::connect(this, &QAbstractButton::clicked, this, &EmissionButton::click);
@@ -71,6 +75,26 @@ void EmissionButton::setToolTip() {
 }
 
 /*
+Captures and handles mouse events of this button. This is necessary for the selection handling
+    :param obj: object that captured the event
+    :param event: the event
+*/
+bool EmissionButton::eventFilter(QObject* obj, QEvent* event) {
+    switch(event->type()){
+    case QEvent::HoverEnter:
+        emit this->hoverEntered();
+        break;
+    case QEvent::HoverLeave:
+        emit this->hoverLeaved();
+        break;
+    default:
+        break;
+    }
+    return QPushButton::eventFilter(obj, event);
+}
+
+
+/*
 Slot: receives click signal, builds and fires clicked(active) signal
     :param checked: (unused) whether the button is checked. Required for signal-slot mechanism.
 */
@@ -81,7 +105,7 @@ void EmissionButton::click(bool checked){
 
 
 /*
-Slot: set 'active' state of the button and changes icon`
+Slot: set 'active' state of the button
     :param active: the active state to set the button to
 */
 void EmissionButton::setActive(bool active){
@@ -94,6 +118,24 @@ void EmissionButton::setActive(bool active){
 
     this->style()->unpolish(this);
     this->style()->polish(this);
+}
+
+/*
+Slot: set 'select' state of the button
+    :param select: the select state to set the button to
+*/
+void EmissionButton::setSelect(bool select){
+    if(this->property("select").toBool() == select){
+        return;
+    }
+    this->setProperty("select", select);
+
+    this->style()->unpolish(this);
+    this->style()->polish(this);
+
+    if(this->property("select").toBool()){
+        emit this->selected();
+    }
 }
 
 /*
@@ -117,6 +159,7 @@ ExcitationButton::ExcitationButton(QWidget* parent) :
     tooltip_active("Toggle excitation (on)"),
     tooltip_inactive("Toggle excitation (off)")
 {
+    this->installEventFilter(this);
     this->setEnabled(true);
     this->setText("");
 
@@ -139,6 +182,26 @@ void ExcitationButton::setToolTip() {
 }
 
 /*
+Captures and handles mouse events of this button. This is necessary for the selection handling
+    :param obj: object that captured the event
+    :param event: the event
+*/
+bool ExcitationButton::eventFilter(QObject* obj, QEvent* event) {
+    switch(event->type()){
+    case QEvent::HoverEnter:
+        emit this->hoverEntered();
+        break;
+    case QEvent::HoverLeave:
+        emit this->hoverLeaved();
+        break;
+    default:
+        break;
+    }
+    return QPushButton::eventFilter(obj, event);
+}
+
+
+/*
 Slot: receives click signal, builds and fires clicked(active) signal
     :param checked: (unused) whether the button is checked. Required for signal-slot mechanism.
 */
@@ -148,7 +211,7 @@ void ExcitationButton::click(bool checked){
 }
 
 /*
-Slot: set 'active' state of the button and changes icon
+Slot: set 'active' state of the button
 */
 void ExcitationButton::setActive(bool active){
     if(this->property("active").toBool() == active){
@@ -183,6 +246,8 @@ RemoveButton::RemoveButton(QWidget* parent) :
     tooltip_active("Remove fluorophore"),
     tooltip_inactive("Remove fluorophore")
 {
+    this->installEventFilter(this);
+    
     this->setEnabled(true);
     this->setText("");
 
@@ -193,7 +258,7 @@ RemoveButton::RemoveButton(QWidget* parent) :
 }
 
 /*
-Slot: set 'active' state of the button and changes icon
+Slot: set 'active' state of the button
 */
 void RemoveButton::setActive(bool active){
     if(this->property("active").toBool() == active){
@@ -217,6 +282,26 @@ void RemoveButton::setToolTip() {
         QWidget::setToolTip(this->tooltip_inactive);
     }
 }
+
+/*
+Captures and handles mouse events of this button. This is necessary for the selection handling
+    :param obj: object that captured the event
+    :param event: the event
+*/
+bool RemoveButton::eventFilter(QObject* obj, QEvent* event) {
+    switch(event->type()){
+    case QEvent::HoverEnter:
+        emit this->hoverEntered();
+        break;
+    case QEvent::HoverLeave:
+        emit this->hoverLeaved();
+        break;
+    default:
+        break;
+    }
+    return QPushButton::eventFilter(obj, event);
+}
+
 
 /*
 Slot: receives click signal, builds and fires clicked(active) signal

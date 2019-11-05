@@ -84,12 +84,13 @@ class SquarePushButton : public QPushButton {
     private:
         QSize sizeHint() const;
         QSize minimumSizeHint() const;
-        void setToolTip();
 
     protected:
         QString tooltip_disabled;
         QString tooltip_active;
         QString tooltip_inactive;
+
+        void setToolTip();
 
     signals:
         void clicked(bool active);
@@ -99,14 +100,15 @@ class SquarePushButton : public QPushButton {
         void showButton();
         void click(bool checked);
         void setEnabled(bool enable);
+        virtual void setActive(bool active);
 
     protected slots:
         virtual void toggleActive(bool checked);
-        virtual void setActive(const bool active);
 };
 
 class IconPushButton : public SquarePushButton {
     Q_OBJECT
+    Q_PROPERTY(QString scale READ iconScale WRITE setIconScale)
 
     public:
         explicit IconPushButton(QWidget* parent=nullptr);
@@ -115,6 +117,9 @@ class IconPushButton : public SquarePushButton {
         IconPushButton(IconPushButton&&) = delete;
         IconPushButton& operator=(IconPushButton&&) = delete;
         virtual ~IconPushButton() = default;
+
+        QString iconScale() const;
+        void setIconScale(QString scale);
 };
 
 class LaserButton : public IconPushButton {
@@ -179,8 +184,8 @@ class GraphAddButton : public IconPushButton {
         GraphAddButton& operator=(const GraphAddButton&&) = delete;
         virtual ~GraphAddButton() = default;
     
-    protected slots:
-        virtual void setActive(const bool active) override;
+    public slots:
+        virtual void setActive(bool active) override;
 };
 
 class GraphRemoveButton : public IconPushButton {
@@ -194,8 +199,8 @@ class GraphRemoveButton : public IconPushButton {
         GraphRemoveButton& operator=(const GraphRemoveButton&&) = delete;
         virtual ~GraphRemoveButton() = default;
     
-    protected slots:
-        virtual void setActive(const bool active) override;
+    public slots:
+        virtual void setActive(bool active) override;
 };
 
 class LasersButton : public IconPushButton {

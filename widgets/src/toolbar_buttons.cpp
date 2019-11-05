@@ -24,7 +24,6 @@ Constructor: builds a square pushbutton
 */
 SquarePushButton::SquarePushButton(QWidget* parent) :
     QPushButton(parent),
-
     tooltip_disabled(),
     tooltip_active(),
     tooltip_inactive()
@@ -39,7 +38,7 @@ Holds the recommended size for the widget, forcefully returns a square shape
 QSize SquarePushButton::sizeHint() const {
     QSize size = std::move(QPushButton::sizeHint());
     int height = size.height();
-    int width = size.width();
+    int width = size.width(); 
 
     if(height >= width){
         size.setWidth(height);
@@ -47,7 +46,7 @@ QSize SquarePushButton::sizeHint() const {
         size.setHeight(width);
     }
 
-    return std::move(size);
+    return size;
 }
 
 /*
@@ -64,7 +63,7 @@ QSize SquarePushButton::minimumSizeHint() const {
         size.setHeight(width);
     }
 
-    return std::move(size);
+    return size;
 }
 
 /*
@@ -108,6 +107,10 @@ Slot: sets enable, also forces a style repolish
     :param enable: enable state
 */
 void SquarePushButton::setEnabled(bool enable){
+    if(this->isEnabled() == enable){
+        return;
+    }
+
     QWidget::setEnabled(enable);
 
     this->setToolTip();
@@ -129,7 +132,7 @@ void SquarePushButton::toggleActive(bool checked){
 /*
 Slot: set 'active' state of the button and changes icon
 */
-void SquarePushButton::setActive(const bool active){
+void SquarePushButton::setActive(bool active){
     if(this->property("active").toBool() == active){
         return;
     }
@@ -150,13 +153,23 @@ IconPushButton::IconPushButton(QWidget* parent) :
 {
     this->setProperty("active", true);
 
-    // get font size (which is DPI scaled) and calculate icon size based on that
-    QFontMetrics font_metric = QFontMetrics(this->font());
-    int height = font_metric.height();
-    int icon_size = height + 8;     // atleast this is the case on Windows10
-
-    this->setIconSize(QSize(icon_size, icon_size));
+    this->setIconSize(QSize(0, 0));
     this->setContentsMargins(0, 0, 0, 0);
+}
+
+/*
+Getter for the icon scale; purely implemented for QPROPERTY's requirements
+*/
+QString IconPushButton::iconScale() const {
+    return QString::number(this->iconSize().width(), 'f', 0);
+}
+
+/*
+Setter: receives stylesheet scaling input
+*/
+void IconPushButton::setIconScale(QString scale){
+    int size = scale.toInt();
+    this->setIconSize(QSize(size, size));
 }
 
 /*
@@ -182,8 +195,9 @@ ExcitationButton::ExcitationButton(QWidget* parent) :
 {
     this->tooltip_active = QString("Toggle visibility excitation (on)");
     this->tooltip_inactive = QString("Toggle visibilty excitation (off)");
-    this->setProperty("active", false);
+    this->setActive(false);
     this->setEnabled(true);
+    this->setToolTip();
 }
 
 /*
@@ -195,8 +209,9 @@ EmissionButton::EmissionButton(QWidget* parent) :
 {
     this->tooltip_active = QString("Toggle visibility emission (on)");
     this->tooltip_inactive = QString("Toggle visibilty emission (off)");
-    this->setProperty("active", true);
+    this->setActive(true);
     this->setEnabled(true);
+    this->setToolTip();
 }
 
 /*
@@ -209,8 +224,9 @@ DetectorButton::DetectorButton(QWidget* parent) :
     this->tooltip_disabled = QString("No detectors enabled");
     this->tooltip_active = QString("Toggle visibility detectors (on)");
     this->tooltip_inactive = QString("Toggle visibilty detectors (off)");
-    this->setProperty("active", false);
+    this->setActive(false);
     this->setEnabled(false);
+    this->setToolTip();
 }
 
 /*
@@ -222,15 +238,16 @@ GraphAddButton::GraphAddButton(QWidget* parent) :
 {
     this->tooltip_disabled = QString("Reached maximum graph count");
     this->tooltip_active = QString("Add graph");
-    this->setProperty("active", true);
+    this->setActive(true);
     this->setEnabled(true);
+    this->setToolTip();
 }
 
 /*
 Slot: setActive override, no need for style reloading in GraphAddButton
     :param active: ignored
 */
-void GraphAddButton::setActive(const bool active){
+void GraphAddButton::setActive(bool active){
     Q_UNUSED(active);
     return;
 }
@@ -243,15 +260,16 @@ GraphRemoveButton::GraphRemoveButton(QWidget* parent) :
 {
     this->tooltip_disabled = QString("Reached minimum graph count");
     this->tooltip_active = QString("Remove graph");
-    this->setProperty("active", true);
+    this->setActive(true);
     this->setEnabled(false);
+    this->setToolTip();
 }
 
 /*
 Slot: setActive override, no need for style reloading in GraphRemoveButton
     :param active: ignored
 */
-void GraphRemoveButton::setActive(const bool active){
+void GraphRemoveButton::setActive(bool active){
     Q_UNUSED(active);
     return;
 }
@@ -265,8 +283,9 @@ LasersButton::LasersButton(QWidget* parent) :
     this->tooltip_disabled = QString("No cytometer enabled");
     this->tooltip_active = QString("Expand graphs");
     this->tooltip_inactive = QString("Reduce graphs");
-    this->setProperty("active", true);
+    this->setActive(true);
     this->setEnabled(true);
+    this->setToolTip();
 }
 
 /*

@@ -14,8 +14,13 @@ set(CMAKE_AUTORCC ON)
 
 # Set executable
 add_executable(fluor
+    widgets/header/global.h
+
     widgets/header/cache.h
     widgets/src/cache.cpp
+    
+    widgets/header/state.h
+    widgets/src/state.cpp
 
     widgets/src/main.cpp
     widgets/header/application.h
@@ -23,6 +28,9 @@ add_executable(fluor
 
     widgets/header/main_controller.h
     widgets/src/main_controller.cpp
+
+    widgets/header/general_widgets.h
+    widgets/src/general_widgets.cpp
 
     widgets/header/central_controller.h
     widgets/src/central_controller.cpp

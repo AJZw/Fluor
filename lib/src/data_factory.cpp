@@ -46,11 +46,11 @@ Factory::Factory() :
 
     // Set error/warning parameters/debug message
     if(!this->valid_settings || !this->valid_defaults){
-        qWarning() << "SettingsFactory::SettingsFactory(): cannot find settings.ini";
+        qWarning() << "Data::Factory::Factory(): cannot find settings.ini";
         this->error_fatal = true;
     }
     if(!this->valid_styles || !this->valid_cytometers || !this->valid_fluorophores){
-        qWarning() << "SettingsFactory::SettingsFactory(): cannot find styles.ini/cytometers.ini/fluorophores.ini";
+        qWarning() << "Data::Factory::Factory(): cannot find styles.ini/cytometers.ini/fluorophores.ini";
         this->error_warning = true;
     }
 }
@@ -94,11 +94,11 @@ Factory::Factory(
 
     // Set error/warning parameters/debug message
     if(!this->valid_settings || !this->valid_defaults){
-        qWarning() << "SettingsFactory::SettingsFactory(): cannot find settings.ini";
+        qWarning() << "Data::Factory::Factory(): cannot find settings.ini";
         this->error_fatal = true;
     }
     if(!this->valid_styles || !this->valid_cytometers || !this->valid_fluorophores){
-        qWarning() << "SettingsFactory::SettingsFactory(): cannot find styles.ini / cytometers.ini / fluorophores.ini";
+        qWarning() << "Data::Factory::Factory(): cannot find styles.ini / cytometers.ini / fluorophores.ini";
         this->error_warning = true;
     }
 }
@@ -109,6 +109,27 @@ Returns whether the SettingsFactory is valid for further use. Aka whether settin
 */
 bool Factory::isValid() const {
     return !this->error_fatal;
+}
+
+/*
+Returns the validity for the specified data type
+    :returns bool: valid (true) or not (false)
+*/
+bool Factory::isValid(Factory::type data) const {
+    switch(data){
+    case Factory::settings:
+        return this->valid_settings;
+    case Factory::defaults:
+        return this->valid_defaults;
+    case Factory::styles:
+        return this->valid_styles;
+    case Factory::cytometers:
+        return this->valid_cytometers;
+    case Factory::fluorophores:
+        return this->valid_fluorophores;
+    default:
+        return false;
+    }
 }
 
 /*
@@ -130,6 +151,15 @@ void Factory::execMessages() const {
         }
         if(!this->valid_defaults){
             message.append("Defaults file could not be found.\n");
+        }
+        if(!this->valid_styles){
+            message.append("Styles data could not be found.\n");
+        }
+        if(!this->valid_cytometers){
+            message.append("Cytometers data could not be found.\n");
+        }
+        if(!this->valid_fluorophores){
+            message.append("Fluorophores data could not be found.\n");
         }
         message.append("\nSpectral viewer will now terminate.");
         Data::Error(message).exec();
@@ -190,7 +220,9 @@ QString Factory::getPathFluorophores() const {
 }
 
 /*
-Builds the QSettings as specified by the parameter
+Builds the QSettings as specified by the parameter.
+This function (again) checks whether the file exists before opening it. Because in the timespan
+between factory construction and the get call the file could have been removed.
     :param settings: a enum specifying the settings type
     :returns: a QSettings object
 */
@@ -198,52 +230,67 @@ std::unique_ptr<QSettings> Factory::get(const Factory::type type) const {
     switch(type){
     case Factory::settings:{
         if(this->valid_settings){
+            if(!Factory::exists(this->path_settings)){
+                qFatal("Data::Factory::get(): settings data file does not exist anymore");
+            }
             return std::make_unique<QSettings>(this->path_settings, QSettings::IniFormat);
         }else{
-            qFatal("SettingsFactory::get(): requested invalid data source");
+            qFatal("Data::Factory::get(): requested invalid data source");
         }
         break;
     }
     case Factory::defaults:{
         if(this->valid_defaults){
+            if(!Factory::exists(this->path_defaults)){
+                qFatal("Data::Factory::get(): defaults data file does not exist anymore");
+            }
             return std::make_unique<QSettings>(this->path_defaults, QSettings::IniFormat);
         }else{
-            qFatal("SettingsFactory::get(): requested invalid data source");
+            qFatal("Data::Factory::get(): requested invalid data source");
         }
         break;
     }
     case Factory::styles:{
         if(this->valid_styles){
+            if(!Factory::exists(this->path_styles)){
+                qFatal("Data::Factory::get(): styles data file does not exist anymore");
+            }
             return std::make_unique<QSettings>(this->path_styles, QSettings::IniFormat);
         }else{
-            qFatal("SettingsFactory::get(): requested invalid data source");
+            qFatal("Data::Factory::get(): requested invalid data source");
         }
         break;
     }
     case Factory::cytometers:{
         if(this->valid_cytometers){
+            if(!Factory::exists(this->path_cytometers)){
+                qFatal("Data::Factory::get(): cytometers data file does not exist anymore");
+            }
             return std::make_unique<QSettings>(this->path_cytometers, QSettings::IniFormat);
         }else{
-            qFatal("SettingsFactory::get(): requested invalid data source");
+            qFatal("Data::Factory::get(): requested invalid data source");
         }
         break;
     }
     case Factory::fluorophores:{
         if(this->valid_fluorophores){
+            if(!Factory::exists(this->path_fluorophores)){
+                qFatal("Data::Factory::get(): fluorophores data file does not exist anymore");
+            }
             return std::make_unique<QSettings>(this->path_fluorophores, QSettings::IniFormat);
         }else{
-            qFatal("SettingsFactory::get(): requested invalid data source");
+            qFatal("Data::Factory::get(): requested invalid data source");
         }
         break;
     }
     default:
-        qFatal("SettingsFactory::get(): unknown settings object, cannot return a QSetting");
+        qFatal("Data::Factory::get(): unknown settings object, cannot return a QSetting");
     }
     return(std::make_unique<QSettings>());
 }
 
 /*
-(Static) Convenience function: checks if file exists
+(Static) Convenience function: checks whether file exists
     :returns [bool]: whether file exists or not
 */
 bool Factory::exists(const QString& path_file){

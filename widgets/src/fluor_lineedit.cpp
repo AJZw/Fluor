@@ -7,6 +7,7 @@
 ***************************************************************************/
 
 #include "fluor_lineedit.h"
+#include "general_widgets.h"
 
 #include <QStyle>
 #include <QStyledItemDelegate>
@@ -26,8 +27,6 @@
 #include <QLayout>
 #include <QMargins>
 #include <QScrollBar>
-
-#include <QWindow>
 
 namespace Fluor {
 
@@ -775,7 +774,7 @@ void LineEdit::buildOutput() {
     this->reset();
 
     // Sanetize output and transform into set of fluorophoreIDs
-    std::set<Data::FluorophoreID> output;
+    std::set<Data::FluorophoreID> input_unique;
 
     // Counter, independent from loop because duplicate entrees / hash misses should not increase the counter
     unsigned int counter(0);
@@ -789,12 +788,16 @@ void LineEdit::buildOutput() {
             continue;
         }
 
-        std::pair<std::set<Data::FluorophoreID>::iterator, bool> emplace_succes = output.emplace(entree_id->second, entree, counter);
+        std::pair<std::set<Data::FluorophoreID>::iterator, bool> emplace_succes = input_unique.emplace(entree_id->second, entree, counter);
 
         if(emplace_succes.second){
             ++counter;
         }
     }
+
+    // Transform into a vector for further usage
+    std::vector<Data::FluorophoreID> output;
+    std::copy(input_unique.begin(), input_unique.end(), std::back_inserter(output));
 
     // Before emitting list, check if it contains anything, if not do not emit
     if(output.size() != 0){
@@ -820,6 +823,7 @@ Constructor: Builds the popup for the Laser::LineEdit
 */
 Popup::Popup(QWidget* parent) :
     QListView(parent),
+    margin_scrollbar(0),
     max_visible_items(50),
     max_size()
 {
@@ -835,14 +839,43 @@ Popup::Popup(QWidget* parent) :
     this->setWindowFlag(Qt::WindowDoesNotAcceptFocus);
     
     // Set delegate for proper stylesheet usage.
+    auto old_delegate = this->itemDelegate();
     QStyledItemDelegate* delegate_popup = new QStyledItemDelegate{this};
     this->setItemDelegate(delegate_popup);
+    delete old_delegate;
+
+    // Replace scrollbar to be able to hook into hide/show events
+    General::ScrollBar* vertical_scrollbar = new General::ScrollBar(this);
+    this->setVerticalScrollBar(vertical_scrollbar);
+
+    QObject::connect(static_cast<General::ScrollBar*>(this->verticalScrollBar()), &General::ScrollBar::showing, this, &Fluor::Popup::showingScrollBar);
+    QObject::connect(static_cast<General::ScrollBar*>(this->verticalScrollBar()), &General::ScrollBar::hiding, this, &Fluor::Popup::hidingScrollBar);
 
     // Connect to ModelIndex signals and signal out QString ouputs
     QObject::connect(this, &Fluor::Popup::pressed, this, &Fluor::Popup::activate);
 
     // Make sure viewport() always inherits QAbstractItemView (or change code in eventFilter)
     this->viewport()->installEventFilter(this);
+    this->setViewportMargins(0, 0, this->margin_scrollbar, 0);
+}
+
+/*
+Getter for layout spacing property, as it has to return a QString it returns the value in pixels
+*/
+QString Popup::viewportMarginsScrollBar() const {
+    return QString::number(this->margin_scrollbar, 'f', 0);
+}
+
+/*
+Receives layout scaling properties from the stylesheet
+*/
+void Popup::setViewportMarginsScrollBar(QString layout_spacing_scroll_bar){
+    this->margin_scrollbar = layout_spacing_scroll_bar.toInt();
+    if(this->verticalScrollBar()->isVisible()){
+        this->setViewportMargins(0, 0, layout_spacing_scroll_bar.toInt(), 0);
+    }else{
+        this->setViewportMargins(0, 0, 0, 0);
+    }
 }
 
 /*
@@ -883,6 +916,7 @@ bool Popup::updateKeyUp(){
     // No valid rows -> dont select anything
     if(row_valid < 0){
         this->setCurrentIndex(QModelIndex());
+
         // Make sure the top most entree is visible -> as feedback that the top has been reached
         this->scrollToTop();
     }else{
@@ -923,7 +957,7 @@ bool Popup::updateKeyDown(){
     if(row_valid < 0){
         this->setCurrentIndex(QModelIndex());
         // Scroll to bottom upon no valid lower entree -> as feedback that end has been reached
-        this->scrollToBottom();
+        this->scrollToTop();
     }else{
         QModelIndex index_last = this->model()->index(row_valid, 0);
         this->setCurrentIndex(index_last);
@@ -998,6 +1032,20 @@ bool Popup::eventFilter(QObject* obj, QEvent* event){
 }
 
 /*
+Slot: Receives hiding signal from the vertical scrollbar and removes scrollbar margin
+*/
+void Popup::hidingScrollBar(){
+    this->setViewportMargins(0, 0, 0, 0);
+}
+
+/*
+Slot: Receives showing signal from the vertical scrollbar and adds scrollbar margin
+*/
+void Popup::showingScrollBar(){
+    this->setViewportMargins(0, 0, this->margin_scrollbar, 0);
+}
+
+/*
 Slot: retreives data of clicked ModelIndex and emits activated
     :param index: model index of clicked entree
 */
@@ -1035,6 +1083,7 @@ void Popup::showPopup(){
     // +14 depends on padding stylesheet parameter
     // Calculate height-necessary-to-fit-columns
     int height = this->sizeHintForRow(0) * std::min(this->max_visible_items, this->model()->rowCount()) + 14;
+    // sizeHintForRow is not updated until the listview has been painted with the new (DPI adjusted) font
 
     QScrollBar* horizontal_scrollbar = this->horizontalScrollBar();
     if(horizontal_scrollbar){
@@ -1073,6 +1122,11 @@ void Popup::showPopup(){
     this->setGeometry(pos.x(), pos.y(), width, height);
 
     if(!this->isVisible()){
+        // Upon dpi changes, not only the row height/width changes. This change is only updated upon painting of the listview
+        // Secondly, setGeometry fails somewhere downstream in Qt (i think). Running show/hide/show makes it work...
+        // NOT nice! but it works...
+        this->show();
+        this->hide();
         this->show();
     }
 

@@ -1,14 +1,14 @@
 /**** General **************************************************************
 ** Version:    v0.9.1
-** Date:       2018-04-10
+** Date:       2019-09-19
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
 ***************************************************************************/
 
 /**** LGPLv3 License *******************************************************
-** application.h is part of Fluor
-** 
+** global.h is part of Fluor
+**        
 ** Fluor is free software: you can redistribute it and/or
 ** modify it under the terms of the Lesser GNU General Public License as
 ** published by the Free Software Foundation, either version 3 of the
@@ -24,34 +24,50 @@
 ***************************************************************************/
 
 /**** DOC ******************************************************************
-** The event manager
+** General purpose types that are used in multiple headers
+** Namespaced to the main user of the enum
 **
-** :class: Application
-** A QApplication subclass singleton, contains additional styling parameters,
-** and captures and forwards global events
+** :enum: State::SortOption
+** The sorting method of the fluorophore buttons, mainly used by state and cache
+**
+** :enum: Bar::ButtonType
+** Specifies a button of the Toolbar, mainly used by signal propagation from and to toolbar
 **
 ***************************************************************************/
 
-#ifndef VIEWER_CENTRAL_WIDGET_H
-#define VIEWER_CENTRAL_WIDGET_H
+#ifndef GLOBAL_H
+#define GLOBAL_H
 
-#include <QApplication>
-#include <QFont>
-#include "data_styles.h"
+namespace State {
 
-class Application : public QApplication {
-    Q_OBJECT
-
-    private:
-        bool eventFilter(QObject* obj, QEvent* event);
-
-    public:
-        Application(int &argc, char **argv);
-
-    signals:
-        void globalMouseButtonRelease(QEvent* event);
-
+enum class SortOption {
+    Additive, 
+    AdditiveReversed, 
+    Alphabetical, 
+    AlphabeticalReversed,
+    Excitation, 
+    ExcitationReversed, 
+    Emission,
+    EmissionReversed
 };
 
-#endif //VIEWER_CENTRAL_WIDGET_H
+}
 
+namespace Bar {
+
+enum class ButtonType{
+    Laser,
+    Excitation,
+    Emission,
+    Detector,
+    GraphAdd,
+    GraphRemove,
+    Lasers
+};
+
+}
+
+
+
+
+#endif // GLOBAL_H

@@ -7,6 +7,7 @@
 ***************************************************************************/
 
 #include "graph_graphicsview.h"
+#include "graph_format.h"
 
 #include <QSize>
 #include <QDebug>
@@ -21,9 +22,6 @@ GraphicsView::GraphicsView(QGraphicsScene* scene, QWidget* parent) :
     //this->setSceneRect(0, 0, 100, 100);
     this->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     this->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-
-    this->installEventFilter(this);
-
 }
 
 void GraphicsView::resizeEvent(QResizeEvent* event){
@@ -39,14 +37,5 @@ void GraphicsView::resizeEvent(QResizeEvent* event){
     // Propagate
     QGraphicsView::resizeEvent(event);
 }
-
-bool GraphicsView::eventFilter(QObject* obj, QEvent* event){
-    if(event->type() == QEvent::PaletteChange){
-        qDebug() << "GV->palettechange";
-    }
-    return QGraphicsView::eventFilter(obj, event);
-}
-
-
 
 } // Graph namespace

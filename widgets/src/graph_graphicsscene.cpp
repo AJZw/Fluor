@@ -29,13 +29,14 @@ GraphicsScene::GraphicsScene(QWidget* parent) :
     //item_x_axis_ticks(nullptr),
     item_x_axis_gridlines(nullptr),
     item_x_colorbar(nullptr),
-
     item_y_axis_label(nullptr),
     item_y_axis_gridlabels(nullptr),
     //item_y_axis_ticks(nullptr),
     item_y_axis_gridlines(nullptr),
     item_spectra(nullptr),
-    item_outline(nullptr)
+    item_outline(nullptr),
+    scroll_count(0),
+    size_current()
 {
     // Add items to heap, make sure to add to scene for proper memory management
     this->item_background = new Graph::Background();
@@ -79,14 +80,12 @@ GraphicsScene::GraphicsScene(QWidget* parent) :
     //this->item_y_axis_ticks->setLines(this->settings);
     this->item_y_axis_gridlines->setLines(this->settings);
 
-    //qDebug() << static_cast<QApplication*>(QApplication::instance())->styleSheet();
 }
 
 /*
-Destructor
+Destructor: Not really necessary, as addItem() gives ownership of the item to the scene
 */
 GraphicsScene::~GraphicsScene(){
-    // I need to remove all layout items
     delete this->item_background;
     delete this->item_x_axis_label;
     delete this->item_x_axis_gridlabels;
@@ -170,26 +169,111 @@ Slot: restructures the scene upon resizing
     :param rect: the rect in which the scene can be drawn
 */
 void GraphicsScene::resizeScene(const QSize& scene){
+    this->size_current = scene;
     this->calculateSizes(scene);
 }
 
 /*
-Constructor: Adds line plotting to GraphicsScene
-    :param parent: parent widget
+Slot: updates the brush and pen for the painter
+    :param style: the factory where the brush and pen are requested from
 */
-GraphicsPlot::GraphicsPlot(QWidget* parent) :
-    GraphicsScene(parent)
-{}
+void GraphicsScene::updatePainter(const Graph::Format::Style* style){
+    this->setBackgroundBrush(style->brushScene());
 
-/*
-Slot: restructures the scene upon resizing
-    :param rect: the rect in which the scene can be drawn
-*/
-void GraphicsPlot::resizeScene(const QSize& scene){
-    GraphicsScene::resizeScene(scene);
+    this->item_background->updatePainter(style);
+    
+    this->item_x_axis_label->updatePainter(style);
+    this->item_x_axis_gridlabels->updatePainter(style);
+    this->item_x_axis_gridlines->updatePainter(style);
+    this->item_x_colorbar->updatePainter(style);
+    this->item_y_axis_label->updatePainter(style);
+    this->item_y_axis_gridlabels->updatePainter(style);
+    this->item_y_axis_gridlines->updatePainter(style);
+
+    this->item_outline->updatePainter(style);
+
+    this->item_spectra->updatePainter(style);
+
+    // Painter updates can change the size requirements of the item
+    this->calculateSizes(this->size_current);
 }
 
+/*
+Implements the mouse press event. Selects a Graph::Spectrum item
+    :param event: the mouse press event
+*/
+void GraphicsScene::mousePressEvent(QGraphicsSceneMouseEvent* event) {
+    this->selectSpectrum(event->scenePos(), this->scroll_count);
+}
 
+/*
+Implements the mouse double click event. Selects a Graph::Spectrum item
+    :param event: the mouse double click event
+*/
+void GraphicsScene::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event) {
+    this->selectSpectrum(event->scenePos(), this->scroll_count);
+}
 
+/*
+Implements the mouse move event handling. Selects a Graph::Spectrum item
+    :param event: the mouse move event
+*/
+void GraphicsScene::mouseMoveEvent(QGraphicsSceneMouseEvent* event) {
+    this->selectSpectrum(event->scenePos(), this->scroll_count);
+}
+
+/*
+Implements the mouse release event handling. Selects a Graph::Spectrum item
+    :param event: the mouse release event
+*/
+void GraphicsScene::mouseReleaseEvent(QGraphicsSceneMouseEvent* event) {
+    Q_UNUSED(event);
+    this->item_spectra->setSelect(false);
+    this->scroll_count = 0;
+    emit this->spectrumSelected();
+}
+
+/*
+Implements the mouse wheel event handling. Select the Graph::Spectrum item selection index.
+    :param event: the mouse wheel event
+*/
+void GraphicsScene::wheelEvent(QGraphicsSceneWheelEvent* event){
+    if(event->buttons() == Qt::LeftButton){
+        int scroll_move = event->delta() / 120;
+        if(scroll_move >= 0){
+            this->scroll_count += static_cast<std::size_t>(scroll_move);
+        }else{
+            this->scroll_count -= static_cast<std::size_t>(scroll_move);
+        }
+    }
+    this->selectSpectrum(event->scenePos(), this->scroll_count);
+}
+
+/*
+Finds the Spectrum items (contained in Spectra) that contains the point and selects the curve based on the index
+    :param point: the point to contain in scene coordinates
+    :param index: if there are multiple items that fit the curve, the index specifies the one to be selected
+*/
+void GraphicsScene::selectSpectrum(const QPointF& point, std::size_t index) {
+    std::vector<Graph::Spectrum*> is_contained = this->item_spectra->containsSpectrum(point);
+
+    // Deselect all
+    this->item_spectra->setSelect(false);
+    
+    if(is_contained.empty()){
+        emit this->spectrumSelected();
+        return;
+    }
+
+    // Calculate the index, while allowing 'rotating' through all the indexes
+    index %= is_contained.size();
+
+    Graph::Spectrum* contained_graph = is_contained[index];
+
+    contained_graph->setSelect(true);
+
+    emit this->spectrumSelected();
+    return;
+}
 
 } // Graph namespace

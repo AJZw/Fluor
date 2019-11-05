@@ -28,7 +28,7 @@
 ** 
 ** :class: StyleBuilder
 ** Requests the style QSettings from the DataFactory and uses that to build a stylesheet
-** 
+**
 ***************************************************************************/
 
 #ifndef DATA_STYLE_H
@@ -37,7 +37,9 @@
 #include "data_global.h"
 #include "data_factory.h"
 
+#include <QtCore>
 #include <QString>
+#include <QFontMetrics>
 
 namespace Data {
 
@@ -46,16 +48,27 @@ namespace Style {
 class DATALIB_EXPORT Builder {
     public:
         Builder();
+        Builder(const Builder&) = default;
+        Builder& operator=(const Builder&) = default;
+        Builder(Builder&&) = default;
+        Builder& operator=(Builder&&) = default;
+        ~Builder() = default;
 
         QString getStyleSheet() const;
         std::vector<QString> getStyleIDs(const Data::Factory& data) const;
 
         void loadStyle(const Data::Factory& data, const QString& style_id);
+        void buildStyleSheet();
+        void buildStyleSheet(const QFontMetrics& metrics);
 
-    private:
+    private:  
         QString stylesheet;
 
         QString icons;
+
+        QString layout_margins;
+        QString layout_spacing;
+        QString layout_sub_spacing;
 
         QString background;
 
@@ -145,20 +158,25 @@ class DATALIB_EXPORT Builder {
         QString fluormenu_popup;
         QString fluormenu_background;
 
+        QString graph_scene;
         QString graph_background;
-        QString graph_text;
-        QString graph_text_weight;
-        QString graph_plot;
-        QString graph_plot_focus;
+        QString graph_background_hover;
+        QString graph_background_press;
+        QString graph_label;
+        QString graph_label_weight;
+        QString graph_grid_label;
+        QString graph_grid_label_weight;
         QString graph_axis;
-        QString graph_grid;
+        QString graph_axis_hover;
+        QString graph_axis_press;
+        QString graph_absorption_width;
+        QString graph_absorption_style;
         QString graph_excitation_width;
         QString graph_excitation_style;
         QString graph_emission_width;
         QString graph_emission_style;
-        QString graph_detector;
 
-        void buildStylesheet();
+        QString buildLayout(const QFontMetrics& metrics) const;
         QString buildLabel() const;
         QString buildPushButton() const;
         QString buildLineEdit() const;
@@ -166,12 +184,13 @@ class DATALIB_EXPORT Builder {
         QString buildTabWidget() const;
         QString buildScrollBar() const;
         QString buildCentralWindow() const;
-        QString buildToolBar() const;
-        QString buildLaserMenu() const;
-        QString buildFluorMenu() const;
-        QString buildGraph() const;
-};
+        QString buildToolBar(const QFontMetrics& metrics) const;
+        QString buildLaserMenu(const QFontMetrics& metrics) const;
+        QString buildFluorMenu(const QFontMetrics& metrics) const;
+        QString buildGraph(const QFontMetrics& metrics) const;
 
+        static QString toPixels(const QFontMetrics& metrics, const QString& text, QString fallback="0");
+};
 
 } // Style namespace
 

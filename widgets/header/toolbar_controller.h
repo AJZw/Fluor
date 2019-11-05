@@ -34,6 +34,7 @@
 #ifndef TOOLBAR_CONTROLLER_H
 #define TOOLBAR_CONTROLLER_H
 
+#include "global.h"
 #include <QWidget>
 #include <QPaintEvent>
 
@@ -41,6 +42,7 @@ namespace Bar {
 
 class Controller : public QWidget {
     Q_OBJECT
+    Q_PROPERTY(QString layout_spacing READ layoutSpacing WRITE setLayoutSpacing)
 
     public:
         explicit Controller(QWidget* parent = nullptr);
@@ -52,20 +54,31 @@ class Controller : public QWidget {
         
         void paintEvent(QPaintEvent* event);
 
+        QString layoutSpacing() const;
+        void setLayoutSpacing(QString layout_spacing);
+
+    // global
     signals:
+        void sendToolbarStateChange(Bar::ButtonType type, bool active, bool enable=true);
+
+    public slots:
+        void receiveToolbarStateUpdate(Bar::ButtonType type, bool active, bool enable);
+
+    // local
+    signals:    
         void enableLaser(bool enable);
         void enableDetector(bool enable);
         void enableLasers(bool enable);
 
-        void setVisibilityLaser(bool active);
-        void setVisibilityExcitation(bool active);
-        void setVisibilityEmission(bool active);
-        void setVisibilityDetector(bool active);
-        void addGraph(bool active);
-        void removeGraph(bool active);
-        void expandLasers(bool expand);
+        void activateLaser(bool active);
+        void activateExcitation(bool active);
+        void activateEmission(bool active);
+        void activateDetector(bool active);
+        void activateGraphAdd(bool active);
+        void activateGraphRemove(bool active);
+        void activateLasers(bool active);
 
-    public slots:
+    private slots:
         void clickedLaser(bool active);
         void clickedExcitation(bool active);
         void clickedEmission(bool active);

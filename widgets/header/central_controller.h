@@ -37,14 +37,16 @@
 
 #include <QWidget>
 #include <QPaintEvent>
-#include <set>
+#include <vector>
 #include "data_fluorophores.h"
 #include "cache.h"
+#include "toolbar_controller.h"
 
 namespace Central {
 
 class Controller : public QWidget {
     Q_OBJECT
+    Q_PROPERTY(QString layout_spacing READ layoutSpacing WRITE setLayoutSpacing)
 
     public:
         explicit Controller(QWidget* parent = nullptr);
@@ -53,7 +55,10 @@ class Controller : public QWidget {
         Controller(Controller&&) = delete;
         Controller& operator=(Controller&&) = delete;
         ~Controller() = default;
+
         void paintEvent(QPaintEvent* event);
+        QString layoutSpacing() const;
+        void setLayoutSpacing(QString layout_spacing);
 
     public slots:
         void receiveGlobalEvent(QEvent* event);
@@ -61,7 +66,7 @@ class Controller : public QWidget {
         void receiveGlobalSize(const QWidget* widget=nullptr);
 
         void receiveCacheRequestUpdate();
-        void receiveCacheAdd(std::set<Data::FluorophoreID>& fluorophores);
+        void receiveCacheAdd(std::vector<Data::FluorophoreID>& fluorophores);
         void receiveCacheRemove(std::vector<Data::FluorophoreID>& fluorophores);
 
         void receiveCacheSync(const std::vector<Cache::CacheID>& cache_state);
@@ -69,19 +74,25 @@ class Controller : public QWidget {
 
         void receiveLaser(int wavelength);
 
+        void receiveToolbarStateChange(Bar::ButtonType type, bool active, bool enable);
+        void receiveToolbarStateUpdate(Bar::ButtonType type, bool active, bool enable);
+
     signals:
         void sendGlobalEvent(QEvent* event); 
         void sendGlobalSize(const QWidget* widget=nullptr);
         void sendData(const Data::Fluorophores& data);
 
         void sendCacheRequestUpdate();
-        void sendCacheAdd(std::set<Data::FluorophoreID>& fluorophores);
+        void sendCacheAdd(std::vector<Data::FluorophoreID>& fluorophores);
         void sendCacheRemove(std::vector<Data::FluorophoreID>& fluorophores);
 
         void sendCacheSync(const std::vector<Cache::CacheID>& cache_state);
         void sendCacheUpdate(const std::vector<Cache::CacheID>& cache_state);
         
         void sendLaser(int wavelength);
+
+        void sendToolbarStateChange(Bar::ButtonType type, bool active, bool enable=true);
+        void sendToolbarStateUpdate(Bar::ButtonType type, bool active, bool enable=true);
 
 };
 

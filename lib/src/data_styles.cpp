@@ -12,6 +12,7 @@
 #include <QFontMetrics>
 #include <QApplication>
 #include <QDebug>
+#include <QFont>
 
 namespace Data {
 
@@ -24,6 +25,11 @@ Builder::Builder() :
     stylesheet(""),
     
     icons("light"),
+
+    layout_margins("6px"),
+    layout_spacing("6px"),
+    layout_sub_spacing("3px"),
+
     background("#FFFFFF"),
 
     label_background("#FFFFFF"),
@@ -111,24 +117,30 @@ Builder::Builder() :
     fluormenu_popup(this->listview_background),
     fluormenu_background("#FFFFFF"),
 
-    graph_background("#FFFFFF"),
-    graph_text("#000000"),
-    graph_text_weight("bold"),
-    graph_plot("#FFFFFF"),
-    graph_plot_focus("#AAAAAA"),
+    graph_scene("#FFFFFF"),
+    graph_background(this->graph_scene),
+    graph_background_hover(this->graph_scene),
+    graph_background_press(this->graph_scene),
+    graph_label("#000000"),
+    graph_label_weight("bold"),
+    graph_grid_label("#000000"),
+    graph_grid_label_weight("bold"),
     graph_axis("#000000"),
-    graph_grid("#000000"),
+    graph_axis_hover("#CCCCCC"),
+    graph_axis_press("#CCCCCC"),
+    graph_absorption_width("2px"),
+    graph_absorption_style("dot"),
     graph_excitation_width("2px"),
-    graph_excitation_style("Dash"),
+    graph_excitation_style("dash"),
     graph_emission_width("2px"),
-    graph_emission_style("Dash"),
-    graph_detector("#000000")
+    graph_emission_style("solid")
+
 {
-    this->buildStylesheet();
+    this->buildStyleSheet();
 }
 
 /*
-Getter: returns the StyleBuilder.stylesheet
+Getter: returns the QSS stylesheet
     :returns: stylesheet
 */
 QString Builder::getStyleSheet() const {
@@ -169,6 +181,11 @@ void Builder::loadStyle(const Data::Factory& data, const QString& style_id){
     };
 
     this->icons = style->value("icons", "light").toString();
+
+    this->layout_margins = style->value("layout_margins", "6px").toString();
+    this->layout_spacing = style->value("layout_spacing", "6px").toString();
+    this->layout_sub_spacing = style->value("layout_sub_spacing", "3px").toString();
+
     this->background = style->value("main_background", "#FFFFFF").toString();
 
     this->label_background = style->value("widget", "#FFFFFF").toString();
@@ -256,29 +273,46 @@ void Builder::loadStyle(const Data::Factory& data, const QString& style_id){
     this->fluormenu_popup = style->value("fluormenu_popup", this->listview_background).toString();
     this->fluormenu_background = style->value("fluormenu_background", this->background).toString();
 
-    this->graph_background = style->value("graph_background", this->background).toString();
-    this->graph_text = style->value("graph_text", this->pushbutton_text).toString();
-    this->graph_text_weight = style->value("graph_text_weight", this->pushbutton_text_weight).toString();
-    this->graph_plot = style->value("graph_plot", this->background).toString();
-    this->graph_plot_focus = style->value("graph_plot_focus", "#AAAAAA").toString();
-    this->graph_axis = style->value("graph_axis", this->pushbutton_text).toString();
-    this->graph_grid = style->value("graph_grid", this->pushbutton_text).toString();
+    this->graph_scene = style->value("graph_scene", this->background).toString();
+    this->graph_background = style->value("graph_background", this->graph_scene).toString();
+    this->graph_background_hover = style->value("graph_background_hover", this->graph_background).toString();
+    this->graph_background_press = style->value("graph_background_press", this->graph_background_hover).toString();
+    this->graph_label = style->value("graph_label", this->pushbutton_text).toString();
+    this->graph_label_weight = style->value("graph_label_weight", this->pushbutton_text_weight).toString();
+    this->graph_grid_label = style->value("graph_grid_label", this->pushbutton_text).toString();
+    this->graph_grid_label_weight = style->value("graph_grid_label_weight", this->pushbutton_text_weight).toString();
+    this->graph_axis = style->value("graph_axis", this->pushbutton_border).toString();
+    this->graph_axis_hover = style->value("graph_axis_hover", this->pushbutton_hover_border).toString();
+    this->graph_axis_press = style->value("graph_axis_press", this->pushbutton_press_border).toString();
+    this->graph_absorption_width = style->value("graph_absorption_width", "2px").toString();
+    this->graph_absorption_style = style->value("graph_absorption_style", "dot").toString();
     this->graph_excitation_width = style->value("graph_excitation_width", "2px").toString();
     this->graph_excitation_style = style->value("graph_excitation_style", "dash").toString();
     this->graph_emission_width = style->value("graph_emission_width", "2px").toString();
     this->graph_emission_style = style->value("graph_emission_style", "solid").toString();
-    this->graph_detector = style->value("graph_detector", "#000000").toString();
 
     style->endGroup();
 
-    this->buildStylesheet();
+    this->buildStyleSheet();
 }
 
 /*
-Combines all individual stylesheet sections and sets StyleBuilder.stylesheet with the build stylesheet
+Combines all individual stylesheet sections into this->styleSheet(). Uses the default font (non DPI scaled)
 */
-void Builder::buildStylesheet(){
-    QString stylesheet;
+void Builder::buildStyleSheet(){
+    QFontMetrics metrics = QFontMetrics(qApp->font());
+
+    this->buildStyleSheet(metrics);
+}
+
+/*
+Combines all individual stylesheet sections into the this->styleSheet(). Uses font metrics to adjust
+text-relative inputs (when necessary) into pixels
+    :param metrics: dpi scaled font metrics (build a QFontMetrics using the widgets QFont, and QPaintDevice)
+*/
+void Builder::buildStyleSheet(const QFontMetrics& metrics){
+    QString stylesheet = "";
+    stylesheet.append(this->buildLayout(metrics));
     stylesheet.append(this->buildLabel());
     stylesheet.append(this->buildPushButton());
     stylesheet.append(this->buildLineEdit());
@@ -286,12 +320,30 @@ void Builder::buildStylesheet(){
     stylesheet.append(this->buildTabWidget());
     stylesheet.append(this->buildScrollBar());
     stylesheet.append(this->buildCentralWindow());
-    stylesheet.append(this->buildToolBar());
-    stylesheet.append(this->buildLaserMenu());
-    stylesheet.append(this->buildFluorMenu());
-    stylesheet.append(this->buildGraph());
+    stylesheet.append(this->buildToolBar(metrics));
+    stylesheet.append(this->buildLaserMenu(metrics));
+    stylesheet.append(this->buildFluorMenu(metrics));
+    stylesheet.append(this->buildGraph(metrics));
 
     this->stylesheet = stylesheet;
+}
+
+/*
+Builds the stylesheet for the main/central layouts
+*/
+QString Builder::buildLayout(const QFontMetrics& metrics) const {
+    QString style;
+    style = "Main--Controller {"
+            " qproperty-layout_margins: %1;"
+            "} "
+            "Central--Controller {"
+            " qproperty-layout_spacing: %2;"
+            "} ";
+    style = style.arg(
+        Builder::toPixels(metrics, this->layout_margins),
+        Builder::toPixels(metrics, this->layout_spacing)
+    );
+    return style;
 }
 
 /*
@@ -395,7 +447,8 @@ QString Builder::buildPushButton() const {
         this->pushbutton_text_weight,
         this->pushbutton_press_background,
         this->pushbutton_press_border,
-        this->pushbutton_press_text);
+        this->pushbutton_press_text
+    );
     style = style.arg(
         this->pushbutton_hover_background,
         this->pushbutton_hover_border,
@@ -405,14 +458,16 @@ QString Builder::buildPushButton() const {
         this->pushbutton_inactive_text,
         this->pushbutton_inactive_press_background,
         this->pushbutton_inactive_press_border,
-        this->pushbutton_inactive_press_text);
+        this->pushbutton_inactive_press_text
+    );
     style = style.arg(
         this->pushbutton_inactive_hover_background,
         this->pushbutton_inactive_hover_border,
         this->pushbutton_inactive_hover_text,
         this->pushbutton_disabled_background,
         this->pushbutton_disabled_border,
-        this->pushbutton_disabled_text);
+        this->pushbutton_disabled_text
+    );
 
     return(style);
 }
@@ -668,73 +723,81 @@ QString Builder::buildCentralWindow() const {
 Builds the stylesheet for the toolbar
     :returns: stylesheet
 */
-QString Builder::buildToolBar() const {
+QString Builder::buildToolBar(const QFontMetrics& metrics) const {
     QString style;
-    style = "Bar--IconPushButton[active=true] {"
+    style = "Bar--Controller {"
+            " qproperty-layout_spacing: %1;"
+            "} "
+            "Bar--IconPushButton[active=true] {"
+            " qproperty-scale: %2;"
             " padding: 0px;"
             "} "
             "Bar--IconPushButton[active=false] {"
+            " qproperty-scale: %2;"
             " padding: 0px;"
             "} "
             "Bar--LaserButton[enabled=false] {"
-            " qproperty-icon: url(:/icons/%1_laser_disabled.png);"
+            " qproperty-icon: url(:/icons/%3_laser_disabled.png);"
             "} "
             "Bar--LaserButton[enabled=false][active=false] {"
-            " qproperty-icon: url(:/icons/%1_laser_disabled.png);"
+            " qproperty-icon: url(:/icons/%3_laser_disabled.png);"
             "} "
             "Bar--LaserButton[enabled=true][active=true] {"
-            " qproperty-icon: url(:/icons/%1_laser_active.png);"
+            " qproperty-icon: url(:/icons/%3_laser_active.png);"
             "} "
             "Bar--LaserButton[enabled=true][active=false] {"
-            " qproperty-icon: url(:/icons/%1_laser_inactive.png);"
+            " qproperty-icon: url(:/icons/%3_laser_inactive.png);"
             "} "
             "Bar--ExcitationButton[active=true] {"
-            " qproperty-icon: url(:/icons/%1_excitation_active.png);"
+            " qproperty-icon: url(:/icons/%3_excitation_active.png);"
             "} "
             "Bar--ExcitationButton[active=false] {"
-            " qproperty-icon: url(:/icons/%1_excitation_inactive.png);"
+            " qproperty-icon: url(:/icons/%3_excitation_inactive.png);"
             "} "
             "Bar--EmissionButton[active=true] {"
-            " qproperty-icon: url(:/icons/%1_emission_active.png);"
+            " qproperty-icon: url(:/icons/%3_emission_active.png);"
             "} "
             "Bar--EmissionButton[active=false] {"
-            " qproperty-icon: url(:/icons/%1_emission_inactive.png);"
+            " qproperty-icon: url(:/icons/%3_emission_inactive.png);"
             "} "
             "Bar--DetectorButton[enabled=false] {"
-            " qproperty-icon: url(:/icons/%1_detector_disabled.png);"
+            " qproperty-icon: url(:/icons/%3_detector_disabled.png);"
             "} "
             "Bar--DetectorButton[enabled=true][active=true] {"
-            " qproperty-icon: url(:/icons/%1_detector_active.png);"
+            " qproperty-icon: url(:/icons/%3_detector_active.png);"
             "} "
             "Bar--DetectorButton[enabled=true][active=false] {"
-            " qproperty-icon: url(:/icons/%1_detector_inactive.png);"
+            " qproperty-icon: url(:/icons/%3_detector_inactive.png);"
             "} "
             "Bar--GraphAddButton[enabled=false]{"
-            " qproperty-icon: url(:/icons/%1_graph_add_disabled.png);"
+            " qproperty-icon: url(:/icons/%3_graph_add_disabled.png);"
             "} "
             "Bar--GraphAddButton[enabled=true] {"
-            " qproperty-icon: url(:/icons/%1_graph_add_active.png);"
+            " qproperty-icon: url(:/icons/%3_graph_add_active.png);"
             "} "
             "Bar--GraphRemoveButton[enabled=false] {"
-            " qproperty-icon: url(:/icons/%1_graph_remove_disabled.png);"
+            " qproperty-icon: url(:/icons/%3_graph_remove_disabled.png);"
             "} "
             "Bar--GraphRemoveButton[enabled=true] {"
-            " qproperty-icon: url(:/icons/%1_graph_remove_active.png);"
+            " qproperty-icon: url(:/icons/%3_graph_remove_active.png);"
             "} "
             "Bar--LasersButton[enabled=false] {"
-            " qproperty-icon: url(:/icons/%1_lasers_disabled.png);"
+            " qproperty-icon: url(:/icons/%3_lasers_disabled.png);"
             "} "
             "Bar--LasersButton[enabled=true][active=true] {"
-            " qproperty-icon: url(:/icons/%1_lasers_active.png);"
+            " qproperty-icon: url(:/icons/%3_lasers_active.png);"
             "} "
             "Bar--LasersButton[enabled=true][active=false] {"
-            " qproperty-icon: url(:/icons/%1_lasers_inactive.png);"
+            " qproperty-icon: url(:/icons/%3_lasers_inactive.png);"
             "} "
             "Bar--Label {"
             " min-width: 10em;"
             "} ";
-
-    style = style.arg(this->icons);
+    style = style.arg(
+        Builder::toPixels(metrics, this->layout_spacing),
+        Builder::toPixels(metrics, "1eh+8px"),
+        this->icons
+    );
     return(style);
 }
 
@@ -742,32 +805,32 @@ QString Builder::buildToolBar() const {
 Builds the stylesheet for laser_menu
     :returns: stylesheet
 */
-QString Builder::buildLaserMenu() const {
-    // The scrollbar needs to be the same width as the buttons
-    // This is effectively 0.5em + 3px (= margin correction)
-    // Margin correction is necessary as Qt's width is the content+padding+border+margin
-    QFontMetrics font_metric = QFontMetrics(static_cast<QApplication*>(QApplication::instance())->font());
-    double width_m = static_cast<double>(font_metric.width('M'));
-    double scrollbar_margin = (3.0 / width_m) + 0.3;
-    
+QString Builder::buildLaserMenu(const QFontMetrics& metrics) const {
     QString style;
     style = "Laser--PushButton {"
-            " min-width: 10em;"
+            " width: %1px;"
             "} "
             "Laser--LineEdit {"
-            " max-height: 1em;"
+            " width: %1px;"
+            " max-height: %2px;"
+            "} "
+            "Laser--Popup {"
+            " qproperty-viewport_margins_scroll_bar: %3;"
             "} "
             "Laser--Popup .QWidget {"
-            " background: %1;"
+            " background: %4;"
             "} "
             "Laser--Popup QScrollBar::vertical {"
-            " margin: 0px 0px 0px 3px;"
-            " width: %2em;"
+            " margin: 0px 0px 0px 0px;"
+            " width: %5px;"
             "} ";
     
     style = style.arg(
+        Builder::toPixels(metrics, "15em"),
+        Builder::toPixels(metrics, "1eh"),
+        Builder::toPixels(metrics, this->layout_sub_spacing),
         this->lasermenu_popup,
-        QString::number(scrollbar_margin, 'f', 3)
+        Builder::toPixels(metrics, "0.5em")
     );
     return(style);
 }
@@ -776,61 +839,118 @@ QString Builder::buildLaserMenu() const {
 Builds the stylesheet for the fluor_menu
     :returns: stylesheet
 */
-QString Builder::buildFluorMenu() const {
-    // The scrollbar needs to be the same width as the buttons
-    // This is effectively 0.5em + 3px (= margin correction)
-    // Margin correction is necessary as Qt's width is the content+padding+border+margin
-    QFontMetrics font_metric = QFontMetrics(static_cast<QApplication*>(QApplication::instance())->font());
-    double width_m = static_cast<double>(font_metric.width('M'));
-    double scrollbar_margin = (3.0 / width_m) + 0.3;
-
+QString Builder::buildFluorMenu(const QFontMetrics& metrics) const {
     QString style;
-    style = "Fluor--PushButton {"
-            " min-width: 10em;"
+    style = "Fluor--Controller {"
+            " qproperty-layout_spacing: %1;"
+            "} "
+            "Fluor--ScrollController {"
+            " qproperty-layout_spacing: %1;"
+            " qproperty-layout_margins_scroll_bar: %2;"
+            "} "
+            "Fluor--ButtonsController {"
+            " qproperty-layout_spacing: %2;"
+            "} "
+            "Fluor--PushButton {"
+            " width: %3px;"
             "} "
             "Fluor--EmissionButton {"
             " text-align: left;"
             "} "
+            "Fluor--EmissionButton[active=true][select=true] {"
+            " background-color: %4;"
+            " border-color: %5;"
+            " color: %6;"
+            "} "
+            "Fluor--EmissionButton::pressed::hover[active=true][select=true] {"
+            " background-color: %7;"
+            " border-color: %8;"
+            " color: %9;"
+            "} "
+            "Fluor--EmissionButton::hover[active=true][select=true] {"
+            " background-color: %4;"
+            " border-color: %5;"
+            " color: %6;"
+            "} "
+            "Fluor--EmissionButton[active=false][select=true] {"
+            " background-color: %10;"
+            " border-color: %11;"
+            " color: %12;"
+            "} "
+            "Fluor--EmissionButton::pressed::hover[active=false][select=true] {"
+            " background-color: %13;"
+            " border-color: %14;"
+            " color: %15;"
+            "} "
+            "Fluor--EmissionButton::hover[active=false][select=true] {"
+            " background-color: %10;"
+            " border-color: %11;"
+            " color: %12;"
+            "} "
             "Fluor--ExcitationButton {"
             " padding: 6px 0px 6px 0px;"
-            " width: 0.3em;"
+            " width: %22px;"
             "} "
             "Fluor--RemoveButton[active=true] {"
-            " background-color: %1;"
+            " background-color: %16;"
             " padding: 6px 0px 6px 0px;"
-            " width: 0.3em;"
+            " width: %22px;"
             "} "
             "Fluor--RemoveButton::hover[active=true] {"
-            " background-color: %2;"
+            " background-color: %17;"
             "} "
             "Fluor--RemoveButton::pressed::hover[active=true] {"
-            " background-color: %3;"
+            " background-color: %18;"
             "} "
             "Fluor--LineEdit {"
-            " max-height: 1em;"
+            " width: %3px;"
+            " max-height: %19px;"
+            "} "
+            "Fluor--Popup {"
+            " qproperty-viewport_margins_scroll_bar: %2;"
             "} "
             "Fluor--Popup .QWidget {"
-            " background: %4;"
+            " background: %20;"
             "} "
             "Fluor--ScrollController .QWidget {"
-            " background: %5;"
+            " background: %21;"
             "} "
             "Fluor--Popup QScrollBar::vertical {"
-            " margin: 0px 0px 0px 3px;"
-            " min-width: %6em;"
+            " margin: 0px 0px 0px 0px;"
+            " width: %22px;"
             "} "
             "Fluor--ScrollController QScrollBar::vertical {"
-            " margin: 0px 0px 0px 3px;"
-            " min-width: %6em;"
+            " margin: 0px 0px 0px 0px;"
+            " width: %22px;"
             "} ";
-    
+
     style = style.arg(
+        Builder::toPixels(metrics, this->layout_spacing),
+        Builder::toPixels(metrics, this->layout_sub_spacing),
+        Builder::toPixels(metrics, "15em"),
+        this->pushbutton_hover_background,
+        this->pushbutton_hover_border,
+        this->pushbutton_hover_text,
+        this->pushbutton_press_background,
+        this->pushbutton_press_border,
+        this->pushbutton_press_text
+    );
+    style = style.arg(
+        this->pushbutton_inactive_hover_background,
+        this->pushbutton_inactive_hover_border,
+        this->pushbutton_inactive_hover_text,
+        this->pushbutton_inactive_press_background,
+        this->pushbutton_inactive_press_border,
+        this->pushbutton_inactive_press_text,
         this->fluormenu_remove,
         this->fluormenu_remove_hover,
-        this->fluormenu_remove_press,
+        this->fluormenu_remove_press
+    );
+    style = style.arg(
+        Builder::toPixels(metrics, "1eh"),
         this->fluormenu_popup,
         this->fluormenu_background,
-        QString::number(scrollbar_margin, 'f', 3)
+        Builder::toPixels(metrics, "0.5em")
     );
     return(style);
 }
@@ -839,20 +959,183 @@ QString Builder::buildFluorMenu() const {
 Builds the stylesheet for graph
     :returns: stylesheet
 */
-QString Builder::buildGraph() const {
+QString Builder::buildGraph(const QFontMetrics& metrics) const {
     QString style;
     style = "Graph--ScrollArea .QWidget {"
             " background: %1;"
+            //" qproperty-layout_margins_scroll_bar: %2;"
             "} "
             "Graph--ScrollArea QScrollBar::vertical {"
             " margin: 0px 0px 0px 5px;"
             " width: 20px;"
+            "} "
+            "Graph--GraphicsView {"
+            " border: 0px;"
+            "} "
+            "Graph--Format--Style {"
+            " qproperty-scene: %2;"
+            " qproperty-background: %3;"
+            " qproperty-background_hover: %4;"
+            " qproperty-background_press: %5;"
+            " qproperty-label: %6;"
+            " qproperty-label_weight: '%7';"
+            " qproperty-grid_label: %8;"
+            " qproperty-grid_label_weight: '%9';"
+            " qproperty-axis: %11;"
+            " qproperty-axis_hover: %12;"
+            " qproperty-axis_press: %13;"
+            " qproperty-absorption_width: %14;"
+            " qproperty-absorption_style: '%15';"
+            " qproperty-excitation_width: %16;"
+            " qproperty-excitation_style: '%17';"
+            " qproperty-emission_width: %18;"
+            " qproperty-emission_style: '%19';"
             "} ";
-    
     style = style.arg(
-        this->graph_background
+        this->background,
+        this->graph_scene,
+        this->graph_background,
+        this->graph_background_hover,
+        this->graph_background_press,
+        this->graph_label,
+        this->graph_label_weight,
+        this->graph_grid_label,
+        this->graph_grid_label_weight
+    );
+    style = style.arg(
+        this->graph_axis,
+        this->graph_axis_hover,
+        this->graph_axis_press,
+        Builder::toPixels(metrics, this->graph_absorption_width),
+        this->graph_absorption_style,
+        Builder::toPixels(metrics, this->graph_excitation_width),
+        this->graph_excitation_style,
+        Builder::toPixels(metrics, this->graph_emission_width),
+        this->graph_emission_style
     );
     return(style);
+}
+
+
+/*
+Transforms a px, em (=M width), ex (=x height), eh (=font height) measure into pixels
+If unconvertable returns the fallback value
+    :param font: dpi corrected font metrics
+    :param text: input text
+    :param fallback: if text is unconvertable, returns this value in pixels
+    :returns: the value in pixels as string without 'px' unit
+*/
+QString Builder::toPixels(const QFontMetrics& metrics, const QString& text, QString fallback) {
+    int em_pixels = metrics.width('M');
+    int ex_pixels = metrics.xHeight();
+    int eh_pixels = metrics.height();
+   
+    // Extract all parts of the input string
+    QString number = "";
+    QString qualifyer = "";
+    QString modifyer = "";
+    QString mod_number = "";
+    QString mod_qualifyer = "";
+    bool isNumber = true;
+    bool isMod = false;
+    bool isFallback = false;
+
+    for(QChar letter : text){
+        if(isMod){
+            if(letter.isDigit() || letter == QChar('.')){
+                if(isNumber){
+                    mod_number.append(letter);
+                }else{
+                    // Means a new digit is found after the number section has ended
+                    isFallback = true;
+                }
+            }else if(letter.isLetter()){
+                if(isNumber){
+                    isNumber = false;
+                }
+                mod_qualifyer.append(letter);
+            }else if(letter.isSpace()){
+                continue;
+            }else{
+                isFallback = true;
+            }
+        }else{
+            if(letter.isDigit() || letter == QChar('.')){
+                if(isNumber){
+                    number.append(letter);
+                }else{
+                    // Means a new digit is found after the number section has ended
+                    isFallback = true;
+                }
+            }else if(letter.isLetter()){
+                if(isNumber){
+                    isNumber = false;
+                }
+                qualifyer.append(letter);
+            }else if(letter == QChar('-') or letter == QChar('+')){
+                modifyer.append(letter);
+                isMod = true;
+                isNumber = true;
+            }else if(letter.isSpace()){
+                continue;
+            }else{
+                isFallback = true;
+            }
+        }
+    }
+
+    // Check if data extraction went without issues
+    if(isFallback){
+        qWarning() << "Application::textToPixel: unconvertable input text" << text;
+        return fallback;
+    }
+
+    // Transform first value
+    double number_px = 0.0;
+    if(qualifyer == "px"){
+        number_px = static_cast<double>(number.toInt());
+    }else if(qualifyer == "em"){
+        number_px = number.toDouble() * static_cast<double>(em_pixels);
+    }else if(qualifyer == "ex"){
+        number_px = number.toDouble() * static_cast<double>(ex_pixels);
+    }else if(qualifyer == "eh"){
+        number_px = number.toDouble() * static_cast<double>(eh_pixels);
+    }else{
+        qWarning() << "Application::textToPixel: unconvertable input text" << text;
+        return fallback;
+    }
+
+    // Check if any modification
+    if(!isMod){
+        return QString::number(number_px, 'f', 0);;
+    }
+
+    // Transform modification
+    double mod_number_px = 0.0;
+    if(mod_qualifyer == "px"){
+        mod_number_px = static_cast<double>(mod_number.toInt());
+    }else if(mod_qualifyer == "em"){
+        mod_number_px = mod_number.toDouble() * static_cast<double>(em_pixels);
+    }else if(mod_qualifyer == "ex"){
+        mod_number_px = mod_number.toDouble() * static_cast<double>(ex_pixels);
+    }else if(mod_qualifyer == "eh"){
+        mod_number_px = mod_number.toDouble() * static_cast<double>(eh_pixels);
+    }else{
+        qWarning() << "Application::textToPixel: unconvertable input text" << text;
+        return fallback;
+    }
+
+    // Perfrom modification
+    if(modifyer == "-"){
+        number_px -= mod_number_px;
+    }else if(modifyer == "+"){
+        number_px += mod_number_px;
+    }else{
+        qWarning() << "Application::textToPixel: unconvertable input text" << text;
+        return fallback;
+    }
+
+    return QString::number(number_px, 'f', 0);
 }
 
 } // Style namespace

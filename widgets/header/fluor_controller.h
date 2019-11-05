@@ -26,11 +26,17 @@
 /**** DOC ******************************************************************
 ** The fluorophore menu controller
 ** 
-** :class: Controller
+** :class: Fluor::Controller
 ** Builds and controlls the fluorophore menu. Combines a FLuorLineEdit with 
 ** a QScrollWidget and the fluorophore buttons
 ** Internally, connects the signal and slots of internal events and forms an
 ** interface for external signals and slots
+**
+** :class: Fluor::ButtonsController
+** Controller for emission, excitation visibility and remove button of a fluorophore
+**
+** :class: Fluor::ScrollController
+** Controller for the scrollarea
 **
 ***************************************************************************/
 
@@ -40,9 +46,10 @@
 #include <QWidget>
 #include <QStringList>
 #include <QPaintEvent>
-#include <set>
+#include <vector>
 
 #include <QScrollArea>
+#include <QScrollBar>
 
 #include "cache.h"
 #include "data_fluorophores.h"
@@ -52,7 +59,8 @@ namespace Fluor {
 
 class Controller : public QWidget{
     Q_OBJECT
-    
+    Q_PROPERTY(QString layout_spacing READ layoutSpacing WRITE setLayoutSpacing)
+
     public:
         explicit Controller(QWidget *parent = nullptr);
         Controller(const Controller &obj) = delete;
@@ -62,6 +70,8 @@ class Controller : public QWidget{
         ~Controller() = default;
 
         void paintEvent(QPaintEvent* event);
+        QString layoutSpacing() const;
+        void setLayoutSpacing(QString layout_spacing);
 
     public slots:
         void receiveGlobalEvent(QEvent* event);
@@ -69,7 +79,7 @@ class Controller : public QWidget{
         void receiveData(const Data::Fluorophores& data);
 
         void receiveCacheRequestUpdate();
-        void receiveCacheAdd(std::set<Data::FluorophoreID>& fluorophores);
+        void receiveCacheAdd(std::vector<Data::FluorophoreID>& fluorophores);
         void receiveCacheRemove(std::vector<Data::FluorophoreID>& fluorophores);
         void receiveCacheSync(const std::vector<Cache::CacheID>& cache_state);
         void receiveCacheUpdate(const std::vector<Cache::CacheID>& cache_state);
@@ -89,7 +99,7 @@ class Controller : public QWidget{
         void hideLineEdit();
 
         void sendCacheRequestUpdate();
-        void sendCacheAdd(std::set<Data::FluorophoreID>& fluorophores);
+        void sendCacheAdd(std::vector<Data::FluorophoreID>& fluorophores);
         void sendCacheRemove(std::vector<Data::FluorophoreID>& fluorophores);
         void sendCacheSync(const std::vector<Cache::CacheID>& cache_state);
         void sendCacheUpdate(const std::vector<Cache::CacheID>& cache_state);
@@ -97,6 +107,7 @@ class Controller : public QWidget{
 
 class ButtonsController : public QWidget {
     Q_OBJECT
+    Q_PROPERTY(QString layout_spacing READ layoutSpacing WRITE setLayoutSpacing)
 
     public:
         explicit ButtonsController(QWidget* parent=nullptr);
@@ -107,6 +118,8 @@ class ButtonsController : public QWidget {
         ~ButtonsController() = default;
 
         void paintEvent(QPaintEvent* event);
+        QString layoutSpacing() const;
+        void setLayoutSpacing(QString layout_spacing);
 
         void syncButtons(const Cache::CacheID& cache_state);
         void updateButtons(const Cache::CacheID& cache_state);
@@ -123,15 +136,23 @@ class ButtonsController : public QWidget {
     signals:
         void requestUpdate();
         void sendRemove(std::vector<Data::FluorophoreID>& fluorophores);
+        void sendSelected(QWidget* widget);
 
     public slots:
         void receiveEmissionClick(bool active);
         void receiveExcitationClick(bool active);
         void receiveRemoveClick();
+
+    private slots:
+        void hoverEntered();
+        void hoverLeaved();
+        void receiveSelected();
 };
 
 class ScrollController : public QScrollArea {
     Q_OBJECT
+    Q_PROPERTY(QString layout_spacing READ layoutSpacing WRITE setLayoutSpacing)
+    Q_PROPERTY(QString layout_margins_scroll_bar READ layoutMarginsScrollBar WRITE setLayoutMarginsScrollBar)
 
     public:
         explicit ScrollController(QWidget* parent=nullptr);
@@ -141,20 +162,31 @@ class ScrollController : public QScrollArea {
         ScrollController& operator=(ScrollController&&) = delete;
         ~ScrollController() = default;
 
+        QString layoutSpacing() const;
+        void setLayoutSpacing(QString layout_spacing);
+        QString layoutMarginsScrollBar() const;
+        void setLayoutMarginsScrollBar(QString layout_spacing_scroll_bar);
+
     private:
         std::vector<ButtonsController*> button_widgets;
+        int margin_scrollbar;
 
     signals:
         void sendCacheRequestUpdate();
         void sendRemove(std::vector<Data::FluorophoreID>& fluorophores);
 
     public slots:
+        void hidingScrollBar();
+        void showingScrollBar();
+
         void syncButtons(const std::vector<Cache::CacheID>& cache_state);
         void updateButtons(const std::vector<Cache::CacheID>& cache_state);
 
         void receiveCacheRequestUpdate();
         void receiveRemove(std::vector<Data::FluorophoreID>& fluorophores);
 
+    private slots:
+        void receiveSelected(QWidget* widget);
 };
 
 } // Fluor namespace

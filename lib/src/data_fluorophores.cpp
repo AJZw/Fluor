@@ -103,7 +103,7 @@ bool Fluorophores::isValid() const {
 /*
 Fluorophore spectrum accessor
     :param data: the DataFactory which builds a QSettings object containing the fluorophore data
-    :param id: the fluorophore id, if id is invalid returns are empty vectors
+    :param id: the fluorophore id, if id is not in source data, returns valid but otherwise useless data
     :returns: DataSpectrum object
 */
 Data::Spectrum Fluorophores::getSpectrum(const Data::Factory& data, const QString& id) const {
@@ -140,7 +140,7 @@ Data::Spectrum Fluorophores::getSpectrum(const Data::Factory& data, const QStrin
 /*
 Fluorophore CacheSpectrum accessor
     :param data: the DataFactory which builds a QSettings object containing the fluorophore data
-    :param id: the fluorophore id, if id is invalid returns are empty vectors
+    :param id: the fluorophore id, if id is not in source data, returns valid but otherwise useless data
     :param index: the creation index
     :returns: CacheSpectrum object
 */

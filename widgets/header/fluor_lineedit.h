@@ -46,7 +46,7 @@
 #include <QStringList>
 #include <QEvent>
 #include <QListView>
-#include <set>
+#include <vector>
 #include "data_fluorophores.h"
 #include "cache.h"
 
@@ -104,7 +104,7 @@ class LineEdit : public QLineEdit {
 
     signals:
         void highlightPopup(const QString entry);               // emits upon selecting a completion
-        void output(std::set<Data::FluorophoreID>& output);     // emits output set
+        void output(std::vector<Data::FluorophoreID>& output);     // emits output set
         void finished();                                        // emits upon finishing an output
     
     public slots:
@@ -127,6 +127,7 @@ class LineEdit : public QLineEdit {
 
 class Popup : public QListView {
     Q_OBJECT
+    Q_PROPERTY(QString viewport_margins_scroll_bar READ viewportMarginsScrollBar WRITE setViewportMarginsScrollBar)
 
     public:
         explicit Popup(QWidget* parent=nullptr);
@@ -136,17 +137,23 @@ class Popup : public QListView {
         Popup& operator=(Popup&&) = delete;
         ~Popup() = default;
 
+        QString viewportMarginsScrollBar() const;
+        void setViewportMarginsScrollBar(QString layout_spacing_scroll_bar);
+
         void setModel(QAbstractItemModel* model);
         bool updateKeyUp();
         bool updateKeyDown();
 
     private:
+        int margin_scrollbar;
         const int max_visible_items;
         QRect max_size;
 
         bool eventFilter(QObject* obj, QEvent* event);
 
     private slots:
+        void hidingScrollBar();
+        void showingScrollBar();
         void highlight(const QModelIndex& index);
         void activate(const QModelIndex& index);
 

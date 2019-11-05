@@ -25,11 +25,9 @@ CACHE:
 FLUOR:
     If Spectrum name too long, it squeezes the excitation-visibility, and remove-button out of the scrollarea viewport.
 
-TOOLBAR:
-    Check if Icon resizing algorithm works on MacOS
-
 LASER & FLUOR:
     If selected plot with laser -> see if entree in QModel, if so -> select
+    Upon DPI change the rowSizeHint lags behind one paint, which can cause imperfect popup size. Not sure you can work your way around this one.
 
 GRAPH:
     Save graph properties and reload upon opening -> for now disabled cause it breaks the BarLayout
@@ -39,3 +37,7 @@ GRAPH:
     Colinear lasers object
     Selection in Plot -> see statistics of each plot
     More indepth detector plotting, also taking into account the dichromatic mirrors etc.
+    Proper Graph::Spectrum bounding box determinations
+
+MAC:
+    Check stylesheet 

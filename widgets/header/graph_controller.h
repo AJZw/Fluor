@@ -35,6 +35,9 @@
 #define GRAPH_CONTROLLER_H
 
 #include <cache.h>
+#include "graph_graphicsscene.h"
+#include "graph_graphicsview.h"
+
 #include <QWidget>
 #include <QPaintEvent>
 
@@ -53,15 +56,25 @@ class Controller : public QWidget {
         
         void paintEvent(QPaintEvent* event);
 
+    private:
+        Graph::GraphicsScene* graphics_scene;
+        Graph::GraphicsView* graphics_view;
+        Graph::Format::Style* graphics_style;
+
     signals:
         void sendGlobalEvent(QEvent* event);
         void sendCacheSync(const std::vector<Cache::CacheID>& cache_state);
         void sendCacheUpdate(const std::vector<Cache::CacheID>& cache_state);
+        void sendPainterUpdate(const Graph::Format::Style* style);
+
+        void sendCacheRequestUpdate();
 
     public slots:
         void receiveGlobalEvent(QEvent* event);
         void receiveCacheSync(const std::vector<Cache::CacheID>& cache_state);
         void receiveCacheUpdate(const std::vector<Cache::CacheID>& cache_state);
+        void receiveStyleChanged();
+
 
 };
 

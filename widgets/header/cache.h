@@ -26,10 +26,6 @@
 /**** DOC ******************************************************************
 ** The storage and handling of the global Spectra objects, named the cache 
 **
-** :enum: Cache::SortOption
-** [Should be moved to the State] The ways the cache items can be ordered for
-** presentation in the GUI
-**
 ** :class: Cache::CacheID
 ** Struct of the Spectrum ID, name, and data pointer. This is the way spectra
 ** are stored within the cache items
@@ -44,6 +40,7 @@
 #ifndef CACHE_H
 #define CACHE_H
 
+#include "global.h"
 #include "data_spectrum.h"
 #include "data_fluorophores.h"
 #include <QString>
@@ -52,18 +49,6 @@
 #include <set>
 
 namespace Cache {
-
-// Temporarily, should be moved upon implementation of settings / menu
-enum class SortOption {
-    Additive, 
-    AdditiveReversed, 
-    Alphabetical, 
-    AlphabeticalReversed, 
-    Excitation, 
-    ExcitationReversed, 
-    Emission,
-    EmissionReversed
-};
 
 struct CacheID {
     CacheID(const QString id, const QString name) : id(id), name(name), data(nullptr) {};
@@ -81,6 +66,12 @@ struct CacheID {
     mutable Data::CacheSpectrum* data;
 };
 
+struct CacheState {
+    bool visible_excitation = false;
+    bool visible_emission = true;
+    State::SortOption sort_option = State::SortOption::Additive;
+};
+
 class Cache : public QObject {
     Q_OBJECT
 
@@ -95,6 +86,7 @@ class Cache : public QObject {
         void printState() const;
 
     private:
+        // For cache functioning
         unsigned int counter = 0;
         unsigned int max_cache_size = 25;
 
@@ -104,6 +96,10 @@ class Cache : public QObject {
         std::set<CacheID> items;
         std::unordered_map<QString, Data::CacheSpectrum> data;
 
+        // For proper item initiating
+        CacheState state;
+
+    private:
         unsigned int getCounter(unsigned int size);
         Data::CacheSpectrum* getData(const QString& id, const unsigned int counter);
         void rebuildCounter();
@@ -111,13 +107,18 @@ class Cache : public QObject {
 
         void sync();
         void update();
-        static void sortVector(std::vector<CacheID>& input, SortOption option);
+        static void sortVector(std::vector<CacheID>& input, State::SortOption option);
 
     public slots:
-        void cacheAdd(std::set<Data::FluorophoreID>& fluorophores);
+        void cacheAdd(std::vector<Data::FluorophoreID>& fluorophores);
         void cacheRemove(std::vector<Data::FluorophoreID>& fluorophores);
         void cacheRequestSync();
         void cacheRequestUpdate();
+
+        void cacheStateSet(CacheState state);
+        void cacheStateSetExcitation(bool visible);
+        void cacheStateSetEmission(bool visible);
+        void cacheStateSetSorting(State::SortOption option);
 
     signals:
         // sync signals are for adding and removing cache entrees
