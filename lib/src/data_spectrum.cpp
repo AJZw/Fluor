@@ -36,7 +36,7 @@ Polygon::Polygon() :
     x_max(-1.0),
     y_min(-1.0),
     y_max(-1.0),
-    line_color(0, 0, 0),
+    curve_color(0, 0, 0),
     curve(2)
 {
     // Build a mock curve to always have 'valid' data for calculations even if Polygon is empty
@@ -55,7 +55,7 @@ Polygon::Polygon(double x_min, double x_max, double y_min, double y_max, QPolygo
     x_max(x_max),
     y_min(y_min),
     y_max(y_max),
-    line_color(0, 0, 0),
+    curve_color(0, 0, 0),
     curve(curve)
 {}
 
@@ -69,7 +69,7 @@ Polygon::Polygon(const Polygon& other) :
     x_max(other.x_max),
     y_min(other.y_min),
     y_max(other.y_max),
-    line_color(other.line_color),
+    curve_color(other.curve_color),
     curve(other.curve)
 {
     // Detach to make deepcopy
@@ -85,7 +85,7 @@ Polygon& Polygon::operator=(const Polygon& other) {
         this->x_max = other.x_max;
         this->y_min = other.y_min;
         this->y_max = other.y_max;
-        this->line_color = other.line_color;
+        this->curve_color = other.curve_color;
         this->curve = other.curve;
         // Detach to make deepcopy
         this->curve.detach();
@@ -187,7 +187,7 @@ Getter for the line color
     :returns: line color
 */
 const QColor& Polygon::color() const {
-    return this->line_color;
+    return this->curve_color;
 }
 
 /*
@@ -203,7 +203,7 @@ Setter for the line color. Uses the supplied wavelength to determine the color
     :param wavelength: wavelength in nanometers
 */
 void Polygon::setColor(double wavelength) {
-    this->line_color = Polygon::visibleSpectrum(wavelength);
+    this->curve_color = Polygon::visibleSpectrum(wavelength);
 }
 
 /*
@@ -211,7 +211,7 @@ Setter for the line color. Sets supplied QColor
     :param color: line color
 */
 void Polygon::setColor(QColor color) {
-    this->line_color = color;
+    this->curve_color = color;
 }
 
 /*
@@ -224,37 +224,88 @@ QPolygonF& Polygon::polygon(){
 
 /*
 Calculates whether a point is contained within the polygon.
-Note: this function assumes an linearly divided x coordinates. This function is not correct if the curve has been closed
-Note: doesnt check for lower bounds of the curve. 
-    :param point: the point to check, in local coordinates
-    :returns: true if the point is on or beneath the polygon, otherwise false.
+As the scaling is unknown, will use a binary search instead
+    :param point: the point to check, in the this->curve coordinates
+    :param line_width: the polygon line width size. If not applicable use 0.
+    :returns: true if the point is on or below the polygon, otherwise false.
 */
-bool Polygon::contains(const QPointF& point) const{
-    double start = this->curve[0].x();
-    double end = this->curve[this->curve.size()-1].x();
-    
-    // Determine if point is within the curve range
-    if(point.x() >= start && point.x() <= end){
-        // Now determine the entree 
-        double fraction = (point.x() - start) / (end - start);
-        double entree_x = fraction * this->curve.size();
-
-        // Round to nearest integer (=index)
-        int entree_i = static_cast<int>(entree_x + 0.5);
-
-        double entree_y = this->curve[entree_i].y();
-
-        return point.y() >= entree_y;
+bool Polygon::contains(const QPointF& point, double line_width) const{
+    // Polygon is empty if it is outside of the axis
+    if(this->curve.empty()){
+        return false;
     }
 
-    return false;
+    // Determine if point is within the curve range
+    double start = this->curve[0].x();
+    double end = this->curve[this->curve.size()-1].x();
+    if(point.x() < start || point.x() > end){
+        return false;
+    }
+        
+    // Now determine the entree using a binary search
+    auto entree_y = std::lower_bound(
+        this->curve.begin(),
+        this->curve.end(),
+        point.x(), 
+        [](const QPointF& obj_a, qreal obj_b){
+                return obj_a.x() < obj_b;
+        }
+    );
+    
+    double height_y = entree_y->y();
+    height_y -= (0.5 * line_width);
+
+    if(point.y() >= height_y){
+        return true;
+    }else{
+        return false;
+    }
+}
+
+/*
+Calculates whether a point is contained within the polygon.
+Function uses the scaling functions for lookup in scaled curves
+Note: this function assumes a x-stepsize of 1 after scaling (to global)
+    :param point: the poin to check in local coordinates
+    :param line_width: the polygon line width size. If not applicable use 0.
+    :param scale_x: the local to global scaling function for the x-value
+    :returns: true if the point is on or below the polygon, otherwise false.
+*/
+bool Polygon::contains(const QPointF& point, double line_width, std::function<double(double)> scale_x) const {
+    // Polygon is empty if it is outside of the axis
+    if(this->curve.empty()){
+        return false;
+    }
+
+    // Determine if point is within the curve range
+    double start = this->curve[0].x();
+    double end = this->curve[this->curve.size()-1].x();
+    if(point.x() < start || point.x() > end){
+        return false;
+    }
+
+    double point_x_global = scale_x(point.x());
+    double point_begin_global = scale_x(this->curve[0].x());
+
+    // Determine entree index in 
+    int index = static_cast<int>(point_x_global - point_begin_global + 0.5);
+    double entree_y = this->curve[index].y();
+
+    // Correct for line tickness
+    entree_y -= (0.5 * line_width);
+
+    if(point.y() >= entree_y){
+        return true;
+    }else{
+        return false;
+    }
 }
 
 /*
 (Static) Returns the color of the maximum emission intensity, uses linear approximation
 Source: http://www.efg2.com/Lab/ScienceAndEngineering/Spectra.htm
     :param wavelength: wavelength to transform into visible RGB value
-    :returns: Data::Color object; colors scale 0-255
+    :returns: QColor representation of the wavelength
 */
 QColor Polygon::visibleSpectrum(double wavelength){
     double red, green, blue, intensity;
@@ -390,6 +441,72 @@ void Polygon::scale(const Data::Polygon& base, const QRectF& size, const double 
 }
 
 /*
+Scales the curve in the given/local space according to the global space
+    :param base: the unmodified original of this polygon; used as base for all the calculations
+    :param scale_x: the scaling function for the x value
+    :param scale_y: the scaling function for the y value
+    :param intensity: the y (intensity) scaling value
+*/
+void Polygon::scale(const Data::Polygon& base, const QRectF& size, std::function<double(double)> scale_x, std::function<double(double, double)> scale_y, const double intensity){
+    // Double check for base size, there should not be any resizing of the internal QVector
+    if(base.curve.capacity() != this->curve.capacity()){
+        qWarning() << "Data::Polygon::scale: base and this object have different capacity QPolygonF, operation is not guaranteed to be safe, function call is ignored.";
+        return;
+    }
+
+    // Check for fully out of bound curve
+    if(size.left() > scale_x(this->x_max) || size.right() < scale_x(this->x_min)){
+        // Empty curve
+        this->curve.resize(0);
+        return;
+    }
+
+    // First resize polygon to base size to prevent undefined behavior
+    this->curve.resize(base.curve.size());
+
+    // Iterate through polygons, while keeping in mind the x-limits
+    int this_i = 0;
+    for(int base_i=0; base_i<base.curve.size(); ++base_i){
+        qreal x = base.curve.at(base_i).x();
+        qreal y = base.curve.at(base_i).y();
+
+        x = scale_x(x);
+        y = scale_y(y, intensity);
+
+        // Make sure that the y values are not outside the size rectangle
+        if(y < size.top()){
+            y = size.top();
+        }else if(y > size.bottom()){
+            y = size.bottom();
+        }
+
+        // Make sure that x is within the size rectangle
+        if(x < size.left()){
+            this->curve[0].setX(size.left());
+            this->curve[0].setY(y);
+
+            // Set i to 1, to allow for normal continuation, but not throw-off repeated hits of this if statement
+            this_i = 1;
+            continue;
+        }else if(x > size.right()){
+            // further x-values are outside of the plotting rect
+            this->curve[this_i].setX(size.right());
+            this->curve[this_i].setY(y);
+            ++this_i;
+            break;
+        }
+
+        // Parse values
+        this->curve[this_i].setX(x);
+        this->curve[this_i].setY(y);
+        ++this_i;
+    }
+
+    // Remove unused polygon entrees
+    this->curve.remove(this_i, this->curve.size() - this_i);
+}
+
+/*
 Hard copies the curve data from base into the current polygon
     :param base: base containing the curve data
 */
@@ -407,6 +524,10 @@ If you would draw a line from a[0] to a[-1], and connect a[0] & a[-1] you have a
 void Polygon::closeCurve(const QRectF& size){
     // Make sure there is enough space for the additional two QPointF.
     // Standard capacity of the curves should be enough for this
+    if(this->curve.empty()){
+        return;
+    }
+
     this->curve.resize(this->curve.size() + 2);
 
     int length = this->curve.length();
@@ -564,21 +685,6 @@ Returns the wavelength of the maximum emission intensity
 */
 double Spectrum::emissionMax() const {
     return this->polygon_emission.intensityMax();
-}
-
-/*
-Scales the emission and intensity curves in the given/local space according to the global space
-    :param base: the unmodified original of this polygon; used as base for all the calculations
-    :param size: the local size the curve is fitted into
-    :param xg_begin: the global x begin value, eg wavelength (nm)
-    :param xg_end: the global x end value, eg wavelength (nm)
-    :param yg_begin: the global y begin value, eg intensity (%)
-    :param yg_end: the global y end value, eg intensity (%)
-    :param intensity: the y (intensity) emission scaling value
-*/
-void Spectrum::scale(const Data::Polygon& base, const QRectF& size, const double xg_begin, const double xg_end, const double yg_begin, const double yg_end, const double intensity){
-    this->polygon_excitation.scale(base, size, xg_begin, xg_end, yg_begin, yg_end, 1.0);
-    this->polygon_emission.scale(base, size, xg_begin, xg_end, yg_begin, yg_end, intensity);
 }
 
 /* ######################################################################################### */

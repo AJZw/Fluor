@@ -26,14 +26,14 @@
 /**** DOC ******************************************************************
 ** Settings and data file parsers
 ** 
-** :class: DataFactory
+** :class: Data::Factory
 ** A factory that checks existance of data paths. If path is invalid, will fatal
 ** error upon data object request
 ** 
-** :class: DataError
+** :class: Data::Error
 ** A QMessageBox to notify the user of a fatal data error
 ** 
-** :class: DataWarning
+** :class: Data::Warning
 ** A QMessageBox to warn the user for missing data
 ** 
 ***************************************************************************/
@@ -61,7 +61,7 @@ class DATALIB_EXPORT Factory {
         Factory& operator=(Factory&&) = default;
         ~Factory() = default;
 
-        enum type{settings, defaults, styles, cytometers, fluorophores};
+        enum type {Settings, Defaults, Styles, Instruments, Fluorophores};
 
         bool isValid() const;
         bool isValid(Factory::type type) const;
@@ -72,27 +72,27 @@ class DATALIB_EXPORT Factory {
         QString getPathSettings() const;
         QString getPathDefaults() const;
         QString getPathStyles() const;
-        QString getPathCytometers() const;
+        QString getPathInstruments() const;
         QString getPathFluorophores() const;
         std::unique_ptr<QSettings> get(const Factory::type type) const;
 
     private:
         const QString file_settings;
         const QString file_styles;
-        const QString file_cytometers;
+        const QString file_instruments;
         const QString file_fluorophores;
         const QString path_exe;
 
         QString path_settings;
         QString path_defaults;
-        QString path_cytometers;
+        QString path_instruments;
         QString path_fluorophores;
         QString path_styles;
 
         bool valid_settings;
         bool valid_defaults;
         bool valid_styles;
-        bool valid_cytometers;
+        bool valid_instruments;
         bool valid_fluorophores;
 
         bool error_fatal;

@@ -154,7 +154,7 @@ Getter: returns all style names from the settings file
 */
 std::vector<QString> Builder::getStyleIDs(const Data::Factory& data) const {
     std::unique_ptr<QSettings> style;
-    style = data.get(Data::Factory::styles);
+    style = data.get(Data::Factory::Styles);
     
     QStringList style_groups;
     style_groups = style->childGroups();
@@ -169,7 +169,7 @@ Loads attributes from settings file
 */
 void Builder::loadStyle(const Data::Factory& data, const QString& style_id){
     std::unique_ptr<QSettings> style;
-    style = data.get(Data::Factory::styles);
+    style = data.get(Data::Factory::Styles);
 
     QStringList style_groups;
     style_groups = style->childGroups();

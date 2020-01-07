@@ -30,6 +30,9 @@
 ** Struct of the Spectrum ID, name, and data pointer. This is the way spectra
 ** are stored within the cache items
 **
+** :class: Cache::CacheState
+** Storage class of State::GUIGlobal properties for proper item instantiation
+**
 ** :class: Cache::Cache
 ** Caching, handling, and synchronisation of Spectra for showing in the GUI
 ** Keeps a std::set 'items' for all currently active spectra, stored as CacheID
@@ -69,14 +72,14 @@ struct CacheID {
 struct CacheState {
     bool visible_excitation = false;
     bool visible_emission = true;
-    State::SortOption sort_option = State::SortOption::Additive;
+    State::SortMode sort_mode = State::SortMode::Additive;
 };
 
 class Cache : public QObject {
     Q_OBJECT
 
     public:
-        explicit Cache(Data::Factory& factory, Data::Fluorophores& source);
+        explicit Cache(Data::Factory& factory, Data::FluorophoreReader& source);
         Cache(const Cache &obj) = delete;
         Cache& operator=(const Cache &obj) = delete;
         Cache(Cache&&) = delete;
@@ -91,7 +94,7 @@ class Cache : public QObject {
         unsigned int max_cache_size = 25;
 
         const Data::Factory& source_factory;
-        const Data::Fluorophores& source_data;
+        const Data::FluorophoreReader& source_data;
 
         std::set<CacheID> items;
         std::unordered_map<QString, Data::CacheSpectrum> data;
@@ -107,7 +110,7 @@ class Cache : public QObject {
 
         void sync();
         void update();
-        static void sortVector(std::vector<CacheID>& input, State::SortOption option);
+        static void sortVector(std::vector<CacheID>& input, State::SortMode mode);
 
     public slots:
         void cacheAdd(std::vector<Data::FluorophoreID>& fluorophores);
@@ -118,7 +121,7 @@ class Cache : public QObject {
         void cacheStateSet(CacheState state);
         void cacheStateSetExcitation(bool visible);
         void cacheStateSetEmission(bool visible);
-        void cacheStateSetSorting(State::SortOption option);
+        void cacheStateSetSorting(State::SortMode mode);
 
     signals:
         // sync signals are for adding and removing cache entrees

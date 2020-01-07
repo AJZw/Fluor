@@ -737,7 +737,7 @@ void LineEdit::reloadSize(const QWidget* widget){
 /*
 Slot: reloads the this->completer() model
 */
-void LineEdit::reloadData(const Data::Fluorophores& data){
+void LineEdit::reloadData(const Data::FluorophoreReader& data){
     // Make hard copies, that way data can be invalidated without issues here / race conditions
     this->lookup_id = data.getFluorID();
     this->lookup_names = data.getFluorNames();
@@ -1182,7 +1182,7 @@ Completer::Completer(QWidget* parent) :
     this->buildModel(this->default_items);
 
     // Need to use old-style connect to connect during runtime to the Q_PRIVATE_SLOT(_q_complete)
-    QObject::connect(this, SIGNAL(_q_complete(QModelIndex)), static_cast<QCompleter*>(this), SLOT(_q_complete(QModelIndex)));
+    QObject::connect(this, SIGNAL(q_complete(QModelIndex)), static_cast<QCompleter*>(this), SLOT(_q_complete(QModelIndex)));
 }
 
 /*
@@ -1276,7 +1276,7 @@ void Completer::complete(const QRect& rect){
     QModelIndex index = this->currentIndex();
     if(this->completionMode() == QCompleter::InlineCompletion){
         if(index.isValid()){
-            emit this->_q_complete(index);
+            emit this->q_complete(index);
         }
         return;
     }

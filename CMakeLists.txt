@@ -68,6 +68,12 @@ add_executable(fluor
     resources/resources.qrc
 )
 
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+  set_target_properties(fluor PROPERTIES WIN32_EXECUTABLE true)
+
+  target_compile_definitions(fluor PRIVATE QT_DEBUG_NO_OUTPUT)
+endif()
+
 # set target properties
 target_compile_options(fluor PRIVATE
     -g

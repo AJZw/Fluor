@@ -44,12 +44,17 @@
 ** Storage class for the pens/brushes as used during painting.
 ** Receives input from QSS stylesheet using QProperties
 **
+** :class: Graph::PlotRectF
+** Class representation and conversion of the plotting data's coordinate 
+** system and the painters coordinate system. 
+**
 ***************************************************************************/
 
 #ifndef GRAPH_FORMAT_H
 #define GRAPH_FORMAT_H
 
 #include <array>
+#include <functional>
 
 #include <Qt>
 #include <QWidget>
@@ -130,6 +135,12 @@ struct Settings {
     Settings(Settings&&) = default;
     Settings& operator=(Settings&&) = default;
     ~Settings() = default;
+
+    const bool enable_labels = true;
+    const bool enable_gridlabels = true;
+    const bool enable_ticks = false;
+    const bool enable_gridlines = true;
+    const bool enable_colorbar = true;
 
     const Axis x_axis = Format::Axis(0, 1500, QString("Wavelength (nm)"));
     AxisRange x_range = Format::AxisRange(300, 900);
@@ -275,6 +286,8 @@ class Style : public QWidget {
         QPen penAbsorptionSelect(QColor color) const;
         QPen penExcitationSelect(QColor color) const;
         QPen penEmissionSelect(QColor color) const;
+        QPen penLaser(QColor color) const;
+        QPen penFilter(Qt::PenStyle line_style) const;
     
     signals:
         void styleChanged();
@@ -282,6 +295,53 @@ class Style : public QWidget {
 };
 
 } // Format namespace
+
+class PlotRectF {
+	public:
+        PlotRectF();
+        PlotRectF(const QRectF& settings, const QMargins& margins);
+        PlotRectF(const PlotRectF &obj) = default;
+        PlotRectF& operator=(const PlotRectF &obj) = default;
+        PlotRectF(PlotRectF&&) = default;
+        PlotRectF& operator=(PlotRectF&&) = default;
+        ~PlotRectF() = default;
+
+    private:
+        QMargins margins_settings;
+        QRectF rect_local;
+        QRectF rect_settings;
+        QRectF rect_global;
+
+        double x_slope_global_to_local = 0;
+        double x_slope_local_to_global = 0;
+        double x_intercept = 0;
+        double y_slope_global_to_local = 0;
+        double y_slope_local_to_global = 0;
+        double y_intercept = 0;
+
+    public:
+        const QMargins& margins() const;
+        void setMargins(const QMargins& margins);
+
+        const QRectF& local() const;
+        const QRectF& settings() const;
+        const QRectF& global() const;
+        void setLocal(const QRectF& rect);
+        void setSettings(const QRectF& rect);
+
+        double toLocalX(double global) const;
+        double toGlobalX(double local) const;
+        double toLocalY(double global, double intensity=1.0) const;
+        double toGlobalY(double local, double intensity=1.0) const;
+
+        std::function<double(double)> toLocalXFunction() const;
+        std::function<double(double)> toGlobalXFunction() const;
+        std::function<double(double, double)> toLocalYFunction() const;
+        std::function<double(double, double)> toGlobalYFunction() const;
+
+    private:
+        void calculate();
+};
 
 } // Graph namespace
 

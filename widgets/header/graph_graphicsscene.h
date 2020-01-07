@@ -27,10 +27,7 @@
 ** The graphicsscene object of a graph
 **
 ** :class: Graph::GraphicsScene
-** The graphicsscene holding all QGraphicsItem
-**
-** :class: Graph::GraphicsPlot
-** ?? Will i use this one ever, or temperarily? Idea of coupling the base and the spectrum apart could be quite handy
+** The graphicsscene holding all QGraphicsItem of a single plot
 ** 
 ***************************************************************************/
 
@@ -53,7 +50,7 @@ class GraphicsScene : public QGraphicsScene {
     Q_OBJECT
 
     public:
-        explicit GraphicsScene(QWidget* parent = nullptr);
+        explicit GraphicsScene(Graph::Format::Settings settings=Graph::Format::Settings(), QWidget* parent = nullptr);
         GraphicsScene(const GraphicsScene &obj) = delete;
         GraphicsScene& operator=(const GraphicsScene &obj) = delete;
         GraphicsScene(GraphicsScene&&) = delete;
@@ -62,17 +59,21 @@ class GraphicsScene : public QGraphicsScene {
 
     private:
         Graph::Format::Settings settings;
+        Graph::PlotRectF plot_rect;
+
         Graph::Background* item_background;
         Graph::Axis::LabelX* item_x_axis_label;
         Graph::Axis::GridLabelsX* item_x_axis_gridlabels;
-        //Graph::Axis::TicksX* item_x_axis_ticks;
+        Graph::Axis::TicksX* item_x_axis_ticks;
         Graph::Axis::GridLinesX* item_x_axis_gridlines;
         Graph::Colorbar* item_x_colorbar;
         Graph::Axis::LabelY* item_y_axis_label;
         Graph::Axis::GridLabelsY* item_y_axis_gridlabels;
-        //Graph::Axis::TicksY* item_y_axis_ticks;
+        Graph::Axis::TicksY* item_y_axis_ticks;
         Graph::Axis::GridLinesY* item_y_axis_gridlines;
-        Graph::Spectra* item_spectra;
+        Graph::SpectrumCollection* item_spectra;
+        Graph::LaserCollection* item_lasers;
+        Graph::DetectorCollection* item_detectors;
         Graph::Outline* item_outline;
 
         // Keeps track of scroll rotation to be able to scroll through the spectrum items

@@ -33,7 +33,7 @@ Controller::Controller(QWidget* parent) :
     this->setContentsMargins(0, 0, 0, 0);
 
     // Should contain a scrollwidget but for now just contain the graphics_view + scene
-    this->graphics_scene = new Graph::GraphicsScene(this);
+    this->graphics_scene = new Graph::GraphicsScene(Graph::Format::Settings(), this);
     this->graphics_view = new Graph::GraphicsView(graphics_scene, this);
     this->graphics_style = new Graph::Format::Style(this);
     

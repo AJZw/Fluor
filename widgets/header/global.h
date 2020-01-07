@@ -27,7 +27,7 @@
 ** General purpose types that are used in multiple headers
 ** Namespaced to the main user of the enum
 **
-** :enum: State::SortOption
+** :enum: State::SortMode
 ** The sorting method of the fluorophore buttons, mainly used by state and cache
 **
 ** :enum: Bar::ButtonType
@@ -40,7 +40,7 @@
 
 namespace State {
 
-enum class SortOption {
+enum class SortMode {
     Additive, 
     AdditiveReversed, 
     Alphabetical, 
@@ -51,7 +51,7 @@ enum class SortOption {
     EmissionReversed
 };
 
-}
+} // namespace State
 
 namespace Bar {
 
@@ -65,7 +65,7 @@ enum class ButtonType{
     Lasers
 };
 
-}
+} // namespace Bar
 
 
 

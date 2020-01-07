@@ -44,6 +44,7 @@ Controller::Controller(QWidget* parent) :
     QObject::connect(this, &Main::Controller::resized, controller_widget, &Central::Controller::receiveGlobalSize);
     QObject::connect(this, &Main::Controller::moved, controller_widget, &Central::Controller::receiveGlobalSize);
     QObject::connect(this, &Main::Controller::sendData, controller_widget, &Central::Controller::receiveData);
+    QObject::connect(this, &Main::Controller::sendInstrument, controller_widget, &Central::Controller::receiveInstrument);
 
     QObject::connect(controller_widget, &Central::Controller::sendCacheRequestUpdate, this, &Main::Controller::receiveCacheRequestUpdate);
     QObject::connect(controller_widget, &Central::Controller::sendCacheAdd, this, &Main::Controller::receiveCacheAdd);

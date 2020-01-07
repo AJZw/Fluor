@@ -39,6 +39,7 @@
 #include <QPaintEvent>
 #include <vector>
 #include "data_fluorophores.h"
+#include "data_instruments.h"
 #include "cache.h"
 #include "toolbar_controller.h"
 
@@ -62,7 +63,8 @@ class Controller : public QWidget {
 
     public slots:
         void receiveGlobalEvent(QEvent* event);
-        void receiveData(const Data::Fluorophores& data);
+        void receiveData(const Data::FluorophoreReader& data);
+        void receiveInstrument(const Data::Instrument& instrument);
         void receiveGlobalSize(const QWidget* widget=nullptr);
 
         void receiveCacheRequestUpdate();
@@ -80,7 +82,8 @@ class Controller : public QWidget {
     signals:
         void sendGlobalEvent(QEvent* event); 
         void sendGlobalSize(const QWidget* widget=nullptr);
-        void sendData(const Data::Fluorophores& data);
+        void sendData(const Data::FluorophoreReader& data);
+        void sendInstrument(const Data::Instrument& instrument);
 
         void sendCacheRequestUpdate();
         void sendCacheAdd(std::vector<Data::FluorophoreID>& fluorophores);

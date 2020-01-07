@@ -57,10 +57,11 @@ Controller::Controller(QWidget* parent) :
     // Connect signals and slots
     QObject::connect(this, &Central::Controller::sendGlobalEvent, controller_laser, &Laser::Controller::receiveGlobalEvent);
     QObject::connect(this, &Central::Controller::sendGlobalSize, controller_laser, &Laser::Controller::receiveGlobalSize);
+    QObject::connect(this, &Central::Controller::sendInstrument, controller_laser, &Laser::Controller::receiveInstrument);
     
     QObject::connect(this, &Central::Controller::sendGlobalEvent, controller_fluor, &Fluor::Controller::receiveGlobalEvent);
-    QObject::connect(this, &Central::Controller::sendData, controller_fluor, &Fluor::Controller::receiveData);
     QObject::connect(this, &Central::Controller::sendGlobalSize, controller_fluor, &Fluor::Controller::receiveGlobalSize);
+    QObject::connect(this, &Central::Controller::sendData, controller_fluor, &Fluor::Controller::receiveData);
     QObject::connect(this, &Central::Controller::sendCacheSync, controller_fluor, &Fluor::Controller::receiveCacheSync);
     QObject::connect(this, &Central::Controller::sendCacheUpdate, controller_fluor, &Fluor::Controller::receiveCacheUpdate);
 
@@ -113,10 +114,17 @@ void Controller::receiveGlobalEvent(QEvent* event){
 }
 
 /*
-Slot: reloads the data of the widget
+Slot: reloads the fluorophore data
 */
-void Controller::receiveData(const Data::Fluorophores& data){
+void Controller::receiveData(const Data::FluorophoreReader& data){
     emit this->sendData(data);
+}
+
+/*
+Slot: reloads the data of the instrument
+*/
+void Controller::receiveInstrument(const Data::Instrument& instrument){
+    emit this->sendInstrument(instrument);
 }
 
 /*

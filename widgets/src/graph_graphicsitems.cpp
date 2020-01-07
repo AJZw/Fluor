@@ -108,7 +108,7 @@ Constructor: axis title for the x-axis
 LabelX::LabelX(const QString& text, QGraphicsItem* parent) :
     Axis::AbstractLabel(text, parent)
 {
-    this->setMargins(0, 2, 0, 0);
+    this->setMargins(1, 2, 0, 0);
     this->calculateMinimumSize();
 }
 
@@ -137,8 +137,8 @@ Sets the location of the item within the space allocated, assumes enough space t
 void LabelX::setPosition(const QRectF& space){
     // Aligns text to middle of space
     QPointF coor_center = space.center();
-    qreal x = coor_center.x() - (this->minimum_width / 2);
-    qreal y = coor_center.y() - (this->minimum_height / 2);
+    qreal x = coor_center.x() - (this->minimum_width * 0.5) + this->item_margins.left();
+    qreal y = coor_center.y() - (this->minimum_height * 0.5) + this->item_margins.top();
 
     this->setPos(x, y);
 }
@@ -183,8 +183,8 @@ Sets the location of the item within the space allocated, assumes enough space t
 void LabelY::setPosition(const QRectF& space){
     // Aligns text to middle of space
     QPointF coor_center = space.center();
-    qreal x = coor_center.x() - (this->minimum_width / 2);
-    qreal y = coor_center.y() + (this->minimum_height / 2);
+    qreal x = coor_center.x() - (this->minimum_width * 0.5) + this->item_margins.left();
+    qreal y = coor_center.y() + (this->minimum_height * 0.5) + this->item_margins.top();
 
     this->setPos(x, y);
 }
@@ -320,7 +320,7 @@ Constructor: holds a list of pointers to a list of QGraphicItems, constructs / d
 TicksX::TicksX(QGraphicsItem* parent) :
     Axis::AbstractGridLines(parent)
 {
-    this->setMargins(2, 0, 3, 0);
+    this->setMargins(0, 0, 0, 0);
     this->line_length = 5;
 
     // Setup done -> calculate minimum size
@@ -331,12 +331,6 @@ TicksX::TicksX(QGraphicsItem* parent) :
 Calculates the minimum size of the item, aka the tick + margin size.
 */
 void TicksX::calculateMinimumSize() { 
-    if(this->items.empty()){
-        this->minimum_width = 0;
-        this->minimum_height = 0;
-        return;
-    }
-
     // Width for x ticks doesnt really make sense, could be the line thickness...
     // int width = this->item_margins.left();
     // width += this->item_margins.right();
@@ -355,29 +349,25 @@ Sets the location of the item within the space allocated, assumes enough space t
     :param settings: the graph settings
     :param space: the allocated space
 */
-void TicksX::setPosition(const Graph::Format::Settings& settings, const QRectF& space){
-    // Allocated width will be (linearly) divided over the x_range and ticks are added appropriately 
-    this->setPos(space.topLeft());
+void TicksX::setPosition(const PlotRectF& plotspace, const QRectF& space){
     // If no ticks, do nothing
     if(this->items.empty()){
         return;
     }
     
-    qreal x_start_location = settings.x_range.begin;
-    qreal x_start_coor = 0 + this->margins().left();
-    qreal x_stepsize = space.width() - this->margins().left() - this->margins().right();
-    x_stepsize /= (settings.x_range.end - settings.x_range.begin);
-    qreal y_top = 0 + this->margins().top();
-    qreal y_bottom = y_top + this->line_length;
+    double y_top = space.top() - this->item_margins.top();
+    double y_bottom = space.bottom() + this->item_margins.bottom();
+
+    // item vector is not empty, so can safely read first entree
+    double pen_width = this->items[0]->pen().widthF();
+    pen_width *= 0.5;
 
     for(GridLine* item : this->items){
-        qreal x_item = (item->location() - x_start_location);
-        x_item *= x_stepsize;
-        x_item += x_start_coor;
+        qreal x_item = plotspace.toLocalX(item->location());
+        x_item += pen_width;
 
         item->setLine(x_item, y_top, x_item, y_bottom);
     }
-
 }
 
 /*
@@ -450,12 +440,6 @@ TicksY::TicksY(QGraphicsItem* parent) :
 Calculates the minimum size of the item, aka the text + margin size
 */
 void TicksY::calculateMinimumSize() {
-    if(this->items.empty()){
-        this->minimum_width = 0;
-        this->minimum_height = 0;
-        return;
-    }
-
     int width = this->line_length;
     width += this->item_margins.left();
     width += this->item_margins.right();
@@ -471,25 +455,21 @@ void TicksY::calculateMinimumSize() {
 Sets the location of the item within the space allocated, assumes enough space to adhere to minimumWidth
     :param space: the allocated space
 */
-void TicksY::setPosition(const Graph::Format::Settings& settings, const QRectF& space){
-    // Allocated width will be (linearly) divided over the x_range and ticks are added appropriately 
-    this->setPos(space.topLeft());
-    // If no ticks, do nothing
+void TicksY::setPosition(const PlotRectF& plotspace, const QRectF& space){
     if(this->items.empty()){
         return;
     }
     
-    qreal y_start_location = settings.y_range.begin;
-    qreal y_start_coor = 0 + this->margins().top();
-    qreal y_stepsize = space.height() - this->margins().top() - this->margins().bottom();
-    y_stepsize /= (settings.y_range.end - settings.y_range.begin);
-    qreal x_right = space.width() - this->margins().right();
-    qreal x_left = x_right - this->line_length;
+    double x_left = space.left() + this->item_margins.left();
+    double x_right = space.right() - this->item_margins.right();
+    
+    // item vector is not empty, so can safely read first entree
+    double pen_width = this->items[0]->pen().widthF();
+    pen_width *= 0.5;
 
     for(GridLine* item : this->items){
-        qreal y_item = (item->location() - y_start_location);
-        y_item *= y_stepsize;
-        y_item += y_start_coor;
+        qreal y_item = plotspace.toLocalY(item->location());
+        y_item += pen_width;
 
         item->setLine(x_left, y_item, x_right, y_item);
     }
@@ -554,7 +534,8 @@ Constructor: holds a list of pointers to a list of QGraphicItems, constructs / d
 GridLinesX::GridLinesX(QGraphicsItem* parent) :
     Axis::AbstractGridLines(parent)
 {
-    this->setMargins(2, 1, 3, 1);
+    this->setMargins(0, 1, 0, 1);
+    this->setPos(0.0, 0.0);
 }
 
 /*
@@ -568,26 +549,24 @@ void GridLinesX::calculateMinimumSize() {
 Sets the location of the item within the space allocated, assumes enough space to adhere to minimumWidth
     :param space: the allocated space
 */
-void GridLinesX::setPosition(const Graph::Format::Settings& settings, const QRectF& space) {
-    // Allocated width will be (linearly) divided over the x_range and ticks are added appropriately
-    this->setPos(space.topLeft());
-
+void GridLinesX::setPosition(const PlotRectF& plotspace, const QRectF& space) {
+    Q_UNUSED(space);
+    
     // If no ticks, do nothing
     if(this->items.empty()){
         return;
     }
     
-    qreal x_start_location = settings.x_range.begin;
-    qreal x_start_coor = 0 + this->margins().left();
-    qreal x_stepsize = space.width() - this->margins().left() - this->margins().right();
-    x_stepsize /= (settings.x_range.end - settings.x_range.begin);
-    qreal y_top = 0 + this->margins().top();
-    qreal y_bottom = space.height() - this->margins().bottom();
+    double y_top = plotspace.local().top() - this->item_margins.top();
+    double y_bottom = plotspace.local().bottom() + this->item_margins.bottom();
+
+    // item vector is not empty, so can safely read first entree
+    double pen_width = this->items[0]->pen().widthF();
+    pen_width *= 0.5;
 
     for(GridLine* item : this->items){
-        qreal x_item = (item->location() - x_start_location);
-        x_item *= x_stepsize;
-        x_item += x_start_coor;
+        qreal x_item = plotspace.toLocalX(item->location());
+        x_item += pen_width;
 
         item->setLine(x_item, y_top, x_item, y_bottom);
     }
@@ -652,7 +631,8 @@ Constructor: holds a list of pointers to a list of QGraphicItems, constructs / d
 GridLinesY::GridLinesY(QGraphicsItem* parent) :
     Axis::AbstractGridLines(parent)
 {
-    this->setMargins(1, 2, 2, 2);
+    this->setMargins(1, 0, 1, 0);
+    this->setPos(0.0, 0.0);
 }
 
 /*
@@ -664,27 +644,26 @@ void GridLinesY::calculateMinimumSize() {
 
 /*
 Sets the location of the item within the space allocated, assumes enough space to adhere to minimumWidth
+    :param settings: the plot region's settings
     :param space: the allocated space
 */
-void GridLinesY::setPosition(const Graph::Format::Settings& settings, const QRectF& space) {
-    // Allocated width will be (linearly) divided over the x_range and ticks are added appropriately 
-    this->setPos(space.topLeft());
-    // If no ticks, do nothing
+void GridLinesY::setPosition(const PlotRectF& plotspace, const QRectF& space) {
+    Q_UNUSED(space);
+    
     if(this->items.empty()){
         return;
     }
     
-    qreal y_start_location = settings.y_range.begin;
-    qreal y_start_coor = 0 + this->margins().top();
-    qreal y_stepsize = space.height() - this->margins().top() - this->margins().bottom();
-    y_stepsize /= (settings.y_range.end - settings.y_range.begin);
-    qreal x_right = space.width() - this->margins().right();
-    qreal x_left = 0 + this->margins().left();
+    double x_left = plotspace.local().left() + this->item_margins.left();
+    double x_right = plotspace.local().right() - this->item_margins.right();
+    
+    // item vector is not empty, so can safely read first entree
+    double pen_width = this->items[0]->pen().widthF();
+    pen_width *= 0.5;
 
     for(GridLine* item : this->items){
-        qreal y_item = (item->location() - y_start_location);
-        y_item *= y_stepsize;
-        y_item += y_start_coor;
+        qreal y_item = plotspace.toLocalY(item->location());
+        y_item += pen_width;
 
         item->setLine(x_left, y_item, x_right, y_item);
     }
@@ -736,7 +715,6 @@ void GridLinesY::setLines(const Graph::Format::Settings& settings) {
 
         // Erase pointers from vector
         this->items.erase(std::next(this->items.begin(), static_cast<std::vector<GridLine*>::difference_type>(tick_count)), this->items.end());
-
     }
 }
 
@@ -884,8 +862,10 @@ Constructor: holds a list of pointers to a list of QGraphicItems, constructs / d
 GridLabelsX::GridLabelsX(QGraphicsItem* parent) :
     Axis::AbstractGridLabels(parent)
 {
-    this->setMargins(2, 0, 3, 0);
+    this->setMargins(1, 0, 0, 0);
     this->space_offset = 1;
+
+    this->setPos(0.0, 0.0);
 }
 
 /*
@@ -920,24 +900,14 @@ void GridLabelsX::calculateMinimumSize() {
 Sets the location of the item within the space allocated, assumes enough space to adhere to minimumWidth
     :param space: the allocated space
 */
-void GridLabelsX::setPosition(const Graph::Format::Settings& settings, const QRectF& space){
-    // Allocated width will be (linearly) divided over the x_range and ticks are added appropriately 
-    // Set local coordinate system to topleft of the available space
-    this->setPos(space.topLeft());
- 
+void GridLabelsX::setPosition(const PlotRectF& plotspace, const QRectF& space){
     // If no ticks, do nothing
     if(this->items.empty()){
         return;
     }
 
-    qreal x_start_location = settings.x_range.begin;
-    qreal x_start_coor = 0 + this->margins().left();
-    qreal x_stepsize = space.width() - this->margins().left() - this->margins().right();
-    x_stepsize /= (settings.x_range.end - settings.x_range.begin);
-
-    // Correct start location for offset
-
-    qreal y_item = (space.height() * 0.5) - (this->minimum_height * 0.5);
+    qreal y_item = (space.height() * 0.5) + space.top(); 
+    y_item -= (this->minimum_height * 0.5) + this->margins().top();
 
     // Get font metrics of first item, assume all other ticks use same font (they should)
     // This wouldnt change upon a resize, so when implementing the style, leave this over to a style change property
@@ -945,17 +915,17 @@ void GridLabelsX::setPosition(const Graph::Format::Settings& settings, const QRe
 
     for(GridLabel* item : this->items){
         // First calculate were the text item's middle should end up
-        qreal x_item = (item->location() - x_start_location);
-        x_item *= x_stepsize;
-        x_item += x_start_coor;
+        qreal x_item = plotspace.toLocalX(item->location());
 
         // Now calculate the offset to center the text on that position
         int item_width = font_metric.width(item->text());
         x_item -= (item_width * 0.5);
+        x_item += this->margins().left();
+        x_item -= this->margins().right();
 
         // Make sure the x coordinate doesnt go outside of the assigned space
-        x_item = std::max(0.0 - this->space_offset, x_item);
-        x_item = std::min(space.width() - item_width, x_item);
+        x_item = std::max(space.left() - this->space_offset, x_item);
+        x_item = std::min(space.right() - item_width, x_item);
 
         item->setPos(x_item, y_item);
     }
@@ -1026,8 +996,9 @@ Constructor: holds a list of pointers to a list of QGraphicItems, constructs / d
 GridLabelsY::GridLabelsY(QGraphicsItem* parent) :
     AbstractGridLabels(parent)
 {
-    this->setMargins(0, 2, 2, 2);
+    this->setMargins(0, 0, 2, 0);
     this->space_offset = 3;
+    this->setPos(0.0, 0.0);
 }
 
 /*
@@ -1061,21 +1032,13 @@ Sets the location of the item within the space allocated, assumes enough space t
     :param settings: the graph settings
     :param space: the allocated space
 */
-void GridLabelsY::setPosition(const Graph::Format::Settings& settings, const QRectF& space){
-    // Allocated width will be (linearly) divided over the y_range and ticks are added appropriately 
-    // Set local coordinate system to topleft of the available space
-    this->setPos(space.topLeft());
-
+void GridLabelsY::setPosition(const PlotRectF& plotspace, const QRectF& space){
     // If no ticks, do nothing
     if(this->items.empty()){
         return;
     }
     
-    qreal y_start_location = settings.y_range.begin;
-    qreal y_start_coor = 0 + this->margins().top();
-    qreal y_stepsize = space.height() - this->margins().top() - this->margins().bottom();
-    y_stepsize /= (settings.y_range.end - settings.y_range.begin);
-    qreal x_right = space.width() - this->margins().right();
+    qreal x_right = space.right() - this->margins().right();
 
     // Get font metrics of first item, assume all other ticks use same font (they should)
     // This wouldnt change upon a resize, so when implementing the style, leave this over to a style change property
@@ -1083,12 +1046,10 @@ void GridLabelsY::setPosition(const Graph::Format::Settings& settings, const QRe
     int font_height = font_metric.height(); 
 
     for(GridLabel* item : this->items){
-        qreal y_item = (item->location() - y_start_location);
-        y_item *= y_stepsize;
-        y_item += y_start_coor;
+        qreal y_item = plotspace.toLocalY(item->location());
         y_item -= (font_height * 0.5);
-        // tick line size correction & correction to fix disalignment from AxisTicksY
-        y_item -= 1;
+        // gridline pen width correction & correction to fix disalignment with gridlines
+        y_item += 0.5;
 
         // Make sure the y coordinate doesnt go outside of the assigned space
         y_item = std::max(0.0 - this->space_offset, y_item);
@@ -1374,19 +1335,13 @@ int Colorbar::minimumHeight() const {
 Sets the location of the item within the space allocated, assumes enough space to adhere to minimumWidth and Height
     :param space: the allocated space
 */
-void Colorbar::setPosition(const Graph::Format::Settings& settings, const QRectF& space){
-    qreal stepsize = (space.right() - space.left() + this->margins().left() - this->margins().right()) / (settings.x_range.end - settings.x_range.begin);
-    qreal x_380 = 380 - settings.x_range.begin;
-    x_380 *= stepsize;
-    x_380 += space.left() + this->margins().left();
-    
-    qreal x_780 = 780 - settings.x_range.begin;
-    x_780 *= stepsize;
-    x_780 += space.left() + this->margins().left();
+void Colorbar::setPosition(const PlotRectF& settings, const QRectF& space){
+    double x_380 = settings.toLocalX(380);
+    double x_780 = settings.toLocalX(780);
 
     this->gradient.setStart(QPointF(x_380, space.top()));
-    this->gradient.setFinalStop(QPointF(x_780, space.bottom()));
-    this->setBrush(QBrush(gradient));
+    this->gradient.setFinalStop(QPointF(x_780, space.top()));
+    this->setBrush(QBrush(this->gradient));
     
     this->setRect(space.marginsRemoved(this->margins()));
 }
@@ -1413,9 +1368,6 @@ Spectrum::Spectrum(Data::CacheSpectrum& data, QGraphicsItem* parent) :
     spectrum_emission(this->spectrum_source.spectrum().emission()),
     spectrum_emission_fill(this->spectrum_source.spectrum().emission()),
     spectrum_space(0.0, 0.0, 0.0, 0.0),
-    item_margins(2, 2, 3, 2),
-    minimum_width(0),
-    minimum_height(0),
     visible_excitation(true),
     visible_emission(true),
     select_excitation(false),
@@ -1428,6 +1380,7 @@ Spectrum::Spectrum(Data::CacheSpectrum& data, QGraphicsItem* parent) :
     brush_emission_select(Qt::NoBrush),
     intensity_coefficient(1.0)
 {
+    this->setPos(0.0, 0.0);
 }
 
 /*
@@ -1442,7 +1395,7 @@ QRectF Spectrum::boundingRect() const {
 Paints the excitation and emission curve
     :param painter: the painter
     :param option: (unused) the style options
-    :param widget: (unused) if provided, paints to the widget being painted on
+    :param widget: (unused) if provided, points to the widget being painted on
 */
 void Spectrum::paint(QPainter *painter, const QStyleOptionGraphicsItem* option, QWidget* widget) {
     Q_UNUSED(option);
@@ -1483,6 +1436,7 @@ void Spectrum::paint(QPainter *painter, const QStyleOptionGraphicsItem* option, 
 
 /*
 Function is called to determine if this Spectrum is underneath the cursor.
+Note: this function is scaling unaware, so in the end a binary search is used for lookup.
     :param point: point to determine if it is contained in the object in scene coordinates.
     :returns: true if the item contains point, otherwise false is returned
 */
@@ -1494,93 +1448,54 @@ bool Spectrum::contains(const QPointF& point) const {
 
     // Within bounding box, now determine if it is on or below the excitation/emission curves
     if(this->visible_excitation){
-        if(this->spectrum_excitation.contains(this->mapFromScene(point))){
+        if(this->spectrum_excitation.contains(this->mapFromScene(point), this->pen_excitation.widthF())){
             return true;
         }
     }
 
     if(this->visible_emission){
-        return this->spectrum_emission.contains(this->mapFromScene(point));
+        return this->spectrum_emission.contains(this->mapFromScene(point), this->pen_emission.widthF());
     }
 
     return false;
 }
 
-
 /*
-Sets margins of the item, be carefull this should aline with all other gridlines/labels items
-    param left: margin in pixels to the left
-    param top: margin in pixels to the top
-    param right: margin in pixels to the right
-    param bottom: margin in pixels to the bottom
+Function is called to determine if this Spectrum is underneath the cursor.
+    :param point: point to determine if it is contained in the object in scene coordinates.
+    :returns: true if the item contains point, otherwise false is returned
 */
-void Spectrum::setMargins(int left, int top, int right, int bottom){
-    this->item_margins.setLeft(left);
-    this->item_margins.setTop(top);
-    this->item_margins.setRight(right);
-    this->item_margins.setBottom(bottom);
-}
+bool Spectrum::contains(const PlotRectF& space, const QPointF& point) const {
+    // Quick check is it within the boundingRect?
+    if(!this->spectrum_space.contains(this->mapFromScene(point))){
+        return false;
+    }
 
-/*
-Get margins
-    :returns: margins of the item
-*/
-const QMargins& Spectrum::margins() const {
-    return this->item_margins;
-}
+    // Within bounding box, now determine if it is on or below the excitation/emission curves
+    if(this->visible_excitation){
+        if(this->spectrum_excitation.contains(this->mapFromScene(point), this->pen_excitation.widthF(), space.toGlobalXFunction())){
+            return true;
+        }
+    }
 
-/*
-Getter for minimum width of the item.
-    :returns: width in pixels
-*/
-int Spectrum::minimumWidth() const {
-    return this->minimum_width;
-}
+    if(this->visible_emission){
+        return this->spectrum_emission.contains(this->mapFromScene(point), this->pen_emission.widthF(), space.toGlobalXFunction());
+    }
 
-/*
-Getter for minimum height of the item.
-    :returns: height in pixels
-*/
-int Spectrum::minimumHeight() const {
-    return this->minimum_height;
-}
-
-/*
-Calculates the minimum size of the item, doesnt do anything. Minimum size for a plotting region depending widget doesnt make sense.
-*/
-void Spectrum::calculateMinimumSize() { 
-    return;
+    return false;
 }
 
 /*
 Sets the location of the item within the space allocated, assumes enough space to adhere to minimumWidth and minimumHeight.
-    :param settings: the graph settings
     :param space: the allocated space
 */
-void Spectrum::setPosition(const Graph::Format::Settings& settings, const QRectF& space){
-    // Set source to the spectrum region of the graph
-    this->setPos(space.topLeft());
-
+void Spectrum::setPosition(const PlotRectF& space){
     // Set bounding region
-    // Bouding box can be more precise if we check the left and right values after scaling
-    if(space != this->spectrum_space){
-        this->spectrum_space = space;
+    // Bounding box can be more precise if we check the left and right values after scaling
+    if(space.local() != this->spectrum_space){
+        this->spectrum_space = space.local();
         this->prepareGeometryChange();
     }
-
-        // Adjust x and y ranges for margins
-    // Note for later - correct for line thickness
-    double x_begin = settings.x_range.begin;
-    double x_end = settings.x_range.end;
-    double x_fraction = (x_end - x_begin) / (space.width() - this->item_margins.left() - this->item_margins.right());
-    x_begin -= (x_fraction * this->item_margins.left());
-    x_end += (x_fraction * this->item_margins.right());
-
-    double y_begin = settings.y_range.begin;
-    double y_end = settings.y_range.end;
-    double y_fraction = (y_end - y_begin) / (space.height() - this->item_margins.top() - this->item_margins.bottom());
-    y_begin -= (y_fraction * this->item_margins.top());
-    y_end += (y_fraction * this->item_margins.bottom());
 
     // Correct plotting space for line width
     QRectF plot_space = this->spectrum_space;
@@ -1591,10 +1506,8 @@ void Spectrum::setPosition(const Graph::Format::Settings& settings, const QRectF
     this->spectrum_excitation.scale(
         this->spectrum_source.spectrum().excitation(),
         plot_space,
-        x_begin,
-        x_end,
-        y_begin,
-        y_end,
+        space.toLocalXFunction(),
+        space.toLocalYFunction(),
         1.0
     );
 
@@ -1602,15 +1515,12 @@ void Spectrum::setPosition(const Graph::Format::Settings& settings, const QRectF
     plot_space = this->spectrum_space;
     pen_adjust = this->pen_emission.widthF() * 0.5;
     plot_space.adjust(pen_adjust, pen_adjust, -pen_adjust, -pen_adjust);
-
     // Scale emission second
     this->spectrum_emission.scale(
         this->spectrum_source.spectrum().emission(),
         plot_space,
-        x_begin,
-        x_end,
-        y_begin,
-        y_end,
+        space.toLocalXFunction(),
+        space.toLocalYFunction(),
         this->intensity_coefficient
     );
 
@@ -1673,54 +1583,446 @@ void Spectrum::setSelect(bool selection) {
 /* ############################################################################################################## */
 
 /*
-Constructor: container for the specturm widgets. Handles mainly the adding and removing of the spectra.
+Constructor: constructs a graphicsitem that represents a laser in the scene.
+    :param wavelength: the wavelength the laser represents
     :param parent: parent widget
 */
-Spectra::Spectra(QGraphicsItem* parent) :
-    QGraphicsItem(parent),
-    spectra_items(),
-    spectra_style(nullptr),
-    minimum_width(0),
-    minimum_height(0),
-    spectra_space(0.0, 0.0, 0.0, 0.0)
+Laser::Laser(QGraphicsItem* parent) :
+    QGraphicsLineItem(parent),
+    laser_wavelength(0)
 {
-    this->spectra_items.reserve(25);
+    this->setPos(0.0, 0.0);
 }
 
 /*
-Container class, doesnt contain its own object, so bounding rectangle is empty
+Constructor: constructs a graphicsitem that represents a laser in the scene.
+    :param wavelength: the wavelength the laser represents
+    :param parent: parent widget
+*/
+Laser::Laser(int wavelength, QGraphicsItem* parent) :
+    QGraphicsLineItem(parent),
+    laser_wavelength(wavelength)
+{
+}
+
+/*
+Setter: sets the wavelength of the laser
+    :param wavelength: the wavelength to set
+*/
+void Laser::setWavelength(int wavelength){
+    this->laser_wavelength = wavelength;
+}
+
+/*
+Getter: gets the wavelength
+    :returns: the wavelength of the laser
+*/
+int Laser::wavelength() const {
+    return this->laser_wavelength;
+}
+
+/*
+Optimized contain function. Only needs to check the x-location of the point
+    :param point: point to determine if it is contained in the object in scene coordinates.
+    :returns: true if the item contains point, otherwise false is returned
+*/
+bool Laser::contains(const QPointF& point) const {
+    QPointF point_local = this->mapFromScene(point);
+    
+    double pen_width = this->pen().widthF() * 0.5;
+
+    double left = this->line().x1() - pen_width;
+    double right = this->line().x1() + pen_width;
+
+    if(point_local.x() >= left && point_local.x() <= right){
+        return true;
+    }else{
+        return false;
+    }
+}
+
+/*
+Update the painter's pen based on the graphs style
+    :param style: the graphs style
+*/
+void Laser::updatePainter(const Graph::Format::Style* style){
+    this->setPen(style->penLaser(Data::Polygon::visibleSpectrum(this->laser_wavelength)));
+}
+
+/*
+Sets the position of the Laser object based on the settings of the graph within the alloted space
+    :param space: the plotting region of the graph
+*/
+void Laser::setPosition(const PlotRectF& space){
+    if(this->laser_wavelength < space.global().left() || this->laser_wavelength > space.global().right()){
+        // wavelength is outside of plotting range, so line is invisible
+        this->setVisible(false);
+    }else{
+        // Make sure it is visible
+        this->setVisible(true);
+    }
+
+    double x_pos = space.toLocalX(this->laser_wavelength);
+
+    this->setLine(x_pos, space.local().top(), x_pos, space.local().bottom());
+}
+
+/* ############################################################################################################## */
+
+/*
+Constructor: default constructor, builds a valid but empty Filter object
+*/
+Filter::Filter(QGraphicsItem* parent) :
+    QGraphicsItem(parent),
+    wavelength_left(0.0),
+    wavelength_right(0.0),
+    item_left(),
+    item_right(),
+    item_top(),
+    detector_space()
+{
+    this->item_top.reserve(30);
+}
+
+/*
+Constructor: constructs a Filter object. Still needs the position to be set before it can be plotted correctly
+*/
+Filter::Filter(double wavelength_left, double wavelength_right, QGraphicsItem* parent) :
+    QGraphicsItem(parent),
+    wavelength_left(wavelength_left),
+    wavelength_right(wavelength_right),
+    item_left(),
+    item_right(),
+    item_top(),
+    detector_space()
+{
+    this->item_top.reserve(30);
+}
+
+/*
+Returns the bounding rectangle of the entire plotting region
+    :returns: bounding rectangle
+*/
+QRectF Filter::boundingRect() const {
+    return this->detector_space;
+}
+
+/*
+Paints the Filter lines/curve
+    :param painter: the painter
+    :param option: (unused) the style options
+    :param widget: (unused) if provided, points to the widget being painted on
+*/
+void Filter::paint(QPainter *painter, const QStyleOptionGraphicsItem* option, QWidget* widget) {
+    Q_UNUSED(option);
+    Q_UNUSED(widget);
+
+    painter->save();
+    painter->setRenderHint(QPainter::Antialiasing);
+
+    if(!this->item_left.isNull()){
+        painter->setPen(this->pen_left);
+        painter->setBrush(Qt::NoBrush);
+        painter->drawLine(this->item_left);
+    }
+
+    if(!this->item_right.isNull()){
+        painter->setPen(this->pen_right);
+        painter->setBrush(Qt::NoBrush);
+        painter->drawLine(this->item_right);
+    }
+
+    if(!this->item_top.isEmpty()){
+        painter->setPen(this->pen_top);
+        painter->setBrush(Qt::NoBrush);
+        painter->drawPolyline(this->item_top);
+    }
+
+    painter->restore();
+}
+
+/*
+Optimized contain function. Only needs to check the x-location of the point
+    :param point: point to determine if it is contained in the object in scene coordinates.
+    :returns: true if the item contains point, otherwise false is returned
+*/
+bool Filter::contains(const QPointF& point) const {
+    QPointF point_local = this->mapFromScene(point);
+    
+    if(this->item_top.empty()){
+        return false;
+    }
+
+    //double pen_width = this->pen().widthF() * 0.5;
+    double left = this->item_top[0].x(); //- pen_width;
+    double right = this->item_top[this->item_top.size()-1].x(); // + pen_width;
+
+    if(point_local.x() >= left && point_local.x() <= right){
+        return true;
+    }else{
+        return false;
+    }
+}
+
+/*
+Sets the position of the Filter object based on the settings of the graph within the alloted space
+    :param settings: the graphs settings
+    :param space: the plotting region of the graph
+*/
+void Filter::setPosition(const PlotRectF& space){
+    // Set bounding region
+    // Bounding box can be more precise if we check the left and right values after scaling
+    if(space.local() != this->detector_space){
+        this->detector_space = space.local();
+        this->prepareGeometryChange();
+    }
+    
+    // Parameters for the bevels
+    double bevel_size_y = 15;
+    double bevel_size_x = 15;
+    std::array<double, 15> math_sin = {0.00, 0.00, 0.01, 0.03, 0.08, 0.13, 0.21, 0.29, 0.39, 0.50, 0.62, 0.74, 0.87, 0.93, 1.00};
+    std::array<double, 15> math_cos = {0.00, 0.07, 0.13, 0.26, 0.38, 0.50, 0.61, 0.71, 0.79, 0.87, 0.92, 0.97, 0.99, 1.00, 1.00};
+    double offset_pen = 0.5 * this->pen_top.widthF();
+    double offset = offset_pen + space.margins().top();
+
+    // Get boundaries 
+    double left = space.toLocalX(this->wavelength_left);
+    double right = space.toLocalX(this->wavelength_right);
+
+    // If out of bounds empty the internal items
+    if(left > space.local().right() || right < space.local().left()){
+        this->item_left = QLineF();
+        this->item_right = QLineF();
+        this->item_top.clear();
+        return;
+    }
+
+    // Correct bevel size (if necessary)
+    double width = right - left;
+    if(width < (2 * bevel_size_x)){
+        if(this->bevel_left == BevelShape::Round && this->bevel_right == BevelShape::Round){
+            bevel_size_x = (width) * 0.5;
+        }else{
+            bevel_size_x = std::min(bevel_size_x, (width));
+        }
+    }
+    // Technically the y could be too short to show a full 5px quarter circle, but a graph that small has more issues then just this
+
+    // Calculate the left and right lines (if applicable)
+    if(left > space.local().left()){
+        switch(this->bevel_left){
+        case BevelShape::Square:
+            this->item_left = QLineF(left, space.local().bottom(), left, space.local().top() + offset + offset_pen);
+            break;
+        case BevelShape::Round:
+            this->item_left = QLineF(left, space.local().bottom(), left, space.local().top() + bevel_size_y + offset);
+            break;
+        default:
+            qFatal("Detector::setPosition: Unknown Left BevelShape");
+        }
+    }else{
+        this->item_left = QLineF();
+    }
+
+    if(right < space.local().right()){
+        switch(this->bevel_right){
+        case BevelShape::Square:
+            this->item_right = QLineF(right, space.local().bottom(), right, space.local().top() + offset + offset_pen);
+            break;
+        case BevelShape::Round:
+            this->item_right = QLineF(right, space.local().bottom(), right, space.local().top() + bevel_size_y + offset);
+            break;
+        default:
+            qFatal("Detector::setPosition: Unknown Right BevelShape");
+        }
+    }else{
+        this->item_right = QLineF();
+    }
+
+    // Now construct top polygon
+    // Size the QPolygonF to proper size
+    if(this->bevel_left == BevelShape::Round && this->bevel_right == BevelShape::Round){
+        this->item_top.resize(30);
+    }else if(this->bevel_left == BevelShape::Square && this->bevel_right == BevelShape::Square){
+        this->item_top.resize(2);
+    }else{
+        this->item_top.resize(16);
+    }
+
+    // Now in place construct corners
+    int index = 0;
+    switch(this->bevel_left){
+    case BevelShape::Square:{
+        this->item_top[0].setX(left - offset_pen);
+        this->item_top[0].setY(space.local().top() + offset);
+        index += 1;
+        break;
+    }
+    case BevelShape::Round:{
+        for(std::size_t i=0; i<15; ++i){
+            double x = math_sin[i];
+            x *= bevel_size_x;
+            x += left;
+
+            this->item_top[index].setX(x);
+
+            double y = math_cos[i];
+            y *= bevel_size_y;
+            y = space.local().top() + bevel_size_y - y + offset;
+
+            this->item_top[index].setY(y);
+            index += 1;
+        }
+        break;
+    }
+    default:
+        qFatal("Detector::setPosition: Unknown Left BevelShape");
+    }
+
+    switch(this->bevel_right){
+    case BevelShape::Square:{
+        this->item_top[index].setX(right + offset_pen);
+        this->item_top[index].setY(space.local().top() + offset);
+        index += 1;
+        break;
+    }
+    case BevelShape::Round:{
+        for(std::size_t i=15; i>0; --i){
+            double x = math_sin[i-1];
+            x *= bevel_size_x;
+            x = right - x;
+
+            this->item_top[index].setX(x);
+
+            double y = math_cos[i-1];
+            y *= bevel_size_y;
+            y = space.local().top() + bevel_size_y - y + offset;
+
+            this->item_top[index].setY(y);
+            index += 1;
+        }
+        break;
+    }
+    default:
+        qFatal("Detector::setPosition: Unknown Right BevelShape");
+    }
+
+    // Check for out of bounds (x), we can check left/right to find out without comparison
+    if(this->item_left.isNull()){
+        for(int i=0; i < this->item_top.size(); ++i){
+            if(this->item_top[i].x() > space.local().left() + offset_pen){
+                // set last out of bound point to just inbound 
+                // Of note, now is independent from pensize, so maybe add that later
+                this->item_top[i-1].setX(space.local().left() + offset_pen);
+
+                auto clear_to = this->item_top.begin();
+                clear_to += i-1;
+                this->item_top.erase(this->item_top.begin(), clear_to);
+
+                break;
+            }
+        }
+    }
+
+    if(this->item_right.isNull()){
+        for(int i=this->item_top.size()-1; i<=0; --i){
+            if(this->item_top[i].x() > space.local().right() - offset_pen){
+                this->item_top[i+1].setX(space.local().right() - offset_pen);
+
+                auto clear_from = this->item_top.begin();
+                clear_from += i+1;
+                this->item_top.erase(clear_from, this->item_top.end());
+
+                break;
+            }
+        }
+    }
+
+}
+
+/*
+Update the painter's pen based on the graphs style
+    :param style: the graphs style
+*/
+void Filter::updatePainter(const Graph::Format::Style* style){
+    this->pen_left = style->penFilter(this->style_left);
+    this->pen_right = style->penFilter(this->style_right);
+    this->pen_top = style->penFilter(Qt::SolidLine);
+}
+
+/*
+Sets the left and right wavelength limits of the detector. To update the position please call setPosition()
+    :param left: the leftmost limit (smaller then right)
+    :param right: the rightmost limit (bigger then left)
+*/
+void Filter::setWavelengths(double left, double right){
+    this->wavelength_left = left;
+    this->wavelength_right = right;
+}
+
+/*
+Sets the left and right penstyle. To update the style please call setPosition()
+    :param left: the left style
+    :param right: the right style
+*/
+void Filter::setLineStyle(Qt::PenStyle left, Qt::PenStyle right){
+    this->style_left = left;
+    this->style_right = right;
+}
+
+/*
+Sets the left and right bevel. To update the bevel please call setPosition()
+    :param left: the left bevel
+    :param right: the right bevel
+*/
+void Filter::setBevel(BevelShape left, BevelShape right){
+    this->bevel_left = left;
+    this->bevel_right = right;
+}
+
+/* ############################################################################################################## */
+
+/*
+Constructor: container for any collection of items that have to be plotted within the main plot.
+    :param parent: parent widget
+*/
+template<typename ITEM>
+AbstractCollection<ITEM>::AbstractCollection(const PlotRectF& rect, QGraphicsItem* scene) : 
+    QGraphicsItem(scene),
+    items(),
+    style(nullptr),
+    items_space(rect),
+    minimum_width(0),
+    minimum_height(0)
+{
+    static_assert(std::is_base_of<QGraphicsItem, ITEM>::value, "AbstractCollection<ITEM>: ITEM must inherit QGraphicsItem");
+    this->setPos(0.0, 0.0);
+}
+
+/*
+Container class,  the container object itself does not contain anything paintable. Therefore the bounding rectangle is empty
     :returns: empty QRectF
 */
-QRectF Spectra::boundingRect() const {
+template<typename ITEM>
+QRectF AbstractCollection<ITEM>::boundingRect() const {
     return QRectF(0.0, 0.0, 0.0, 0.0);
 }
 
-/*
-Container class, doesnt contain its own object to paint.
-    :param painter: the painter
-    :param option: the style options
-    :param widget: (optional) if provided, paints to the widget being painted on
-*/
-void Spectra::paint(QPainter *painter, const QStyleOptionGraphicsItem* option, QWidget* widget) {
-    Q_UNUSED(painter);
-    Q_UNUSED(option);
-    Q_UNUSED(widget);
-    return;
-}
 
 /*
-Builds a vector of Graph::Spectrum items contain the point
+Builds a vector of ITEM objects that are contained with the given point. Uses scaling agnostic lookup.
     :param point: the point to contain in scene coordinates
-    :returns: a vector of all contained Spectrum, can be empty!
+    :returns: a vector of all contained items, can be empty!
 */
-std::vector<Spectrum*> Spectra::containsSpectrum(const QPointF& point) const {
-    if(!this->spectra_space.contains(this->mapFromScene(point))){
-        return std::vector<Spectrum*>();
+template<typename ITEM>
+std::vector<ITEM*> AbstractCollection<ITEM>::containsItems(const QPointF& point) const {
+    if(!this->items_space.local().contains(this->mapFromScene(point))){
+        return std::vector<ITEM*>();
     }
 
-    std::vector<Spectrum*> is_contained;
-    is_contained.reserve(20);
-    for(auto* item : this->spectra_items){
+    std::vector<ITEM*> is_contained;
+    is_contained.reserve(5);
+    for(ITEM* item : this->items){
         if(item->contains(point)){
             is_contained.push_back(item);
         }
@@ -1730,59 +2032,106 @@ std::vector<Spectrum*> Spectra::containsSpectrum(const QPointF& point) const {
 }
 
 /*
-Returns the amount of entrees in the internal spectra_items vector
-    :returns: the amount of spectra stored within the object
+Container class, the container object itself does not contain anything paintable. Therefore painting does nothing.
 */
-std::size_t Spectra::size() const {
-    return this->spectra_items.size();
-}
-
-/*
-Returns the minimum width of (one) ticks
-    :returns int: width
-*/
-int Spectra::minimumWidth() const {
-    return this->minimum_width;
-}
-
-/*
-Return the minimum height of the ticks
-    :returns: height
-*/
-int Spectra::minimumHeight() const {
-    return this->minimum_height;
-}
-
-/*
-Calculates the minimum size. Which is nothing, so does nothing.
-*/
-void Spectra::calculateMinimumSize() {
+template<typename ITEM>
+void AbstractCollection<ITEM>::paint(QPainter *painter, const QStyleOptionGraphicsItem* option, QWidget* widget){
+    Q_UNUSED(painter);
+    Q_UNUSED(option);
+    Q_UNUSED(widget);
     return;
 }
 
 /*
-Sets the position of all the spectrums stores within this container
+Container class, the container object itself does not contain anything paintable.
+    :param painter: the painter
+    :param option: the style options
+    :param widget: (optional) if provided, paints to the widget being painted on
+*/
+template<typename ITEM>
+void AbstractCollection<ITEM>::updatePainter(const Graph::Format::Style* style){
+    this->style = style;
+
+    // If given a nullptr, do nothing
+    if(!this->style){
+        return;
+    }
+
+    for(ITEM* item : this->items){
+        item->updatePainter(style);
+    }
+}
+
+/*
+Returns the amount of entrees in the internal items vector
+    :returns: the amount of ITEMs stored within the object
+*/
+template<typename ITEM>
+std::size_t AbstractCollection<ITEM>::size() const {
+    return this->items.size();
+}
+
+/*
+Calculates the minimum size. The container object itself does not contain anything paintable. 
+Therefore, the minimum size is always constants.
+*/
+template<typename ITEM>
+void AbstractCollection<ITEM>::calculateMinimumSize() {
+    return;
+}
+
+/*
+Return the minimum width of the object. This is zero for a container class.
+    :returns: height
+*/
+template<typename ITEM>
+int AbstractCollection<ITEM>::minimumWidth() const {
+    return this->minimum_width;
+}
+
+/*
+Return the minimum height of the object. This is zero for a container class.
+    :returns: height
+*/
+template<typename ITEM>
+int AbstractCollection<ITEM>::minimumHeight() const {
+    return this->minimum_height;
+}
+
+/*
+Sets the position of all the ITEMs stores within this container by calling the items setPosition() function.
     :param settings: the graph settings
     :param space: the space appointed to the widget
 */
-void Spectra::setPosition(const Graph::Format::Settings& settings, const QRectF& space) {
-    this->setPos(space.topLeft());
+template<typename ITEM>
+void AbstractCollection<ITEM>::setPosition() { 
+    for(ITEM* item : this->items){
+        item->setPosition(this->items_space);
+    }
+}
 
-    // Localize the bounding box
-    QRectF local_space = QRectF(0.0, 0.0, space.width(), space.height());
-    this->spectra_space = local_space;
+template class AbstractCollection<Spectrum>;
+template class AbstractCollection<Laser>;
+template class AbstractCollection<Filter>;
 
-    for(Graph::Spectrum* spectrum : this->spectra_items){
-        spectrum->setPosition(settings, local_space);
-    }    
+/* ############################################################################################################## */
+
+/*
+Constructor: container for the spectrum widgets. Handles mainly the adding and removing of the spectra.
+    :param parent: parent widget
+*/
+SpectrumCollection::SpectrumCollection(const PlotRectF& rect, QGraphicsItem* parent) :
+    AbstractCollection(rect, parent)
+{
+    this->items.reserve(25);
 }
 
 /*
 Sets the select parameters of all contained spectrum to the specified value
     :param select: the select state
 */
-void Spectra::setSelect(bool select) {
-    for(Spectrum* item : this->spectra_items){
+void SpectrumCollection::setSelect(bool select) {
+    for(Spectrum* item : this->items){
         item->setSelect(select);
     }
 }
@@ -1792,13 +2141,14 @@ Synchronizes all the spectra to the Cache state. Handles adding, order and remov
     :param input: a (ordered) vector of the cache state. Ordering is not required for proper functioning of the graph plotting
     :param settings: the graph settings, necessary for correct positioning of the new items
 */
-void Spectra::syncSpectra(const std::vector<Cache::CacheID>& cache_state, const Graph::Format::Settings& settings){
+void SpectrumCollection::syncSpectra(const std::vector<Cache::CacheID>& cache_state){
     // Special case: cache is empty -> remove all
     if(cache_state.empty()){
-        for(Graph::Spectrum* item : this->spectra_items){
+        for(Graph::Spectrum* item : this->items){
             delete item;
         }
-        this->spectra_items.clear();
+        this->items.clear();
+        return;
     }
 
     // Iteration has to happen with indexes, as the .insert() can cause the vector to reallocate -> invalidates all iterators
@@ -1808,18 +2158,18 @@ void Spectra::syncSpectra(const std::vector<Cache::CacheID>& cache_state, const 
         // First look for index (if available)
         std::size_t index_item = this->findIndex(*id.data, index_current);
 
-        if(index_item >= this->spectra_items.size()){
+        if(index_item >= this->items.size()){
             // item was not found - create new one
             Graph::Spectrum* item_new = new Graph::Spectrum(*id.data, this);
 
             // Give new item the correct properties
-            if(this->spectra_style){    // Can be nullptr
-                item_new->updatePainter(this->spectra_style);
+            if(this->style){    // Can be nullptr
+                item_new->updatePainter(this->style);
             }
-            item_new->setPosition(settings, this->spectra_space);
+            item_new->setPosition(this->items_space);
 
-            this->spectra_items.insert(
-                std::next(this->spectra_items.begin(), static_cast<int>(index_current)), 
+            this->items.insert(
+                std::next(this->items.begin(), static_cast<int>(index_current)), 
                 item_new
             );  
         }else if(index_item == index_current){
@@ -1828,9 +2178,9 @@ void Spectra::syncSpectra(const std::vector<Cache::CacheID>& cache_state, const 
             // item was found - rotate into position
             std::size_t index_next = index_item + 1;
             std::rotate(
-                std::next(this->spectra_items.begin(), static_cast<int>(index_current)),
-                std::next(this->spectra_items.begin(), static_cast<int>(index_item)), 
-                std::next(this->spectra_items.begin(), static_cast<int>(index_next))
+                std::next(this->items.begin(), static_cast<int>(index_current)),
+                std::next(this->items.begin(), static_cast<int>(index_item)), 
+                std::next(this->items.begin(), static_cast<int>(index_next))
             );
         }
 
@@ -1838,15 +2188,15 @@ void Spectra::syncSpectra(const std::vector<Cache::CacheID>& cache_state, const 
     }
 
     // Remove obsolete items 
-    if(this->spectra_items.size() != index_current){
+    if(this->items.size() != index_current){
         // Delete items
-        for(std::size_t i = index_current; i<this->spectra_items.size(); ++i){
-            delete this->spectra_items[i];
+        for(std::size_t i = index_current; i<this->items.size(); ++i){
+            delete this->items[i];
         }
         // Delete pointers
-        this->spectra_items.erase(
-            std::next(this->spectra_items.begin(), static_cast<int>(index_current)), 
-            this->spectra_items.cend()
+        this->items.erase(
+            std::next(this->items.begin(), static_cast<int>(index_current)), 
+            this->items.cend()
         );
     }
 
@@ -1858,22 +2208,32 @@ void Spectra::syncSpectra(const std::vector<Cache::CacheID>& cache_state, const 
 Updates the internal spectra to the cache state. Assumes that the cache has been properly synced. Does not add or remove items.
     :param cache_state: the state to update to
 */
-void Spectra::updateSpectra(const std::vector<Cache::CacheID>& cache_state){
-    for(std::size_t i=0; i<this->spectra_items.size(); ++i){
-        this->spectra_items[i]->updateSpectrum(*cache_state[i].data);
+void SpectrumCollection::updateSpectra(const std::vector<Cache::CacheID>& cache_state){
+    for(std::size_t i=0; i<this->items.size(); ++i){
+        this->items[i]->updateSpectrum(*cache_state[i].data);
     }
 }
 
 /*
-Stores the style object pointer, and updates current spectrum objects
-    :param style: pen factory
+Builds a vector of Spectrum items that are contained with the given point
+    :param space: the plotting region, internally the scaling properties are used for quick lookup
+    :param point: the point to contain in scene coordinates
+    :returns: a vector of all contained items, can be empty!
 */
-void Spectra::updatePainter(const Graph::Format::Style* style){
-    this->spectra_style = style;
-
-    for(Graph::Spectrum* item : this->spectra_items){
-        item->updatePainter(style);
+std::vector<Spectrum*> SpectrumCollection::containsItems(const PlotRectF& space, const QPointF& point) const {
+    if(!this->items_space.local().contains(this->mapFromScene(point))){
+        return std::vector<Spectrum*>();
     }
+
+    std::vector<Spectrum*> is_contained;
+    is_contained.reserve(5);
+    for(Spectrum* item : this->items){
+        if(item->contains(space, point)){
+            is_contained.push_back(item);
+        }
+    }
+
+    return is_contained;
 }
 
 /*
@@ -1882,14 +2242,14 @@ Returns the index or if not found the size of the vector (if this->spectra_items
     :param id: the data to compare to
     :param index_start: starts the index search at the specified start. Undefined behavior for values > size() -1
 */
-std::size_t Spectra::findIndex(const Data::CacheSpectrum& id, std::size_t index_start) const {
-    if(this->spectra_items.empty()){
+std::size_t SpectrumCollection::findIndex(const Data::CacheSpectrum& id, std::size_t index_start) const {
+    if(this->items.empty()){
         return 1;
     }
 
     std::size_t i;
-	for(i=index_start; i < this->spectra_items.size(); ++i){
-		if(&this->spectra_items[i]->source() == &id){
+	for(i=index_start; i < this->items.size(); ++i){
+		if(&this->items[i]->source() == &id){
 			return i;
 		}
 	}
@@ -1897,5 +2257,119 @@ std::size_t Spectra::findIndex(const Data::CacheSpectrum& id, std::size_t index_
 	return i;
 }
 
+/* ############################################################################################################## */
+
+/*
+Constructor: container for Laser widgets. This mainly handles the adding and removing of the Lasers.
+    :param rect: the plotting rectangle.
+    :param parent: parent widget
+*/
+LaserCollection::LaserCollection(const PlotRectF& rect, QGraphicsItem* parent) :
+    AbstractCollection(rect, parent)
+{
+    this->items.reserve(5);
+}
+
+/*
+Synchronizes the laser_state to the container laser items
+    :param laser_state: the laser state
+    :param settings: graph settings
+*/
+void LaserCollection::syncLasers(const std::vector<int>& laser_state){
+    // Special clear state
+    if(laser_state.empty()){
+        for(Graph::Laser* item : this->items){
+            delete item;
+        }
+        this->items.clear();
+        return;
+    }
+    
+    // Construct / Destruct the necessary amount of item
+    if(this->items.size() < laser_state.size()){
+        for(std::size_t i=this->items.size(); i < laser_state.size(); ++i){
+            Laser* item = new Laser(this);
+            this->items.push_back(item);
+        }
+    }else if(this->items.size() > laser_state.size()){
+        for(std::size_t i=laser_state.size(); i > this->items.size(); --i){
+            delete this->items[i];
+        }
+        this->items.erase(
+            std::next(this->items.begin(), static_cast<int>(laser_state.size())), 
+            this->items.cend()
+        );
+    }
+
+    // Synchronize the wavelength
+    for(std::size_t i=0; i<this->items.size(); ++i){
+        this->items[i]->setWavelength(laser_state[i]);
+        this->items[i]->setPosition(this->items_space);
+        if(this->style){    // Can be nullptr
+            this->items[i]->updatePainter(this->style);
+        }
+    }
+}
+
+/*
+Synchronizes the collection to contain zero or one Graph::Laser.
+    :param int: the wavelength the Graph::Laser should show. A negative value will result in removal of the item
+    :param settings: the graph's settings
+*/
+void LaserCollection::syncLaser(int wavelength){
+    // If wavelength is below zero, all items will be removed
+    if(wavelength < 0){
+        for(Graph::Laser* item : this->items){
+            delete item;
+        }
+        this->items.clear();
+        return;
+    }
+
+    if(this->items.empty()){
+        Laser* item = new Laser(wavelength, this);
+        this->items.push_back(item);
+
+        if(this->style){    // Can be nullptr
+            item->updatePainter(this->style);
+        }
+        item->setPosition(this->items_space);
+
+        return;
+    }
+
+    // Not empty so atleast one item exists
+    this->items[0]->setWavelength(wavelength);
+    this->items[0]->setPosition(this->items_space);
+
+    // Make sure only 1 laser is constructed
+    if(this->items.size() > 1){
+        for(std::size_t i=1; i > this->items.size(); ++i){
+            delete this->items[i];
+        }
+        this->items.erase(
+            std::next(this->items.begin(), 1), 
+            this->items.cend()
+        );
+    }
+}
+
+/* ############################################################################################################## */
+
+/*
+Constructor: container for the Detector widgets. This mainly handles the adding and removing of detectors.
+    :param rect: the plotting rectangle.
+    :param parent: parent widget
+*/
+DetectorCollection::DetectorCollection(const PlotRectF& rect, QGraphicsItem* parent) : 
+    AbstractCollection(rect, parent)
+{
+    this->items.reserve(6);
+
+    //Filter* item = new Filter(550, 580, this);
+    //item->setBevel(Filter::BevelShape::Square, Filter::BevelShape::Round);
+    //item->setLineStyle(Qt::DashLine, Qt::SolidLine);
+    //this->items.push_back(item);
+}
 
 } // Graph namespace

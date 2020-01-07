@@ -280,7 +280,7 @@ Constructor: Lasers-button for add and removing all lasers from a plot
 LasersButton::LasersButton(QWidget* parent) :
     IconPushButton(parent)
 {
-    this->tooltip_disabled = QString("No cytometer enabled");
+    this->tooltip_disabled = QString("No instrument enabled");
     this->tooltip_active = QString("Expand graphs");
     this->tooltip_inactive = QString("Reduce graphs");
     this->setActive(true);

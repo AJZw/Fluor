@@ -340,12 +340,38 @@ void Popup::updateRect(const QWidget* widget){
 
 /*
 Slot: Reloads and repopulates the model
-    :param cytometer: the cytometer data to load into the model
-
-void Popup::reloadModel(const DataCytometer* cytometer){
-    
-}
+    :param instrument: the instrument data to load into the model
 */
+void Popup::reloadModel(const Data::Instrument& instrument){
+    // Get original model as the original has to be deleted manually
+    QAbstractItemModel* model_old = this->model();
+    QStandardItemModel* model_new = new QStandardItemModel(this);
+
+    QStandardItem* item_remove = new QStandardItem("Remove Laser");
+    item_remove->setCheckable(false);
+    item_remove->setData(-1);
+    model_new->appendRow(item_remove);
+
+    for(const Data::LaserLine& line : instrument.optics()){
+        for(const Data::Laser& laser : line.lasers()){
+            QString text = QString();
+            if(laser.name().isNull()){
+                text = QString("%1nm").arg(laser.wavelength());
+            }else{
+                text = QString("%1nm - %2").arg(QString::number(static_cast<int>(laser.wavelength())), laser.name());
+            }
+
+            QStandardItem* item_widget = new QStandardItem(text);
+            item_widget->setCheckable(false);
+            item_widget->setData(laser.wavelength(), Qt::UserRole +1);
+            model_new->appendRow(item_widget);
+
+        }
+    }
+
+    this->setModel(model_new);
+    delete model_old;
+}
 
 /*
 Constructor: Constructs a Fluorophore LineEdit object.
@@ -1220,15 +1246,11 @@ void LineEdit::updatePopupDblClicked(const QModelIndex& index){
     this->clearFocus();
 }
 
-
 /*
 Slot: reloads the this->popup() model
-
-void LineEdit::reloadModel(const Data::Cytometers* data){
-    if(data){
-        qDebug() << "reload laser model";
-    }
-}
 */
+void LineEdit::reloadModel(const Data::Instrument& instrument){
+    this->popup()->reloadModel(instrument);
+}
 
 } // Laser namespace

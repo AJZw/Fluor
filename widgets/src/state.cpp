@@ -21,21 +21,33 @@ Constructor:
 */
 State::State(Data::Factory& factory) : 
     factory(factory),
-    data(),
+    data_fluorophores(),
+    data_instruments(),
     style(),
-    cache(this->factory, this->data),
+    cache(this->factory, this->data_fluorophores),
     gui(),
-    global()
+    global(),
+    instrument()
 {
     // Load fluorophore data
-    if(!this->factory.isValid(Data::Factory::fluorophores)){
-        qFatal("State::State: invalid Factory::fluorophores");
+    if(!this->factory.isValid(Data::Factory::Fluorophores)){
+        qFatal("State::State: invalid Factory::Fluorophores");
     }
-    this->data.load(this->factory);
+    this->data_fluorophores.load(this->factory);
+
+    // Load instrument data
+    if(!this->factory.isValid(Data::Factory::Instruments)){
+        qWarning() << "State::State: invalid Factory::Instruments. Uses default";
+    }else{
+        this->data_instruments.load(this->factory);
+    }
+
+    // Retreive the settings data
+    this->syncGlobal();
 
     // If the style can be loaded, (try to) load the default style
-    if(this->factory.isValid(Data::Factory::styles)){
-        this->style.loadStyle(this->factory, "BLACKBLUE");
+    if(this->factory.isValid(Data::Factory::Styles)){
+        this->style.loadStyle(this->factory, this->global.style);
     }
     this->gui.setStyleSheet(this->style.getStyleSheet());
 
@@ -59,16 +71,64 @@ State::State(Data::Factory& factory) :
     QObject::connect(this, &State::State::sendCacheStateSorting, &this->cache, &Cache::Cache::cacheStateSetSorting);
 
     // Load default settings here
-
+    this->syncInstrument();
     this->syncToolbar();
     this->syncCache();
-
 
     // Start GUI
     this->gui.show();
 
     // Loads the fluorophore data into the GUI
-    emit this->gui.sendData(this->data);
+    emit this->gui.sendData(this->data_fluorophores);
+    emit this->gui.sendInstrument(this->instrument);
+}
+
+/*
+Synchronizes the global state to the stored settings dat
+*/
+void State::syncGlobal() {
+    std::unique_ptr<QSettings> data = this->factory.get(Data::Factory::Settings);
+
+    // Get style
+    QString style_id = data->value("DEFAULT/style", this->global.style).toString();
+    style_id = data->value("USER/style", style_id).toString();
+    this->global.style = style_id;
+
+    // Get sorting mode
+    QString sort_mode = data->value("DEFAULT/sort_mode", QString()).toString();
+    sort_mode = data->value("USER/sort_mode", sort_mode).toString();
+    if(sort_mode == "Additive"){
+        this->global.sort_fluorophores = SortMode::Additive;
+    }else if(sort_mode == "AdditiveReversed"){
+        this->global.sort_fluorophores = SortMode::AdditiveReversed;
+    }else if(sort_mode == "Alphabetical"){
+        this->global.sort_fluorophores = SortMode::Alphabetical;
+    }else if(sort_mode == "AlphabeticalReversed"){
+        this->global.sort_fluorophores = SortMode::AlphabeticalReversed;
+    }else if(sort_mode == "Excitation"){
+        this->global.sort_fluorophores = SortMode::Excitation;
+    }else if(sort_mode == "ExcitationReversed"){
+        this->global.sort_fluorophores = SortMode::ExcitationReversed;
+    }else if(sort_mode == "Emission"){
+        this->global.sort_fluorophores = SortMode::Emission;
+    }else if(sort_mode == "EmissionReversed"){
+        this->global.sort_fluorophores = SortMode::EmissionReversed;
+    }
+    // If QString isNull() it keeps the hardcoded default
+}
+
+/*
+Synchronizes the instrument properties
+*/
+void State::syncInstrument() {
+    std::unique_ptr<QSettings> data = this->factory.get(Data::Factory::Settings);
+
+    QString instrument_id = data->value("USER/instrument", QString()).toString();
+
+    if(!instrument_id.isEmpty()){
+        this->instrument = this->data_instruments.getInstrument(this->factory, instrument_id);
+    }
+
 }
 
 /*

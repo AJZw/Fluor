@@ -538,7 +538,7 @@ QPen Style::penEmission(QColor color) const {
 Constructs and returns a pen for the selected Graph::Spectrum absorption curve 
 */
 QPen Style::penAbsorptionSelect(QColor color) const {
-    color.setAlpha(255);
+    color.setAlpha(215);
     
     QPen pen(this->absorption_style);
     pen.setWidth(this->absorption_width);
@@ -552,7 +552,7 @@ QPen Style::penAbsorptionSelect(QColor color) const {
 Constructs and returns a pen for the selected Graph::Spectrum excitation curve
 */
 QPen Style::penExcitationSelect(QColor color) const {
-    color.setAlpha(255);
+    color.setAlpha(215);
 
     QPen pen(this->excitation_style);
     pen.setWidth(this->excitation_width);
@@ -566,7 +566,7 @@ QPen Style::penExcitationSelect(QColor color) const {
 Constructs and returns a pen for the selected Graph::Spectrum emission curve
 */
 QPen Style::penEmissionSelect(QColor color) const {
-    color.setAlpha(255);
+    color.setAlpha(215);
     
     QPen pen(this->emission_style);
     pen.setWidth(this->emission_width);
@@ -576,6 +576,244 @@ QPen Style::penEmissionSelect(QColor color) const {
     return pen;
 }
 
+/*
+Constructs and returns a pen for a Graph::Laser object
+    :param color: the color of the pen
+*/
+QPen Style::penLaser(QColor color) const {
+    QPen pen(Qt::SolidLine);
+    pen.setWidth(2);
+    pen.setCapStyle(Qt::SquareCap);
+    pen.setJoinStyle(Qt::MiterJoin);
+    pen.setColor(color);
+    return pen;
+}
+
+/*
+Constructs and returns a pen for a Graph::Detector object
+    :param line_style: the linestyle of the pen
+*/
+QPen Style::penFilter(Qt::PenStyle line_style) const {
+    QPen pen(line_style);
+    pen.setWidth(2);
+    pen.setCapStyle(Qt::FlatCap);       // A SquareCap will cause line overlaps in the Graph::Filter painting
+    pen.setJoinStyle(Qt::MiterJoin);
+    pen.setColor(QColor("#CCCCCC"));
+    return pen;
+}
+
 } // Format namespace
+
+// ################################################################################## //
+
+/*
+Constructor: Construct a default PlotRectF
+*/
+PlotRectF::PlotRectF() :
+    margins_settings(2, 2, 3, 2),
+    rect_local(0, 0, 0, 0),
+    rect_settings(0, 0, 0, 0),
+    rect_global(0, 0, 0, 0)
+{}
+
+/*
+Constructor: Construct a PlotRectF with the supplied settings and margins.
+*/
+PlotRectF::PlotRectF(const QRectF& settings, const QMargins& margins) :
+    margins_settings(margins),
+    rect_local(0, 0, 0, 0),
+    rect_settings(settings),
+    rect_global(0, 0, 0, 0)
+{
+    this->calculate();
+}
+
+/*
+Getter. Returns the margins applied to the settings.
+*/
+const QMargins& PlotRectF::margins() const {
+    return this->margins_settings;
+}
+
+/*
+Setter. Sets the margins that are applied to the settings to construct the global rectangle
+*/
+void PlotRectF::setMargins(const QMargins& margins){
+    this->margins_settings = margins;
+
+    this->calculate();
+}
+
+/*
+Getter. Returns a reference to the local plotting rectangle. Use this rectangle to find the 
+scenes plotting region
+*/
+const QRectF& PlotRectF::local() const {
+    return this->rect_local;
+}
+
+/*
+Getter. Returns a reference to the settings rectangle. This is the global rectangle before margins adjustment.
+*/
+const QRectF& PlotRectF::settings() const {
+    return this->rect_settings;
+}
+
+/*
+Getter. Returns a reference to the global rectangle. Use this rectangle to find the represented
+x and y values of the plot
+*/
+const QRectF& PlotRectF::global() const {
+    return this->rect_global;
+}
+
+/*
+Sets a new local rectangle. This forces recalculation of the toLocal/toGlobal functions
+    :param rect: the new local rectangle
+*/
+void PlotRectF::setLocal(const QRectF& rect){
+    this->rect_local = rect;
+
+    this->calculate();
+}
+
+/*
+Sets a new global rectangle. This forces recalculation of the toLocal/toGlobal functions
+    :param rect: the new global rectangle
+*/
+void PlotRectF::setSettings(const QRectF& rect){
+    this->rect_settings = rect;
+
+    // Calculate to construct rect_global
+    this->calculate();
+}
+
+/*
+Transforms the global X value into the local equivalent
+*/
+double PlotRectF::toLocalX(double global) const {
+    global *= this->x_slope_global_to_local;
+    global += this->x_intercept;
+    return global;
+}
+
+/*
+Transform the local X value into the global equivalent
+*/
+double PlotRectF::toGlobalX(double local) const {
+    local -= this->x_intercept;
+    local *= this->x_slope_local_to_global;
+    return local;
+}
+
+/*
+Transforms the global Y value into the local equivalent
+    :param global: the global Y value (0-100)
+    :param intensity: the intensity scaling (0.0-1.0)
+*/
+double PlotRectF::toLocalY(double global, double intensity) const {
+    global *= intensity;
+    global *= this->y_slope_global_to_local;
+    global += this->y_intercept;
+    return global;
+}
+
+/*
+Transform the local Y value into the global equivalent
+    :param global: the local Y value (0-100)
+    :param intensity: the intensity scaling (0.0-1.0)
+*/
+double PlotRectF::toGlobalY(double local, double intensity) const {
+    local -= this->y_intercept;
+    local *= this->y_slope_local_to_global;
+    local /= intensity;
+    return local;
+}
+
+/*
+Returns the function that transforms the global X value into the local X value
+*/
+std::function<double(double)> PlotRectF::toLocalXFunction() const {
+    double slope = this->x_slope_global_to_local;
+    double intercept = this->x_intercept;
+
+    auto lambda = [slope, intercept](double global){
+        global *= slope;
+        global += intercept;
+        return global;
+    };
+
+    return lambda;
+}
+
+/*
+Returns the function that transforms the local X value into the global X value
+*/
+std::function<double(double)> PlotRectF::toGlobalXFunction() const {
+    double slope = this->x_slope_local_to_global;
+    double intercept = this->x_intercept;
+
+    std::function<double(double)> functor = [slope, intercept](double local){
+        local *= slope;
+        local += intercept;
+        return local;
+    };
+    return functor;
+}
+
+/*
+Returns the function that transforms the global Y value into the local Y value
+*/
+std::function<double(double, double)> PlotRectF::toLocalYFunction() const {
+    double slope = this->y_slope_global_to_local;
+    double intercept = this->y_intercept;
+
+    std::function<double(double, double)> functor = [slope, intercept](double global, double intensity){
+        global *= intensity;
+        global *= slope;
+        global += intercept;
+        return global;
+    };
+    return functor;
+}
+
+/*
+Returns the function that transforms the local Y value into the global Y value
+*/
+std::function<double(double, double)> PlotRectF::toGlobalYFunction() const {
+    double slope = this->y_slope_global_to_local;
+    double intercept = this->y_intercept;
+    
+    std::function<double(double, double)> functor = [slope, intercept](double local, double intensity){
+        local -= intercept;
+        local *= slope;
+        local /= intensity;
+        return local;
+    };
+    return functor;
+}
+
+/*
+Calculates the linear transformation equations and stores the slope
+*/
+void PlotRectF::calculate(){
+    this->x_slope_global_to_local = (this->rect_local.width() - this->margins_settings.left() - this->margins_settings.right()) / this->rect_settings.width();
+    this->x_slope_local_to_global = this->rect_settings.width() / (this->rect_local.width() - this->margins_settings.left() - this->margins_settings.right());
+
+    double global_left = this->rect_settings.left() - (this->x_slope_local_to_global * this->margins_settings.left());
+    double global_right = this->rect_settings.right() + (this->x_slope_local_to_global * this->margins_settings.right());
+
+    this->x_intercept = this->rect_local.left() - (global_left * this->x_slope_global_to_local);
+
+    this->y_slope_global_to_local = (this->rect_local.height() - this->margins_settings.top() - this->margins_settings.bottom()) / this->rect_settings.height();
+    this->y_slope_local_to_global = this->rect_settings.height() / (this->rect_local.height() - this->margins_settings.top() - this->margins_settings.bottom());
+
+    double global_top = this->rect_settings.top() - (this->y_slope_local_to_global * this->margins_settings.top());
+    double global_bottom = this->rect_settings.bottom() + (this->y_slope_local_to_global * this->margins_settings.bottom());
+
+    this->y_intercept = this->rect_local.top() - (global_top * this->y_slope_global_to_local);
+
+    this->rect_global = QRectF(QPointF(global_left, global_top), QPointF(global_right, global_bottom));
+}
 
 } // Graph namespace

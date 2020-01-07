@@ -50,7 +50,7 @@ Controller::Controller(QWidget* parent) :
 
     // Forwards the events to/from LineEdit
     QObject::connect(this, &Laser::Controller::sendGlobalEvent, widget_lineedit, &Laser::LineEdit::unfocus);
-    //QObject::connect(this, &Laser::Controller::sendCytometer, widget_lineedit, &Laser::LineEdit::reloadModel);
+    QObject::connect(this, &Laser::Controller::sendInstrument, widget_lineedit, &Laser::LineEdit::reloadModel);
     QObject::connect(this, &Laser::Controller::sendGlobalSize, widget_lineedit, &Laser::LineEdit::reloadSize);
     QObject::connect(widget_lineedit, &Laser::LineEdit::output, this, &Laser::Controller::receiveOutput);
 
@@ -83,12 +83,11 @@ void Controller::receiveGlobalSize(const QWidget* widget){
 }
 
 /*
-Slot: reload the cytometer data of the widget
-
-void Controller::receiveCytometer(const Data::Cytometer& data){
-    emit this->sendCytometer(data);
-}
+Slot: reloads the data of the instrument
 */
+void Controller::receiveInstrument(const Data::Instrument& instrument){
+    emit this->sendInstrument(instrument);
+}
 
 /*
 Slot: receives and sends the output data

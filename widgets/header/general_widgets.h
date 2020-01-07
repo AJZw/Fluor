@@ -24,7 +24,7 @@
 ***************************************************************************/
 
 /**** DOC ******************************************************************
-** The fluorophore menu lineedit
+** General widgets
 **
 ** :class: General::ScrollBar
 ** A QScrollBar that emits signals upon showing and hiding

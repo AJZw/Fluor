@@ -33,11 +33,9 @@ GRAPH:
     Save graph properties and reload upon opening -> for now disabled cause it breaks the BarLayout
     GraphPlot in Square instead of line upon certain size / option?
     'black' axes face_color option allow for white out of visible spectrum plotting
-    Add Object for non-sequential lasers
     Colinear lasers object
     Selection in Plot -> see statistics of each plot
-    More indepth detector plotting, also taking into account the dichromatic mirrors etc.
-    Proper Graph::Spectrum bounding box determinations
+    >> Proper Graph::Spectrum bounding box determinations
 
 MAC:
     Check stylesheet 

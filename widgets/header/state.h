@@ -27,9 +27,8 @@
 ** Handles the global state and connections of the GUI to non-GUI properties
 ** Aka the glue between all parts
 **
-**
-** :enum: State::AbsorptionOption
-** The fluororesence absorption method
+** :enum: State::ExcitationOption
+** The fluoresence excitation method
 **
 ** :struct: State::GUIGlobal
 ** Storage class for the global GUI properties
@@ -37,7 +36,6 @@
 ** :class: State::State
 ** Main state of the program. Combines GUI with the non-GUI properties
 ** 
-**
 ***************************************************************************/
 
 #ifndef STATE_H
@@ -47,6 +45,7 @@
 #include "global.h"
 #include "data_factory.h"
 #include "data_fluorophores.h"
+#include "data_instruments.h"
 #include "data_styles.h"
 #include "cache.h"
 #include "main_controller.h"
@@ -55,7 +54,7 @@
 
 namespace State {
 
-enum class AbsorptionOption {
+enum class ExcitationOption {
     SinglePhoton,
     MultiPhoton
 };
@@ -73,7 +72,9 @@ struct GUIGlobal {
     bool enabled_detector = false;
     bool enabled_lasers = false;
 
-    SortOption sort_fluorophores = SortOption::Additive;
+    SortMode sort_fluorophores = SortMode::Additive;
+
+    QString style = QString("BLACKBLUE");
 };
 
 class State : public QObject {
@@ -89,12 +90,17 @@ class State : public QObject {
 
     private:
         Data::Factory& factory;
-        Data::Fluorophores data;
+        Data::FluorophoreReader data_fluorophores;
+        Data::InstrumentReader data_instruments;
         Data::Style::Builder style;
         Cache::Cache cache;
         Main::Controller gui;
-        GUIGlobal global;
 
+        GUIGlobal global;
+        Data::Instrument instrument;
+
+        void syncGlobal();
+        void syncInstrument();
         void syncToolbar();
         void syncCache();
 
@@ -103,7 +109,7 @@ class State : public QObject {
         void sendCacheState(Cache::CacheState state);
         void sendCacheStateExcitation(bool visible);
         void sendCacheStateEmission(bool visible);
-        void sendCacheStateSorting(SortOption option);
+        void sendCacheStateSorting(SortMode mode);
 
     public slots:
         void receiveToolbarState(Bar::ButtonType type, bool active, bool enable);

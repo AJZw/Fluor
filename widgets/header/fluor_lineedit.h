@@ -113,7 +113,7 @@ class LineEdit : public QLineEdit {
         void unfocus(QEvent* event);
 
         void reloadSize(const QWidget* widget=nullptr);
-        void reloadData(const Data::Fluorophores& data);
+        void reloadData(const Data::FluorophoreReader& data);
         void sync(const std::vector<Cache::CacheID>& input);
 
         void updatePopupHighlighted(const QString& text);
@@ -196,7 +196,7 @@ class Completer : public QCompleter {
         QString completion;
     
     signals:
-        void _q_complete(QModelIndex index);        // to (dynamically) connect to private _q_complete slot
+        void q_complete(QModelIndex index);        // to (dynamically) connect to private _q_complete slot
         void completed(QString completion);         // fired after completion has been determined
         void popupVisible(bool visible);            // fires upon popup visibility changes
 

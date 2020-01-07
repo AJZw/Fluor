@@ -26,7 +26,10 @@
 /**** DOC ******************************************************************
 ** The fluorophore data classes
 **
-** :class: DataFluorophores
+** :class: Data::FluorophoreID
+** A struct holding the basic information of a Fluorophore entree.
+**
+** :class: Data::Fluorophore
 ** Object that loads fluorophore data from a QSettings. Builds maps/sets,
 ** and can return spectrum (DataSpectrum) data upon request.
 ** 
@@ -50,7 +53,11 @@
 namespace Data {
 
 struct DATALIB_EXPORT FluorophoreID {
-    FluorophoreID(QString id, QString name, unsigned int order) : id(id), name(name), order(order) {};
+    FluorophoreID(QString id, QString name, unsigned int order) : 
+        id(id), 
+        name(name), 
+        order(order)
+    {};
     FluorophoreID(const FluorophoreID&) = default;
     FluorophoreID& operator=(const FluorophoreID&) = default;
     FluorophoreID(FluorophoreID&&) = default;
@@ -58,22 +65,34 @@ struct DATALIB_EXPORT FluorophoreID {
     ~FluorophoreID() = default;
 
     friend QDebug operator<<(QDebug stream, const FluorophoreID& object){return stream << "{" << object.id << ":" << object.name << ":" << object.order << "}";};
-    bool operator<(const FluorophoreID& other) const {return this->id < other.id;}
+    bool operator<(const FluorophoreID& other) const {return this->id < other.id;};
+    bool operator>(const FluorophoreID& other) const {return this->id > other.id;};
+    bool operator<=(const FluorophoreID& other) const {return this->id <= other.id;};
+    bool operator>=(const FluorophoreID& other) const {return this->id >= other.id;};
+    bool operator==(const FluorophoreID& other) const {return this->id == other.id;};
+    bool operator!=(const FluorophoreID& other) const {return this->id != other.id;};
 
     const QString id;
     mutable QString name;
     mutable unsigned int order;
 };
 
-class DATALIB_EXPORT Fluorophores {
+class DATALIB_EXPORT FluorophoreReader {
     public:
-        Fluorophores();
-        Fluorophores(const Fluorophores&) = default;
-        Fluorophores& operator=(const Fluorophores&) = default;
-        Fluorophores(Fluorophores&&) = default;
-        Fluorophores& operator=(Fluorophores&&) = default;
-        ~Fluorophores() = default;
+        FluorophoreReader();
+        FluorophoreReader(const FluorophoreReader&) = default;
+        FluorophoreReader& operator=(const FluorophoreReader&) = default;
+        FluorophoreReader(FluorophoreReader&&) = default;
+        FluorophoreReader& operator=(FluorophoreReader&&) = default;
+        ~FluorophoreReader() = default;
 
+    private:
+        bool data_loaded;
+        std::vector<QString> fluor_name;                        // ordered vector of fluorophore names (for input list)
+        std::unordered_map<QString, QString> fluor_id;          // unordered map, each fluorophore's name corresponding fluorophore ID (for ID/spectrum lookup)
+        std::unordered_map<QString, QStringList> fluor_names;   // unordered map, each fluorophore's name corresponding to all name variants (for lineedit item en/disabling) 
+
+    public:
         void load(Data::Factory& data);
         void unload();
         bool isValid() const;
@@ -86,11 +105,6 @@ class DATALIB_EXPORT Fluorophores {
         Data::CacheSpectrum getCacheSpectrum(const Data::Factory& data, const QString& id, unsigned int index) const;
 
     private:
-        bool data_loaded;
-        std::vector<QString> fluor_name;                        // ordered vector of fluorophore names (for input list)
-        std::unordered_map<QString, QString> fluor_id;          // unordered map, each fluorophore's name corresponding fluorophore ID (for ID/spectrum lookup)
-        std::unordered_map<QString, QStringList> fluor_names;   // unordered map, each fluorophore's name corresponding to all name variants (for lineedit item en/disabling) 
-    
         static Data::Polygon toPolygon(const QStringList& list_x, const QStringList& list_y);
 
         static void qDebugMap(const std::unordered_map<QString, QString>& map);

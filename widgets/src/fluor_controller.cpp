@@ -110,7 +110,7 @@ void Controller::receiveGlobalEvent(QEvent* event){
 /*
 Slot: reload the data of the widget
 */
-void Controller::receiveData(const Data::Fluorophores& data){
+void Controller::receiveData(const Data::FluorophoreReader& data){
     emit this->sendData(data);
 }
 

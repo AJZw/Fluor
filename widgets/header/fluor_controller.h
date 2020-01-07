@@ -76,7 +76,7 @@ class Controller : public QWidget{
     public slots:
         void receiveGlobalEvent(QEvent* event);
         void receiveGlobalSize(const QWidget* widget=nullptr);
-        void receiveData(const Data::Fluorophores& data);
+        void receiveData(const Data::FluorophoreReader& data);
 
         void receiveCacheRequestUpdate();
         void receiveCacheAdd(std::vector<Data::FluorophoreID>& fluorophores);
@@ -91,7 +91,7 @@ class Controller : public QWidget{
     signals:
         void sendGlobalEvent(QEvent* event);
         void sendGlobalSize(const QWidget* widget=nullptr);
-        void sendData(const Data::Fluorophores& data);
+        void sendData(const Data::FluorophoreReader& data);
 
         void showPushButton();
         void hidePushButton();

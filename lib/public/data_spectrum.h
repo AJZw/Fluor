@@ -36,7 +36,7 @@
 ** Container for excitation and emission curves (Data::Polygon) and ID
 **
 ** :class: Data::CacheSpectrum
-** Container for a Data::Spectrum and global parameters
+** Container for a Data::Spectrum and painting parameters
 ** 
 ***************************************************************************/
 
@@ -44,6 +44,8 @@
 #define DATA_SPECTRUM_H
 
 #include "data_global.h"
+
+#include <functional>
 
 #include <QString>
 #include <QStringList>
@@ -88,10 +90,12 @@ class DATALIB_EXPORT Polygon {
 
         QPolygonF& polygon();
 
-        bool contains(const QPointF& point) const;
+        bool contains(const QPointF& point, double line_width) const;
+        bool contains(const QPointF& point, double line_width, std::function<double(double)> scale_x) const;
 
         // Polygon scaling/moving - note: the cache is supposed to keep unmodified originals
-        void scale(const Polygon& base, const QRectF& size, const double xg_start, const double xg_end, const double yg_start, const double yg_end, const qreal intensity=1.0);
+        void scale(const Polygon& base, const QRectF& size, const double xg_start, const double xg_end, const double yg_start, const double yg_end, const double intensity=1.0);
+        void scale(const Polygon& base, const QRectF& size, std::function<double(double)> scale_x, std::function<double(double, double)> scale_y, const double intensity=1.0);
         void copyCurve(const Polygon& base);
         void closeCurve(const QRectF& size);
 
@@ -100,7 +104,7 @@ class DATALIB_EXPORT Polygon {
         double x_max;
         double y_min;
         double y_max;
-        QColor line_color;
+        QColor curve_color;
         QPolygonF curve;
 };
 
@@ -121,7 +125,6 @@ class DATALIB_EXPORT Spectrum {
 
         const Data::Polygon& excitation() const;
         const Data::Polygon& emission() const;
-        const Data::Polygon& emission_fill() const;
         void setExcitation(Polygon polygon);
         void setEmission(Polygon polygon);
 
@@ -134,8 +137,6 @@ class DATALIB_EXPORT Spectrum {
         qreal emissionAt(double wavelength, double cutoff=0.0) const;
         double excitationMax() const;
         double emissionMax() const;
-
-        void scale(const Data::Polygon& base, const QRectF& size, const double xg_start, const double xg_end, const double yg_start, const double yg_end, const qreal intensity=1.0);
 
     private:
         // Flags

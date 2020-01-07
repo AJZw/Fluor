@@ -21,25 +21,25 @@ Constructor - Factory that checks path validity upon construction and returns QS
 Factory::Factory() :
     file_settings("data/settings.ini"),
     file_styles("data/styles.ini"),
-    file_cytometers("data/cytometers.ini"),
+    file_instruments("data/instruments.ini"),
     file_fluorophores("data/fluorophores.ini"),
     path_exe(QApplication::instance()->applicationDirPath()),
     valid_settings(false), valid_defaults(false), valid_styles(false),
-    valid_cytometers(false), valid_fluorophores(false),
+    valid_instruments(false), valid_fluorophores(false),
     error_fatal(false), error_warning(false)
     {
     // Build paths:
     this->path_settings = QDir(this->path_exe).filePath(this->file_settings);
     this->path_defaults = QDir(this->path_exe).filePath(this->file_settings);
     this->path_styles = QDir(this->path_exe).filePath(this->file_styles);
-    this->path_cytometers = QDir(this->path_exe).filePath(this->file_cytometers);
+    this->path_instruments = QDir(this->path_exe).filePath(this->file_instruments);
     this->path_fluorophores = QDir(this->path_exe).filePath(this->file_fluorophores);
 
     // Check path validity
     this->valid_settings = Factory::exists(this->path_settings);
     this->valid_defaults = Factory::exists(this->path_defaults);
     this->valid_styles = Factory::exists(this->path_styles);
-    this->valid_cytometers = Factory::exists(this->path_cytometers);
+    this->valid_instruments = Factory::exists(this->path_instruments);
     this->valid_fluorophores = Factory::exists(this->path_fluorophores);
 
     // Here you could check for file validity
@@ -49,7 +49,7 @@ Factory::Factory() :
         qWarning() << "Data::Factory::Factory(): cannot find settings.ini";
         this->error_fatal = true;
     }
-    if(!this->valid_styles || !this->valid_cytometers || !this->valid_fluorophores){
+    if(!this->valid_styles || !this->valid_instruments || !this->valid_fluorophores){
         qWarning() << "Data::Factory::Factory(): cannot find styles.ini/cytometers.ini/fluorophores.ini";
         this->error_warning = true;
     }
@@ -65,29 +65,29 @@ Constructor - builds factory with custom relative paths to the data files
 Factory::Factory(
     const QString settings,
     const QString styles,
-    const QString cytometers,
+    const QString instruments,
     const QString fluorophores) : 
-    file_settings(settings),
-    file_styles(styles),
-    file_cytometers(cytometers),
-    file_fluorophores(fluorophores),
+    file_settings(std::move(settings)),
+    file_styles(std::move(styles)),
+    file_instruments(std::move(instruments)),
+    file_fluorophores(std::move(fluorophores)),
     path_exe(QApplication::applicationDirPath()),
     valid_settings(false), valid_defaults(false), valid_styles(false),
-    valid_cytometers(false), valid_fluorophores(false),
+    valid_instruments(false), valid_fluorophores(false),
     error_fatal(false), error_warning(false)
     {
     // Build paths:
     this->path_settings = QDir(this->path_exe).filePath(this->file_settings);
     this->path_defaults = QDir(this->path_exe).filePath(this->file_settings);
     this->path_styles = QDir(this->path_exe).filePath(this->file_styles);
-    this->path_cytometers = QDir(this->path_exe).filePath(this->file_cytometers);
+    this->path_instruments = QDir(this->path_exe).filePath(this->file_instruments);
     this->path_fluorophores = QDir(this->path_exe).filePath(this->file_fluorophores);
 
     // Check path validity
     this->valid_settings = Factory::exists(this->path_settings);
     this->valid_defaults = Factory::exists(this->path_defaults);
     this->valid_styles = Factory::exists(this->path_styles);
-    this->valid_cytometers = Factory::exists(this->path_cytometers);
+    this->valid_instruments = Factory::exists(this->path_instruments);
     this->valid_fluorophores = Factory::exists(this->path_fluorophores);
 
     // Here you could check for file validity
@@ -97,7 +97,7 @@ Factory::Factory(
         qWarning() << "Data::Factory::Factory(): cannot find settings.ini";
         this->error_fatal = true;
     }
-    if(!this->valid_styles || !this->valid_cytometers || !this->valid_fluorophores){
+    if(!this->valid_styles || !this->valid_instruments || !this->valid_fluorophores){
         qWarning() << "Data::Factory::Factory(): cannot find styles.ini / cytometers.ini / fluorophores.ini";
         this->error_warning = true;
     }
@@ -117,15 +117,15 @@ Returns the validity for the specified data type
 */
 bool Factory::isValid(Factory::type data) const {
     switch(data){
-    case Factory::settings:
+    case Factory::Settings:
         return this->valid_settings;
-    case Factory::defaults:
+    case Factory::Defaults:
         return this->valid_defaults;
-    case Factory::styles:
+    case Factory::Styles:
         return this->valid_styles;
-    case Factory::cytometers:
-        return this->valid_cytometers;
-    case Factory::fluorophores:
+    case Factory::Instruments:
+        return this->valid_instruments;
+    case Factory::Fluorophores:
         return this->valid_fluorophores;
     default:
         return false;
@@ -155,7 +155,7 @@ void Factory::execMessages() const {
         if(!this->valid_styles){
             message.append("Styles data could not be found.\n");
         }
-        if(!this->valid_cytometers){
+        if(!this->valid_instruments){
             message.append("Cytometers data could not be found.\n");
         }
         if(!this->valid_fluorophores){
@@ -168,7 +168,7 @@ void Factory::execMessages() const {
         if(!this->valid_styles){
             message.append("Styles data could not be found.\n");
         }
-        if(!this->valid_cytometers){
+        if(!this->valid_instruments){
             message.append("Cytometers data could not be found.\n");
         }
         if(!this->valid_fluorophores){
@@ -207,8 +207,8 @@ QString Factory::getPathStyles() const {
 Getter for path_cytometers
     :returns: absolute path to the cytometers source file
 */
-QString Factory::getPathCytometers() const {
-    return this->path_cytometers;
+QString Factory::getPathInstruments() const {
+    return this->path_instruments;
 }
 
 /*
@@ -228,7 +228,7 @@ between factory construction and the get call the file could have been removed.
 */
 std::unique_ptr<QSettings> Factory::get(const Factory::type type) const {
     switch(type){
-    case Factory::settings:{
+    case Factory::Settings:{
         if(this->valid_settings){
             if(!Factory::exists(this->path_settings)){
                 qFatal("Data::Factory::get(): settings data file does not exist anymore");
@@ -239,7 +239,7 @@ std::unique_ptr<QSettings> Factory::get(const Factory::type type) const {
         }
         break;
     }
-    case Factory::defaults:{
+    case Factory::Defaults:{
         if(this->valid_defaults){
             if(!Factory::exists(this->path_defaults)){
                 qFatal("Data::Factory::get(): defaults data file does not exist anymore");
@@ -250,7 +250,7 @@ std::unique_ptr<QSettings> Factory::get(const Factory::type type) const {
         }
         break;
     }
-    case Factory::styles:{
+    case Factory::Styles:{
         if(this->valid_styles){
             if(!Factory::exists(this->path_styles)){
                 qFatal("Data::Factory::get(): styles data file does not exist anymore");
@@ -261,18 +261,18 @@ std::unique_ptr<QSettings> Factory::get(const Factory::type type) const {
         }
         break;
     }
-    case Factory::cytometers:{
-        if(this->valid_cytometers){
-            if(!Factory::exists(this->path_cytometers)){
-                qFatal("Data::Factory::get(): cytometers data file does not exist anymore");
+    case Factory::Instruments:{
+        if(this->valid_instruments){
+            if(!Factory::exists(this->path_instruments)){
+                qFatal("Data::Factory::get(): instruments data file does not exist anymore");
             }
-            return std::make_unique<QSettings>(this->path_cytometers, QSettings::IniFormat);
+            return std::make_unique<QSettings>(this->path_instruments, QSettings::IniFormat);
         }else{
             qFatal("Data::Factory::get(): requested invalid data source");
         }
         break;
     }
-    case Factory::fluorophores:{
+    case Factory::Fluorophores:{
         if(this->valid_fluorophores){
             if(!Factory::exists(this->path_fluorophores)){
                 qFatal("Data::Factory::get(): fluorophores data file does not exist anymore");

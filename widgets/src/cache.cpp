@@ -16,7 +16,7 @@ namespace Cache {
 Constructor: Sets up the fluorophore cache. Ment as the central spil of all (inuse) fluorophore data.
     :param source: the (on the HDD) data object to request data from. CANNOT be a nullptr
 */
-Cache::Cache(Data::Factory& factory, Data::Fluorophores& source) :
+Cache::Cache(Data::Factory& factory, Data::FluorophoreReader& source) :
     source_factory(factory),
     source_data(source),
     items(),
@@ -151,9 +151,9 @@ Sort a vector based on the SortOption
     :param input: the vector to sort
     :param option: the way to sort he vector
 */
-void Cache::sortVector(std::vector<CacheID>& input, State::SortOption option){
-    switch(option){
-    case State::SortOption::Additive:{
+void Cache::sortVector(std::vector<CacheID>& input, State::SortMode mode){
+    switch(mode){
+    case State::SortMode::Additive:{
         std::sort(input.begin(), input.end(), 
             [](const CacheID& obj_a, const CacheID& obj_b){
                 return obj_a.data->index() < obj_b.data->index();
@@ -161,7 +161,7 @@ void Cache::sortVector(std::vector<CacheID>& input, State::SortOption option){
         );
         return;
     }
-    case State::SortOption::AdditiveReversed:{
+    case State::SortMode::AdditiveReversed:{
         std::sort(input.begin(), input.end(), 
             [](const CacheID& obj_a, const CacheID& obj_b){
                 return obj_a.data->index() > obj_b.data->index();
@@ -169,7 +169,7 @@ void Cache::sortVector(std::vector<CacheID>& input, State::SortOption option){
         );
         return;
     }
-    case State::SortOption::Alphabetical:{
+    case State::SortMode::Alphabetical:{
         std::sort(input.begin(), input.end(), 
             [](const CacheID& obj_a, const CacheID& obj_b){
                 return obj_a.name < obj_b.name;
@@ -177,7 +177,7 @@ void Cache::sortVector(std::vector<CacheID>& input, State::SortOption option){
         );
         return;
     }
-    case State::SortOption::AlphabeticalReversed:{
+    case State::SortMode::AlphabeticalReversed:{
         std::sort(input.begin(), input.end(), 
             [](const CacheID& obj_a, const CacheID& obj_b){
                 return obj_a.name > obj_b.name;
@@ -185,7 +185,7 @@ void Cache::sortVector(std::vector<CacheID>& input, State::SortOption option){
         );
         return;
     }
-    case State::SortOption::Emission:{
+    case State::SortMode::Emission:{
         // Presort alphabetically
         std::sort(input.begin(), input.end(), 
             [](const CacheID& obj_a, const CacheID& obj_b){
@@ -201,7 +201,7 @@ void Cache::sortVector(std::vector<CacheID>& input, State::SortOption option){
         );
         return;
     }
-    case State::SortOption::EmissionReversed:{
+    case State::SortMode::EmissionReversed:{
         // Presort alphabetically
         std::sort(input.begin(), input.end(), 
             [](const CacheID& obj_a, const CacheID& obj_b){
@@ -217,7 +217,7 @@ void Cache::sortVector(std::vector<CacheID>& input, State::SortOption option){
         );
         return;
     }
-    case State::SortOption::Excitation:{
+    case State::SortMode::Excitation:{
         // Presort alphabetically
         std::sort(input.begin(), input.end(), 
             [](const CacheID& obj_a, const CacheID& obj_b){
@@ -233,7 +233,7 @@ void Cache::sortVector(std::vector<CacheID>& input, State::SortOption option){
         );
         return;
     }
-    case State::SortOption::ExcitationReversed:{
+    case State::SortMode::ExcitationReversed:{
          // Presort alphabetically
         std::sort(input.begin(), input.end(), 
             [](const CacheID& obj_a, const CacheID& obj_b){
@@ -348,7 +348,7 @@ void Cache::sync() {
     cache_state.insert(cache_state.end(), this->items.begin(), this->items.end());
 
     // Sort based on sort qualifyer
-    this->sortVector(cache_state, this->state.sort_option);
+    this->sortVector(cache_state, this->state.sort_mode);
 
     emit this->cacheSync(cache_state);
 }
@@ -365,7 +365,7 @@ void Cache::update() {
     cache_state.insert(cache_state.end(), this->items.begin(), this->items.end());
 
     // Sort based on sort qualifyer, when properly implemented this code has to request the sorting order somehow
-    this->sortVector(cache_state, this->state.sort_option);
+    this->sortVector(cache_state, this->state.sort_mode);
 
     emit this->cacheUpdate(cache_state);
 }
@@ -419,12 +419,12 @@ void Cache::cacheStateSetEmission(bool visible) {
 Slot: set the cache state sorting option and sync's this.
     :param option: the new sorting option
 */
-void Cache::cacheStateSetSorting(State::SortOption option) {
-    if(option == this->state.sort_option){
+void Cache::cacheStateSetSorting(State::SortMode mode) {
+    if(mode == this->state.sort_mode){
         return;
     }
 
-    this->state.sort_option = option;
+    this->state.sort_mode = mode;
 
     this->sync();
 }

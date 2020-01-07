@@ -40,7 +40,7 @@
 #include <QLineEdit>
 #include <QListView>
 #include <QEvent>
-//#include "data_cytometers.h"
+#include "data_instruments.h"
 
 namespace Laser {
 
@@ -85,7 +85,7 @@ class Popup : public QListView {
         void showPopup();
         void buildOutput(const QModelIndex& index);
         void updateRect(const QWidget* widget);
-        //void reloadModel(const DataCytometers* data=nullptr);
+        void reloadModel(const Data::Instrument& instrument);
 
 };
 
@@ -132,7 +132,7 @@ class LineEdit : public QLineEdit {
         void hideButton();
         void unfocus(QEvent* event);
         void reloadSize(const QWidget* widget=nullptr);
-        //void reloadModel(const Data::Cytometers* data=nullptr);
+        void reloadModel(const Data::Instrument& instrument);
 
     private slots:
         void reset();

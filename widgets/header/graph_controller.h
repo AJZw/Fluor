@@ -75,7 +75,6 @@ class Controller : public QWidget {
         void receiveCacheUpdate(const std::vector<Cache::CacheID>& cache_state);
         void receiveStyleChanged();
 
-
 };
 
 } // Graph namespace

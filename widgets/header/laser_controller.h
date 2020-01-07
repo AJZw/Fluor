@@ -37,8 +37,7 @@
 #include <QWidget>
 #include <QStringList>
 #include <QPaintEvent>
-
-//#include "data_cytometer.h"
+#include "data_instruments.h"
 
 namespace Laser {
 
@@ -58,7 +57,7 @@ class Controller : public QWidget{
     public slots:
         void receiveGlobalEvent(QEvent* event);
         void receiveGlobalSize(const QWidget* widget=nullptr);
-        //void receiveCytometer(const Data::Cytometer& data);
+        void receiveInstrument(const Data::Instrument& instrument);
         void receiveOutput(int output);
 
     private slots:
@@ -68,7 +67,7 @@ class Controller : public QWidget{
     signals:
         void sendGlobalEvent(QEvent* event);
         void sendGlobalSize(const QWidget* widget=nullptr);
-        //void sendCytometer(const Data::Cytometer& data);
+        void sendInstrument(const Data::Instrument& instrument);
         void sendOutput(int output);
 
         void showPushButton();

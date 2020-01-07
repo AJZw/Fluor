@@ -30,7 +30,7 @@ int main(int argc, char **argv)
     Data::Style::Builder STYLE;
     APP.setStyleSheet(STYLE.getStyleSheet());
 
-    // Run error/warning messages and quits when invalid DataFactory
+    // Run error/warning messages and quits when invalid Data::Factory
     if(!FACTORY.isValid()){
         FACTORY.execMessages();
         APP.quit();

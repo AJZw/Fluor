@@ -37,6 +37,7 @@
 #include <QMainWindow>
 #include "global.h"
 #include "data_fluorophores.h"
+#include "data_instruments.h"
 #include "cache.h"
 #include <vector>
 
@@ -97,7 +98,8 @@ class Controller : public QMainWindow {
         void screenDPIChanged(QWidget* widget);
 
         void sendGlobalEvent(QEvent* event);
-        void sendData(const Data::Fluorophores& data);
+        void sendData(const Data::FluorophoreReader& data);
+        void sendInstrument(const Data::Instrument& instrument);
 
         void sendCacheRequestUpdate();
         void sendCacheAdd(std::vector<Data::FluorophoreID>& fluorophores);

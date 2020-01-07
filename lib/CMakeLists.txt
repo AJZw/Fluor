@@ -15,8 +15,8 @@ set(CMAKE_AUTOMOC ON)
 add_library(data_library SHARED
     public/data_global.h
 
-    #public/data_cytometers.h
-    #data_cytometers.cpp
+    public/data_instruments.h
+    src/data_instruments.cpp
 
     public/data_factory.h
     src/data_factory.cpp
@@ -43,12 +43,21 @@ target_compile_options(data_library PRIVATE
     -Wsign-compare
     -Wsign-conversion
     -Wsign-promo
-    #-fsanitize=address
+    -Wnon-virtual-dtor
+    -Wold-style-cast
+    -Wunused
+    -Woverloaded-virtual
+    -Wnull-dereference
+    -Wdouble-promotion
+    -Wduplicated-cond
+    -Wduplicated-branches
+    -Wlogical-op
+    #-Wuseless-cast
 )
 
-#target_link_options(data_library PRIVATE
-#    -fsanitize=address
-#)
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+  target_compile_definitions(fluor PRIVATE QT_DEBUG_NO_OUTPUT)
+endif()
 
 set_target_properties(data_library PROPERTIES
     OUTPUT_NAME _data
