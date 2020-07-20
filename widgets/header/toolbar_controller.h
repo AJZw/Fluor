@@ -67,25 +67,25 @@ class Controller : public QWidget {
     // local
     signals:    
         void enableLaser(bool enable);
-        void enableDetector(bool enable);
-        void enableLasers(bool enable);
+        void enableFilter(bool enable);
+        void enableLaserLines(bool enable);
 
         void activateLaser(bool active);
         void activateExcitation(bool active);
         void activateEmission(bool active);
-        void activateDetector(bool active);
+        void activateFilter(bool active);
         void activateGraphAdd(bool active);
         void activateGraphRemove(bool active);
-        void activateLasers(bool active);
+        void activateLaserLines(bool active);
 
     private slots:
         void clickedLaser(bool active);
         void clickedExcitation(bool active);
         void clickedEmission(bool active);
-        void clickedDetector(bool active);
+        void clickedFilter(bool active);
         void clickedGraphAdd(bool active);
         void clickedGraphRemove(bool active);
-        void clickedLasers(bool active);
+        void clickedLaserLines(bool active);
 
 };
 

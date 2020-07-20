@@ -102,6 +102,7 @@
 
 #include "graph_format.h"
 #include "data_spectrum.h"
+#include "data_instruments.h"
 #include "cache.h"
 
 #include <QGraphicsScene>
@@ -426,6 +427,14 @@ class Outline : public QGraphicsRectItem {
         int minimum_width;
         int minimum_height;
 
+        bool is_hover;
+        bool is_pressed;
+        bool is_selected;
+
+        QPen pen_default;
+        QPen pen_hover; 
+        QPen pen_pressed;
+
     public:
         void setMargins(int left, int top, int right, int bottom);
         const QMargins& margins() const;
@@ -435,6 +444,13 @@ class Outline : public QGraphicsRectItem {
 
         void setPosition(const QRectF& space);
         void updatePainter(const Graph::Format::Style* style);
+
+        void setHover(bool hover);
+        bool isHover() const;
+        void setPressed(bool press);
+        bool isPressed() const;
+        void setSelected(bool select);
+        bool isSelected() const;
 };
 
 class Colorbar : public QGraphicsRectItem {
@@ -451,7 +467,14 @@ class Colorbar : public QGraphicsRectItem {
         int minimum_width;
         int minimum_height;
 
+        bool is_hover;
+        bool is_pressed;
+        bool is_selected;
+
         QLinearGradient gradient;
+        QPen pen_default;
+        QPen pen_hover; 
+        QPen pen_pressed;
 
     public:
         void setMargins(int left, int top, int right, int bottom);
@@ -462,6 +485,13 @@ class Colorbar : public QGraphicsRectItem {
 
         void setPosition(const PlotRectF& settings, const QRectF& space);
         void updatePainter(const Graph::Format::Style* style);
+
+        void setHover(bool hover);
+        bool isHover() const;
+        void setPressed(bool press);
+        bool isPressed() const;
+        void setSelected(bool select);
+        bool isSelected() const;
 };
 
 class Spectrum : public QGraphicsItem {
@@ -504,7 +534,8 @@ class Spectrum : public QGraphicsItem {
         bool contains(const PlotRectF& space, const QPointF& point) const;
 
         void setPosition(const PlotRectF& space);
-        void updateSpectrum(const Data::CacheSpectrum& cache_spectrum);
+        void updateSpectrum();
+        void updateIntensity(const std::vector<Data::Laser>& lasers);
         void updatePainter(const Graph::Format::Style* style);
 
         Data::CacheSpectrum& source() const;
@@ -515,7 +546,7 @@ class Spectrum : public QGraphicsItem {
 class Laser : public QGraphicsLineItem {
     public:
         explicit Laser(QGraphicsItem* parent=nullptr);
-        explicit Laser(int wavelength, QGraphicsItem* parent=nullptr);
+        explicit Laser(double wavelength, QGraphicsItem* parent=nullptr);
         Laser(const Laser &obj) = delete;
         Laser& operator=(const Laser &obj) = delete;
         Laser(Laser&&) = delete;
@@ -523,11 +554,11 @@ class Laser : public QGraphicsLineItem {
         virtual ~Laser() = default;
 
     private:
-        int laser_wavelength;
+        double laser_wavelength;
 
     public:
-        void setWavelength(int wavelength);
-        int wavelength() const;
+        void setWavelength(double wavelength);
+        double wavelength() const;
 
         virtual bool contains(const QPointF& point) const override;
 
@@ -575,6 +606,9 @@ class Filter : public QGraphicsItem {
         void setPosition(const PlotRectF& space);
         void updatePainter(const Graph::Format::Style* style);
 
+        double wavelengthLeft() const;
+        double wavelengthRight() const;
+
         void setWavelengths(double left, double right);
         void setLineStyle(Qt::PenStyle left, Qt::PenStyle right);
         void setBevel(BevelShape left, BevelShape right);
@@ -613,6 +647,7 @@ class AbstractCollection : public QGraphicsItem {
         int minimumHeight() const;
 
         void setPosition();
+
 };
 
 class SpectrumCollection : public AbstractCollection<Spectrum> {
@@ -627,8 +662,9 @@ class SpectrumCollection : public AbstractCollection<Spectrum> {
     public:
         void setSelect(bool select);
 
-        void syncSpectra(const std::vector<Cache::CacheID>& cache_state);
-        void updateSpectra(const std::vector<Cache::CacheID>& cache_state);
+        void syncSpectra(const std::vector<Cache::CacheID>& cache_state, const std::vector<Data::Laser>& lasers);
+        void updateSpectra();
+        void updateIntensity(const std::vector<Data::Laser>& lasers);
 
         std::vector<Spectrum*> containsItems(const PlotRectF& space, const QPointF& point) const;
 
@@ -646,21 +682,24 @@ class LaserCollection : public AbstractCollection<Laser> {
         virtual ~LaserCollection() = default;
 
     public:
-        void syncLasers(const std::vector<int>& laser_state);
-        void syncLaser(int laser_state);
+        const std::vector<Data::Laser> lasers() const;
+        void syncLaser(double wavelength);
+        void syncLasers(const std::vector<Data::Laser>& lasers);
+        void updateLasers(bool visible);
 };
 
-class DetectorCollection : public AbstractCollection<Filter> {
+class FilterCollection : public AbstractCollection<Filter> {
     public:
-        explicit DetectorCollection(const PlotRectF& rect, QGraphicsItem* scene=nullptr);
-        DetectorCollection(const DetectorCollection &obj) = delete;
-        DetectorCollection& operator=(const DetectorCollection &obj) = delete;
-        DetectorCollection(DetectorCollection&&) = delete;
-        DetectorCollection& operator=(DetectorCollection&&) = delete;
-        virtual ~DetectorCollection() = default;
+        explicit FilterCollection(const PlotRectF& rect, QGraphicsItem* scene=nullptr);
+        FilterCollection(const FilterCollection &obj) = delete;
+        FilterCollection& operator=(const FilterCollection &obj) = delete;
+        FilterCollection(FilterCollection&&) = delete;
+        FilterCollection& operator=(FilterCollection&&) = delete;
+        virtual ~FilterCollection() = default;
 
     public:
-        //void syncDetectors(std::vector<Machine::DetectorID>& machine_state);
+        void syncFilters(const std::vector<Data::Filter>& filters);
+        void updateFilters(bool visible);
 };
 
 } // Graph namespace

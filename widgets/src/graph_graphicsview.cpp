@@ -22,6 +22,8 @@ GraphicsView::GraphicsView(QGraphicsScene* scene, QWidget* parent) :
     //this->setSceneRect(0, 0, 100, 100);
     this->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     this->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+
+    this->setMouseTracking(true);
 }
 
 void GraphicsView::resizeEvent(QResizeEvent* event){

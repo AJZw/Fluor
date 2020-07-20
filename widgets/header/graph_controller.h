@@ -28,6 +28,9 @@
 **
 ** :class: Graph::Controller
 ** Controls the signal and slots of a graph widget
+**
+** :class: Graph::ScrollController
+** Controls the showing / scrolling of multiple Graph::Controller widgets
 ** 
 ***************************************************************************/
 
@@ -37,8 +40,11 @@
 #include <cache.h>
 #include "graph_graphicsscene.h"
 #include "graph_graphicsview.h"
+#include "data_instruments.h"
+#include "state_gui.h"
 
 #include <QWidget>
+#include <QScrollArea>
 #include <QPaintEvent>
 
 namespace Graph {
@@ -62,19 +68,73 @@ class Controller : public QWidget {
         Graph::Format::Style* graphics_style;
 
     signals:
-        void sendGlobalEvent(QEvent* event);
         void sendCacheSync(const std::vector<Cache::CacheID>& cache_state);
-        void sendCacheUpdate(const std::vector<Cache::CacheID>& cache_state);
-        void sendPainterUpdate(const Graph::Format::Style* style);
-
+        void sendCacheUpdate();
         void sendCacheRequestUpdate();
 
-    public slots:
-        void receiveGlobalEvent(QEvent* event);
-        void receiveCacheSync(const std::vector<Cache::CacheID>& cache_state);
-        void receiveCacheUpdate(const std::vector<Cache::CacheID>& cache_state);
-        void receiveStyleChanged();
+        void sendGraphSelect(const Controller* graph, bool state);
+        void sendGraphState(const State::GraphState& state);
 
+        void sendPainterUpdate(const Graph::Format::Style* style);
+
+    public slots:
+        void receiveCacheSync(const std::vector<Cache::CacheID>& cache_state);
+        void receiveCacheUpdate();
+
+        void setSelect(bool state);
+        void receivePlotSelected(bool state);
+        void receiveGraphState(const State::GraphState& state);
+
+        void receiveStyleChanged();
+};
+
+class ScrollController : public QScrollArea {
+    Q_OBJECT
+    Q_PROPERTY(QString layout_spacing READ layoutSpacing WRITE setLayoutSpacing)
+    Q_PROPERTY(QString layout_margins_scroll_bar READ layoutMarginsScrollBar WRITE setLayoutMarginsScrollBar)
+
+    public:
+        explicit ScrollController(QWidget* parent = nullptr);
+        ScrollController(const ScrollController &obj) = delete;
+        ScrollController& operator=(const ScrollController &obj) = delete;
+        ScrollController(ScrollController&&) = delete;
+        ScrollController& operator=(ScrollController&&) = delete;
+        ~ScrollController() = default;
+        
+        QString layoutSpacing() const;
+        void setLayoutSpacing(QString layout_spacing);
+        QString layoutMarginsScrollBar() const;
+        void setLayoutMarginsScrollBar(QString layout_spacing_scroll_bar);
+    
+    private:
+        std::vector<Controller*> graph_widgets;
+        Controller* graph_selected;
+        int margin_scrollbar;
+        int column_max;
+
+    private:
+        void addGraph();
+        void removeGraph();
+        void rebuildLayout();
+    
+    signals:
+        void sendCacheSync(const std::vector<Cache::CacheID>& cache_state);
+        void sendCacheUpdate();
+        void sendCacheRequestUpdate();
+
+        void sendGraphSelect(std::size_t index, bool state);
+
+    private slots:
+        void hidingScrollBar();
+        void showingScrollBar();
+
+    public slots:
+        void receiveCacheSync(const std::vector<Cache::CacheID>& cache_state);
+        void receiveCacheUpdate();
+        void receiveCacheRequestUpdate();
+
+        void receiveGraphState(std::vector<State::GraphState>& state);
+        void receiveGraphSelect(const Controller* graph, bool state);
 };
 
 } // Graph namespace

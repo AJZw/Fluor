@@ -14,16 +14,16 @@
     <file>icons/dark_excitation_inactive.png</file>
     <file>icons/dark_emission_active.png</file>
     <file>icons/dark_emission_inactive.png</file>
-    <file>icons/dark_detector_disabled.png</file>
-    <file>icons/dark_detector_active.png</file>
-    <file>icons/dark_detector_inactive.png</file>
+    <file>icons/dark_filter_disabled.png</file>
+    <file>icons/dark_filter_active.png</file>
+    <file>icons/dark_filter_inactive.png</file>
     <file>icons/dark_graph_add_disabled.png</file>
     <file>icons/dark_graph_add_active.png</file>
     <file>icons/dark_graph_remove_disabled.png</file>
     <file>icons/dark_graph_remove_active.png</file>
-    <file>icons/dark_lasers_disabled.png</file>
-    <file>icons/dark_lasers_active.png</file>
-    <file>icons/dark_lasers_inactive.png</file>
+    <file>icons/dark_laserlines_disabled.png</file>
+    <file>icons/dark_laserlines_active.png</file>
+    <file>icons/dark_laserlines_inactive.png</file>
 
     <file>icons/light_laser_disabled.png</file>
     <file>icons/light_laser_active.png</file>
@@ -32,16 +32,16 @@
     <file>icons/light_excitation_inactive.png</file>
     <file>icons/light_emission_active.png</file>
     <file>icons/light_emission_inactive.png</file>
-    <file>icons/light_detector_disabled.png</file>
-    <file>icons/light_detector_active.png</file>
-    <file>icons/light_detector_inactive.png</file>
+    <file>icons/light_filter_disabled.png</file>
+    <file>icons/light_filter_active.png</file>
+    <file>icons/light_filter_inactive.png</file>
     <file>icons/light_graph_add_disabled.png</file>
     <file>icons/light_graph_add_active.png</file>
     <file>icons/light_graph_remove_disabled.png</file>
     <file>icons/light_graph_remove_active.png</file>
-    <file>icons/light_lasers_disabled.png</file>
-    <file>icons/light_lasers_active.png</file>
-    <file>icons/light_lasers_inactive.png</file>
+    <file>icons/light_laserlines_disabled.png</file>
+    <file>icons/light_laserlines_active.png</file>
+    <file>icons/light_laserlines_inactive.png</file>
 
     <file>licenses/GPLv3.html</file>
     <file>licenses/LGPLv3.html</file>

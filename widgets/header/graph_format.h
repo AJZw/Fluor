@@ -63,6 +63,7 @@
 #include <QFont>
 #include <QBrush>
 #include <QPen>
+#include <QDebug>
 
 namespace Graph {
 
@@ -202,6 +203,11 @@ class Style : public QWidget {
         Style(Style&&) = default;
         Style& operator=(Style&&) = default;
         ~Style() = default;
+
+        void mousePressEvent(QMouseEvent* event) override{
+            qDebug() << "Graph::Format::Style::press";
+            QWidget::mousePressEvent(event);
+        }
 
         QString scene() const;
         void setScene(QString scene);

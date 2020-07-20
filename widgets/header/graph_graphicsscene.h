@@ -43,6 +43,8 @@
 
 #include "graph_format.h"
 #include "graph_graphicsitems.h"
+#include "data_instruments.h"
+#include "state_gui.h"
 
 namespace Graph {
 
@@ -73,23 +75,45 @@ class GraphicsScene : public QGraphicsScene {
         Graph::Axis::GridLinesY* item_y_axis_gridlines;
         Graph::SpectrumCollection* item_spectra;
         Graph::LaserCollection* item_lasers;
-        Graph::DetectorCollection* item_detectors;
+        Graph::FilterCollection* item_filters;
         Graph::Outline* item_outline;
 
         // Keeps track of scroll rotation to be able to scroll through the spectrum items
         std::size_t scroll_count;
         // Keep track of current size for style/dpi changes
         QSize size_current;
+        // Keep track of selection status
+        bool is_hover;
+        bool is_pressed;
+        bool is_selected;
 
     private:
         void calculateSizes(const QSize& rect);
 
+    public:
+        bool isPressed() const;
+        void setPressed(bool state);
+        bool isSelected() const;
+        void setSelected(bool state);
+        bool eventFilter(QObject* obj, QEvent* event);
+
     public slots:
         virtual void resizeScene(const QSize& rect);
-        void sync(const std::vector<Cache::CacheID>& cache_state);
-        void update(const std::vector<Cache::CacheID>& cache_state);
-        void updatePainter(const Graph::Format::Style* style);
 
+        void sync(const std::vector<Cache::CacheID>& cache_state);
+        void update();
+
+        void syncGraphState(const State::GraphState& state);
+
+    private slots:
+        void syncLaser(double wavelength);
+        void syncLasers(const std::vector<Data::Laser>& lasers);
+        void updateLasers(bool visible);
+        void syncFilters(const std::vector<Data::Filter>& filters);
+        void updateFilters(bool visible);
+
+    public slots:
+        void updatePainter(const Graph::Format::Style* style);
         void selectSpectrum(const QPointF& point, std::size_t index=0);
 
     protected slots:
@@ -102,6 +126,7 @@ class GraphicsScene : public QGraphicsScene {
 
     signals:
         void spectrumSelected();
+        void plotSelected(bool state);
 };
 
 } // Graph namespace

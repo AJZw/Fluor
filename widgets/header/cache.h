@@ -99,7 +99,7 @@ class Cache : public QObject {
         std::set<CacheID> items;
         std::unordered_map<QString, Data::CacheSpectrum> data;
 
-        // For proper item initiating
+        // For proper Cache item initiating, requires to now some general properties:
         CacheState state;
 
     private:
@@ -127,7 +127,7 @@ class Cache : public QObject {
         // sync signals are for adding and removing cache entrees
         void cacheSync(const std::vector<CacheID>& cache_state);
         // update signals are for updating the state of the widgets, no adding and removing
-        void cacheUpdate(const std::vector<CacheID>& cache_state);
+        void cacheUpdate();
 
 };
 

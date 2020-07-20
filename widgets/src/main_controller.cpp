@@ -22,7 +22,7 @@ Initiliaser - builds a QMainWindow widget and set the connections
 Controller::Controller(QWidget* parent) :
     QMainWindow(parent),
     window_screen(nullptr),
-    window_width(800),
+    window_width(600),
     window_height(300)
 {
     // Set MainWindow properties
@@ -55,6 +55,9 @@ Controller::Controller(QWidget* parent) :
 
     QObject::connect(controller_widget, &Central::Controller::sendToolbarStateChange, this, &Main::Controller::receiveToolbarStateChange);
     QObject::connect(this, &Main::Controller::sendToolbarStateUpdate, controller_widget, &Central::Controller::receiveToolbarStateUpdate);
+
+    QObject::connect(controller_widget, &Central::Controller::sendGraphSelect, this, &Main::Controller::receiveGraphSelect);
+    QObject::connect(this, &Main::Controller::sendGraphState, controller_widget, &Central::Controller::receiveGraphState);
 }
 
 /*
@@ -185,8 +188,8 @@ void Controller::receiveCacheSync(const std::vector<Cache::CacheID>& cache_state
 /*
 Slot: forwards the cache's update request
 */
-void Controller::receiveCacheUpdate(const std::vector<Cache::CacheID>& cache_state){
-    emit this->sendCacheUpdate(cache_state);
+void Controller::receiveCacheUpdate(){
+    emit this->sendCacheUpdate();
 }
 
 /*
@@ -207,6 +210,23 @@ Slot: receives and forwards Toolbar State update
 */
 void Controller::receiveToolbarStateUpdate(Bar::ButtonType type, bool active, bool enable){
     emit this->sendToolbarStateUpdate(type, active, enable);
+}
+
+/*
+Slot: receives and forwards graph select signal
+    :param index: the selected graphs index
+    :param state: the selections state
+*/
+void Controller::receiveGraphSelect(std::size_t index, bool state){
+    emit this->sendGraphSelect(index, state);
+}
+
+/*
+Slot: receives and forwards Graph Set signal
+    :param number: the amount of graphs that should exist
+*/
+void Controller::receiveGraphState(std::vector<State::GraphState>& state){
+    emit this->sendGraphState(state);
 }
 
 } // Main namespace

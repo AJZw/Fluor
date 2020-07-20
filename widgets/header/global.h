@@ -27,6 +27,9 @@
 ** General purpose types that are used in multiple headers
 ** Namespaced to the main user of the enum
 **
+** :enum: State::ExcitationOption
+** The excitation calculation mode
+**
 ** :enum: State::SortMode
 ** The sorting method of the fluorophore buttons, mainly used by state and cache
 **
@@ -39,6 +42,11 @@
 #define GLOBAL_H
 
 namespace State {
+
+enum class ExcitationOption {
+    SinglePhoton,
+    MultiPhoton
+};
 
 enum class SortMode {
     Additive, 
@@ -59,10 +67,10 @@ enum class ButtonType{
     Laser,
     Excitation,
     Emission,
-    Detector,
+    Filter,
     GraphAdd,
     GraphRemove,
-    Lasers
+    LaserLines
 };
 
 } // namespace Bar

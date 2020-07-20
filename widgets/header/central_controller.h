@@ -42,6 +42,7 @@
 #include "data_instruments.h"
 #include "cache.h"
 #include "toolbar_controller.h"
+#include "state_gui.h"
 
 namespace Central {
 
@@ -72,12 +73,15 @@ class Controller : public QWidget {
         void receiveCacheRemove(std::vector<Data::FluorophoreID>& fluorophores);
 
         void receiveCacheSync(const std::vector<Cache::CacheID>& cache_state);
-        void receiveCacheUpdate(const std::vector<Cache::CacheID>& cache_state);
+        void receiveCacheUpdate();
 
         void receiveLaser(int wavelength);
 
         void receiveToolbarStateChange(Bar::ButtonType type, bool active, bool enable);
         void receiveToolbarStateUpdate(Bar::ButtonType type, bool active, bool enable);
+
+        void receiveGraphSelect(std::size_t index, bool state);
+        void receiveGraphState(std::vector<State::GraphState>& state);
 
     signals:
         void sendGlobalEvent(QEvent* event); 
@@ -90,13 +94,15 @@ class Controller : public QWidget {
         void sendCacheRemove(std::vector<Data::FluorophoreID>& fluorophores);
 
         void sendCacheSync(const std::vector<Cache::CacheID>& cache_state);
-        void sendCacheUpdate(const std::vector<Cache::CacheID>& cache_state);
+        void sendCacheUpdate();
         
         void sendLaser(int wavelength);
 
         void sendToolbarStateChange(Bar::ButtonType type, bool active, bool enable=true);
         void sendToolbarStateUpdate(Bar::ButtonType type, bool active, bool enable=true);
 
+        void sendGraphSelect(std::size_t index, bool state);
+        void sendGraphState(std::vector<State::GraphState>& state);
 };
 
 } // Central namespace

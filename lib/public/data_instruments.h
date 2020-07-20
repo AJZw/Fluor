@@ -110,6 +110,7 @@ class DATALIB_EXPORT Filter {
                 return stream << "{SP:" << object.filter_wavelength << "}";
             }else{
                 qWarning() << "QDebug Data::Detector::operator<<: Unknown Detector::Type";
+                return stream;
             }
         };
         Filter::Type type() const;
@@ -191,6 +192,7 @@ class DATALIB_EXPORT Instrument {
         bool isEmpty() const;
         
         void sort();
+        std::pair<const Data::LaserLine*, const Data::Laser*> findLaser(double wavelength) const;
 
         std::vector<LaserLine>& setOptics();
         const std::vector<LaserLine>& optics() const;

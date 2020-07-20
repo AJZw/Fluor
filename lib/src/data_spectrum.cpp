@@ -119,7 +119,7 @@ Assumes a linear distribution of the curve to be able to calculate the index
     :param wavelength: global wavelength in nanometers
     :returns: intensity (0.0-1.0)
 */
-qreal Polygon::intensityAt(double wavelength, double cutoff) const {
+double Polygon::intensityAt(double wavelength, double cutoff) const {
     if(wavelength < this->x_min || wavelength > this->x_max){
         return 0.0;
     }
@@ -128,7 +128,7 @@ qreal Polygon::intensityAt(double wavelength, double cutoff) const {
     fraction *= (this->curve.size() - 1);
     int index = static_cast<int>(fraction);
 
-    qreal intensity = this->curve[index].y();
+    double intensity = this->curve[index].y();
 
     if(intensity <= cutoff){
         intensity = 0.0;
@@ -142,15 +142,15 @@ Returns the intensity at the specified wavelength. Uses binary search to find th
     :param wavelength: global wavelength in nanometers
     :returns: intensity (0.0-1.0)
 */
-qreal Polygon::intensityAtIter(double wavelength, double cutoff) const {
+double Polygon::intensityAtIter(double wavelength, double cutoff) const {
     if(wavelength < this->x_min || wavelength > this->x_max){
         return 0.0;
     }
 
-    qreal fraction = (wavelength - x_min) / (x_max - x_min);
-    auto index = std::lower_bound(this->curve.cbegin(), this->curve.cend(), fraction, [](const QPointF& lhs, qreal rhs){return lhs.x() < rhs;});
+    double fraction = (wavelength - x_min) / (x_max - x_min);
+    auto index = std::lower_bound(this->curve.cbegin(), this->curve.cend(), fraction, [](const QPointF& lhs, double rhs){return lhs.x() < rhs;});
 
-    qreal intensity = index->y();
+    double intensity = index->y();
 
     if(intensity <= cutoff){
         intensity = 0.0;
@@ -164,7 +164,7 @@ Finds the wavelength of the (first) highest y value. Technically could look for 
     :returns: wavelength in nanometers
 */
 double Polygon::intensityMax() const {
-    qreal max = 0.0;
+    double max = 0.0;
     int max_index = 0;
 
     for(int i=0; i < this->curve.size(); ++i){
@@ -247,7 +247,7 @@ bool Polygon::contains(const QPointF& point, double line_width) const{
         this->curve.begin(),
         this->curve.end(),
         point.x(), 
-        [](const QPointF& obj_a, qreal obj_b){
+        [](const QPointF& obj_a, double obj_b){
                 return obj_a.x() < obj_b;
         }
     );
@@ -386,22 +386,22 @@ void Polygon::scale(const Data::Polygon& base, const QRectF& size, const double 
     this->curve.resize(base.curve.size());
 
     // Calculate x parameters
-    qreal x_fraction = size.width() / (xg_end - xg_begin);
-    qreal xl_start = (this->x_min - xg_begin) * x_fraction;
-    qreal xl_end = (this->x_max - xg_begin) * x_fraction;
-    qreal xl_diff = xl_end - xl_start;
+    double x_fraction = size.width() / (xg_end - xg_begin);
+    double xl_start = (this->x_min - xg_begin) * x_fraction;
+    double xl_end = (this->x_max - xg_begin) * x_fraction;
+    double xl_diff = xl_end - xl_start;
 
     // Calculate y parameters
-    qreal y_fraction = size.height() / (yg_end - yg_begin);
-    qreal yl_start = (this->y_min - yg_begin) * y_fraction;
-    qreal yl_end = (this->y_max - yg_begin) * y_fraction;
-    qreal yl_diff = yl_start - yl_end;
+    double y_fraction = size.height() / (yg_end - yg_begin);
+    double yl_start = (this->y_min - yg_begin) * y_fraction;
+    double yl_end = (this->y_max - yg_begin) * y_fraction;
+    double yl_diff = yl_start - yl_end;
 
     // Iterate through polygons, while keeping in mind the x-limits
     int this_i = 0;
     for(int base_i=0; base_i<base.curve.size(); ++base_i){
-        qreal x = base.curve.at(base_i).x();
-        qreal y = base.curve.at(base_i).y();
+        double x = base.curve.at(base_i).x();
+        double y = base.curve.at(base_i).y();
 
         // Calculate scaled x and y; y has to be reversed because the local coordinate system of y is from top to bottom
         x = xl_start + (x * xl_diff);
@@ -467,8 +467,8 @@ void Polygon::scale(const Data::Polygon& base, const QRectF& size, std::function
     // Iterate through polygons, while keeping in mind the x-limits
     int this_i = 0;
     for(int base_i=0; base_i<base.curve.size(); ++base_i){
-        qreal x = base.curve.at(base_i).x();
-        qreal y = base.curve.at(base_i).y();
+        double x = base.curve.at(base_i).x();
+        double y = base.curve.at(base_i).y();
 
         x = scale_x(x);
         y = scale_y(y, intensity);
@@ -658,7 +658,7 @@ Returns the excitation intensity at a specific wavelength
     :param wavelength: the excitation wavelength
     :returns: the excitation intensity fraction, out of bounds returns 0.0, an unspecified wavelength returns the first specified lower value
 */
-qreal Spectrum::excitationAt(double wavelength, double cutoff) const {
+double Spectrum::excitationAt(double wavelength, double cutoff) const {
     return this->polygon_excitation.intensityAt(wavelength, cutoff);
 }
 
@@ -898,18 +898,18 @@ bool CacheSpectrum::twoPhotonFlag() const {
 }
 
 /*
-Returns the excitation intensity (0.0 - 1.0) at the specified wavelength, uses the intensity_cutoff attribute
+Returns the excitation intensity (0.0 - 100.0) at the specified wavelength
     :param wavelength: the wavelength to find the intensity of
 */
-qreal CacheSpectrum::excitationAt(double wavelength) const {
-    return this->spectrum_data.excitationAt(wavelength, this->intensity_cutoff);
+double CacheSpectrum::excitationAt(double wavelength) const {
+    return this->spectrum_data.excitationAt(wavelength, 0.0);
 }
 /*
-Returns the emission intensity (0.0 - 1.0) at the specified wavelength, uses the intensity_cutoff attribute
+Returns the emission intensity (0.0 - 100.0) at the specified wavelength
     :param wavelength: the wavelength to find the intensity of
 */
-qreal CacheSpectrum::emissionAt(double wavelength) const {
-    return this->spectrum_data.emissionAt(wavelength, this->intensity_cutoff);
+double CacheSpectrum::emissionAt(double wavelength) const {
+    return this->spectrum_data.emissionAt(wavelength, 0.0);
 }
 
 } // Data namespace

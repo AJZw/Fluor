@@ -161,16 +161,16 @@ class EmissionButton : public IconPushButton {
         virtual ~EmissionButton() = default;
 };
 
-class DetectorButton : public IconPushButton {
+class FilterButton : public IconPushButton {
     Q_OBJECT
 
     public:
-        explicit DetectorButton(QWidget* parent=nullptr);
-        DetectorButton(const DetectorButton& obj) = delete;
-        DetectorButton& operator=(const DetectorButton& obj) = delete;
-        DetectorButton(DetectorButton&&) = delete;
-        DetectorButton& operator=(const DetectorButton&&) = delete;
-        virtual ~DetectorButton() = default; 
+        explicit FilterButton(QWidget* parent=nullptr);
+        FilterButton(const FilterButton& obj) = delete;
+        FilterButton& operator=(const FilterButton& obj) = delete;
+        FilterButton(FilterButton&&) = delete;
+        FilterButton& operator=(const FilterButton&&) = delete;
+        virtual ~FilterButton() = default; 
 };
 
 class GraphAddButton : public IconPushButton {
@@ -203,16 +203,16 @@ class GraphRemoveButton : public IconPushButton {
         virtual void setActive(bool active) override;
 };
 
-class LasersButton : public IconPushButton {
+class LaserLinesButton : public IconPushButton {
     Q_OBJECT
 
     public:
-        explicit LasersButton(QWidget* parent=nullptr);
-        LasersButton(const LasersButton& obj) = delete;
-        LasersButton& operator=(const LasersButton& obj) = delete;
-        LasersButton(LasersButton&&) = delete;
-        LasersButton& operator=(const LasersButton&&) = delete;
-        virtual ~LasersButton() = default; 
+        explicit LaserLinesButton(QWidget* parent=nullptr);
+        LaserLinesButton(const LaserLinesButton& obj) = delete;
+        LaserLinesButton& operator=(const LaserLinesButton& obj) = delete;
+        LaserLinesButton(LaserLinesButton&&) = delete;
+        LaserLinesButton& operator=(const LaserLinesButton&&) = delete;
+        virtual ~LaserLinesButton() = default; 
 };
 
 class Label : public QLabel {

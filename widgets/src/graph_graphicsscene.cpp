@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.3
-** Date:       2019-04-23
+** Version:    v0.9.7
+** Date:       2020-02-02
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -36,10 +36,13 @@ GraphicsScene::GraphicsScene(Format::Settings settings, QWidget* parent) :
     item_y_axis_gridlines(nullptr),
     item_spectra(nullptr),
     item_lasers(nullptr),
-    item_detectors(nullptr),
+    item_filters(nullptr),
     item_outline(nullptr),
     scroll_count(0),
-    size_current()
+    size_current(),
+    is_hover(false),
+    is_pressed(false),
+    is_selected(false)
 {
     this->plot_rect.setSettings(QRectF(QPointF(this->settings.x_range.begin, this->settings.y_range.begin), QPointF(this->settings.x_range.end, this->settings.y_range.end)));
     
@@ -60,7 +63,7 @@ GraphicsScene::GraphicsScene(Format::Settings settings, QWidget* parent) :
 
     this->item_spectra = new Graph::SpectrumCollection(this->plot_rect);
     this->item_lasers = new Graph::LaserCollection(this->plot_rect);
-    this->item_detectors = new Graph::DetectorCollection(this->plot_rect);
+    this->item_filters = new Graph::FilterCollection(this->plot_rect);
     this->item_outline = new Graph::Outline();
 
     // Add items to the scene, this gives the scene class the actual ownership
@@ -80,7 +83,7 @@ GraphicsScene::GraphicsScene(Format::Settings settings, QWidget* parent) :
 
     this->addItem(this->item_spectra);
     this->addItem(this->item_lasers);
-    this->addItem(this->item_detectors);
+    this->addItem(this->item_filters);
     this->addItem(this->item_outline);
 
     // Startup calculations
@@ -92,6 +95,8 @@ GraphicsScene::GraphicsScene(Format::Settings settings, QWidget* parent) :
     if(this->settings.enable_gridlines){this->item_y_axis_gridlines->setLines(this->settings);}
 
     //this->item_lasers->syncLasers({300, 350, 400, 450, 500, 550, 600, 650, 700, 750});
+
+    this->installEventFilter(this);
 }
 
 /*
@@ -114,7 +119,7 @@ GraphicsScene::~GraphicsScene(){
 
     delete this->item_spectra;
     delete this->item_lasers;
-    delete this->item_detectors;
+    delete this->item_filters;
     delete this->item_outline;
 }
 
@@ -177,10 +182,60 @@ void GraphicsScene::calculateSizes(const QSize& scene){
 
     this->item_spectra->setPosition();
     this->item_lasers->setPosition();
-    this->item_detectors->setPosition();
+    this->item_filters->setPosition();
     
     this->item_outline->setPosition(QRectF(QPointF(x_plot, y_start), QPointF(x_end, y_plot)));
 
+}
+
+/*
+Returns whether the graph is pressed or not
+*/
+bool GraphicsScene::isPressed() const {
+    return this->is_pressed;
+}
+
+/*
+Sets the pressed state. Does not cause a signal to be emitted.
+    :param state: the state to change into
+*/
+void GraphicsScene::setPressed(bool state){
+    this->is_pressed = state;
+
+    this->item_outline->setPressed(this->is_pressed);
+    if(this->settings.enable_colorbar){this->item_x_colorbar->setPressed(this->is_pressed);}
+}
+
+/*
+Returns whether the graph is selected or not
+*/
+bool GraphicsScene::isSelected() const {
+    return this->is_selected;
+}
+
+/*
+Sets the selected state. Does not cause a signal to be emitted
+    :param state: the state to change into
+*/
+void GraphicsScene::setSelected(bool state){
+    this->is_selected = state;
+
+    this->item_outline->setSelected(this->is_selected);
+    if(this->settings.enable_colorbar){this->item_x_colorbar->setSelected(this->is_selected);}
+}
+
+/*
+Eventfilter. Captures mouse leaving the scene
+*/
+bool GraphicsScene::eventFilter(QObject* obj, QEvent* event){
+    Q_UNUSED(obj);
+    if(event->type() == QEvent::Leave){
+        this->is_hover = false;
+        this->item_outline->setHover(false);
+        if(this->settings.enable_colorbar){this->item_x_colorbar->setHover(false);}
+        return false;
+    }
+    return false;
 }
 
 /*
@@ -188,15 +243,83 @@ Slot: receives synchronisation requests forwards it to the spectra object
     :param cache_state: the state of the cache
 */
 void GraphicsScene::sync(const std::vector<Cache::CacheID>& cache_state){
-    this->item_spectra->syncSpectra(cache_state);
+    this->item_spectra->syncSpectra(cache_state, this->item_lasers->lasers());
+    // Schedule a redraw
+    QGraphicsScene::update(this->sceneRect());
 }
 
 /*
 Slot: receives update requests forwards it to the spectra object
     :param cache_state: the state of the cache
 */
-void GraphicsScene::update(const std::vector<Cache::CacheID>& cache_state){
-    this->item_spectra->updateSpectra(cache_state);
+void GraphicsScene::update(){
+    this->item_spectra->updateSpectra();
+    // Schedule a redraw
+    QGraphicsScene::update(this->sceneRect());
+}
+
+/*
+Synchronizes the graphstate to the controller
+    :param state: the state to synchronize
+*/
+void GraphicsScene::syncGraphState(const State::GraphState& state){
+    // Sync Lasers
+    this->syncLasers(state.lasers());
+    this->updateLasers(state.visibleLasers());
+
+    // Sync LaserLine
+    if(state.laserLine()){
+        this->syncFilters(state.laserLine()->filters());
+    }else{
+        this->syncFilters({});
+    }
+    this->updateFilters(state.visibleFilters());
+
+    // Sync visibility / selection
+    this->setSelected(state.isSelected());
+}
+
+/*
+Synchronizes the laser to the graph
+*/
+void GraphicsScene::syncLaser(double wavelength){
+    this->item_lasers->syncLaser(wavelength);
+}
+
+/*
+Synchronizes the lasers to the graph
+*/
+void GraphicsScene::syncLasers(const std::vector<Data::Laser>& lasers){
+    this->item_lasers->syncLasers(lasers);
+
+    // Updates spectra to adhere to excitation intensity
+    this->item_spectra->updateIntensity(lasers);
+    // Need to recalculate the Y coordinate of the spectrum and this forces repainting
+    this->item_spectra->setPosition();
+}
+
+/*
+Update the painting state of the lasers to the graph
+    :param visible: visibility state
+*/
+void GraphicsScene::updateLasers(bool visible){
+    this->item_lasers->updateLasers(visible);
+}
+
+/*
+Synchronizes the detectors of the laserline to the graph
+    :param laser_line: the laser line to sync
+*/
+void GraphicsScene::syncFilters(const std::vector<Data::Filter>& filters){
+    this->item_filters->syncFilters(filters);
+}
+
+/*
+Update the painting state of the filters to the graph
+    :param visible: visibility state
+*/
+void GraphicsScene::updateFilters(bool visible){
+    this->item_filters->updateFilters(visible);
 }
 
 /*
@@ -230,7 +353,7 @@ void GraphicsScene::updatePainter(const Graph::Format::Style* style){
 
     this->item_spectra->updatePainter(style);
     this->item_lasers->updatePainter(style);
-    this->item_detectors->updatePainter(style);
+    this->item_filters->updatePainter(style);
 
     this->item_outline->updatePainter(style);
 
@@ -246,7 +369,17 @@ void GraphicsScene::mousePressEvent(QGraphicsSceneMouseEvent* event) {
     if(event->buttons() != Qt::LeftButton){
         return;
     }
+
     this->selectSpectrum(event->scenePos(), this->scroll_count);
+
+    if(this->plot_rect.local().contains(event->scenePos()) || (this->settings.enable_colorbar && this->item_x_colorbar->contains(event->scenePos()))){
+        this->setPressed(true);
+        if(this->isSelected()){
+            emit this->plotSelected(false);
+        }else{
+            emit this->plotSelected(true);
+        }
+    }
 }
 
 /*
@@ -257,7 +390,17 @@ void GraphicsScene::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event) {
     if(event->buttons() != Qt::LeftButton){
         return;
     }
+
     this->selectSpectrum(event->scenePos(), this->scroll_count);
+
+    if(this->plot_rect.local().contains(event->scenePos()) || (this->settings.enable_colorbar && this->item_x_colorbar->contains(event->scenePos()))){
+        this->setPressed(true);
+        if(this->isSelected()){
+            emit this->plotSelected(false);
+        }else{
+            emit this->plotSelected(true);
+        }
+    }
 }
 
 /*
@@ -265,10 +408,25 @@ Implements the mouse move event handling. Selects a Graph::Spectrum item
     :param event: the mouse move event
 */
 void GraphicsScene::mouseMoveEvent(QGraphicsSceneMouseEvent* event) {
-    if(event->buttons() != Qt::LeftButton){
-        return;
+    if(this->plot_rect.local().contains(event->scenePos()) || (this->settings.enable_colorbar && this->item_x_colorbar->contains(event->scenePos()))){
+        // Select spectrum 
+        if(event->buttons() == Qt::LeftButton){
+            this->selectSpectrum(event->scenePos(), this->scroll_count);
+        }
+
+        // Set hover
+        if(!this->is_hover){
+            this->is_hover = true;
+            this->item_outline->setHover(true);
+            if(this->settings.enable_colorbar){this->item_x_colorbar->setHover(true);}
+        }
+
+    }else if(this->is_hover){
+        // Unset hover
+        this->is_hover = false;
+        this->item_outline->setHover(false);
+        if(this->settings.enable_colorbar){this->item_x_colorbar->setHover(false);}
     }
-    this->selectSpectrum(event->scenePos(), this->scroll_count);
 }
 
 /*
@@ -280,6 +438,7 @@ void GraphicsScene::mouseReleaseEvent(QGraphicsSceneMouseEvent* event) {
     this->item_spectra->setSelect(false);
     this->scroll_count = 0;
     emit this->spectrumSelected();
+    this->setPressed(false);
 }
 
 /*

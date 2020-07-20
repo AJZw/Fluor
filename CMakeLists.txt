@@ -19,8 +19,10 @@ add_executable(fluor
     widgets/header/cache.h
     widgets/src/cache.cpp
     
-    widgets/header/state.h
-    widgets/src/state.cpp
+    widgets/header/state_program.h
+    widgets/src/state_program.cpp
+    widgets/header/state_gui.h
+    widgets/src/state_gui.cpp
 
     widgets/src/main.cpp
     widgets/header/application.h

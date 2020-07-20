@@ -12,16 +12,14 @@
 
 #include "application.h"
 #include "data_factory.h"
-#include "state.h"
-
+#include "state_program.h"
 
 #include <QDebug>
-
 
 int main(int argc, char **argv)
 {
     // Load QApplication eventManager
-    Application APP{argc, argv};
+    Application APP(argc, argv);
 
     // Load SettingsFactory
     Data::Factory FACTORY;
@@ -37,7 +35,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    State::State STATE(FACTORY);
+    State::Program STATE(FACTORY);
 
     return APP.exec();
 }

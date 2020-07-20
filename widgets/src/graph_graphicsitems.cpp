@@ -1202,7 +1202,13 @@ Outline::Outline(QGraphicsItem* parent) :
     QGraphicsRectItem(parent),
     item_margins(0, 0, 1, 0),
     minimum_width(0),
-    minimum_height(0)
+    minimum_height(0),
+    is_hover(false),
+    is_pressed(false),
+    is_selected(false),
+    pen_default(Qt::NoPen),
+    pen_hover(Qt::NoPen),
+    pen_pressed(Qt::NoPen)
 {
     // Create empty brush to not fill the background
     QBrush item_brush(Qt::NoBrush);
@@ -1260,7 +1266,86 @@ Updates the pen used by the painter to the pen as build by the style
     :param style: pen factory
 */
 void Outline::updatePainter(const Graph::Format::Style* style){
-    this->setPen(style->penAxis());
+    this->pen_default = style->penAxis();
+    this->pen_hover = style->penAxisHover();
+    this->pen_pressed = style->penAxisPress();
+
+    if(this->is_pressed){
+        this->setPen(this->pen_pressed);
+    }else if(this->is_hover){
+        this->setPen(this->pen_hover);
+    }else{
+        this->setPen(this->pen_default);
+    }
+}
+
+/*
+Set hover state of the outline
+    :param hover: the state to be set
+*/
+void Outline::setHover(bool hover){
+    this->is_hover = hover;
+
+    if(this->is_selected || this->is_pressed){
+        this->setPen(this->pen_pressed);
+    }else if(this->is_hover){
+        this->setPen(this->pen_hover);
+    }else{
+        this->setPen(this->pen_default);
+    }
+}
+
+/*
+Returns the outline's pressed state
+*/
+bool Outline::isHover() const {
+    return this->is_hover;
+}
+
+/*
+Set pressed state of the outline
+    :param press: the state to be set
+*/
+void Outline::setPressed(bool press){
+    this->is_pressed = press;
+
+    if(this->is_selected || this->is_pressed){
+        this->setPen(this->pen_pressed);
+    }else if(this->is_hover){
+        this->setPen(this->pen_hover);
+    }else{
+        this->setPen(this->pen_default);
+    }
+}
+
+/*
+Return the outline's pressed state
+*/
+bool Outline::isPressed() const {
+    return this->is_pressed;
+}
+
+/*
+Set selection state of the outline
+    :param press: the state to be set
+*/
+void Outline::setSelected(bool select){
+    this->is_selected = select;
+
+    if(this->is_selected || this->is_pressed){
+        this->setPen(this->pen_pressed);
+    }else if(this->is_hover){
+        this->setPen(this->pen_hover);
+    }else{
+        this->setPen(this->pen_default);
+    }
+}
+
+/*
+Return the outline's pressed state
+*/
+bool Outline::isSelected() const {
+    return this->is_selected;
 }
 
 /* ############################################################################################################## */
@@ -1274,7 +1359,13 @@ Colorbar::Colorbar(QGraphicsItem* parent) :
     item_margins(0, 0, 1, 0),
     minimum_width(0),
     minimum_height(10),
-    gradient()
+    is_hover(false),
+    is_pressed(false),
+    is_selected(false),
+    gradient(),
+    pen_default(Qt::NoPen),
+    pen_hover(Qt::NoPen),
+    pen_pressed(Qt::NoPen)
 {
     // Fill gradient with correct colors
     // Padded on both ends with black for proper black spread
@@ -1351,7 +1442,86 @@ Updates the pen used by the painter to the pen as build by the style
     :param style: pen factory
 */
 void Colorbar::updatePainter(const Graph::Format::Style* style){
-    this->setPen(style->penAxis());
+    this->pen_default = style->penAxis();
+    this->pen_hover = style->penAxisHover();
+    this->pen_pressed = style->penAxisPress();
+
+    if(this->is_pressed){
+        this->setPen(this->pen_pressed);
+    }else if(this->is_hover){
+        this->setPen(this->pen_hover);
+    }else{
+        this->setPen(this->pen_default);
+    }
+}
+
+/*
+Set hover state of the colorbar border
+    :param hover: the state to be set
+*/
+void Colorbar::setHover(bool hover){
+    this->is_hover = hover;
+
+    if(this->is_selected || this->is_pressed){
+        this->setPen(this->pen_pressed);
+    }else if(this->is_hover){
+        this->setPen(this->pen_hover);
+    }else{
+        this->setPen(this->pen_default);
+    }
+}
+
+/*
+Returns the colorbar border's pressed state
+*/
+bool Colorbar::isHover() const {
+    return this->is_hover;
+}
+
+/*
+Set pressed state of the colorbar border
+    :param press: the state to be set
+*/
+void Colorbar::setPressed(bool press){
+    this->is_pressed = press;
+
+    if(this->is_selected || this->is_pressed){
+        this->setPen(this->pen_pressed);
+    }else if(this->is_hover){
+        this->setPen(this->pen_hover);
+    }else{
+        this->setPen(this->pen_default);
+    }
+}
+
+/*
+Return the colorbar border's pressed state
+*/
+bool Colorbar::isPressed() const {
+    return this->is_pressed;
+}
+
+/*
+Sets the selection state of the colorbar border
+    :param select: the state to be set
+*/
+void Colorbar::setSelected(bool select){
+    this->is_selected = select;
+
+    if(this->is_selected || this->is_pressed){
+        this->setPen(this->pen_pressed);
+    }else if(this->is_hover){
+        this->setPen(this->pen_hover);
+    }else{
+        this->setPen(this->pen_default);
+    }
+}
+
+/*
+Returns the colorbar border's selection state
+*/
+bool Colorbar::isSelected() const {
+    return this->is_selected;
 }
 
 /* ############################################################################################################## */
@@ -1532,14 +1702,36 @@ void Spectrum::setPosition(const PlotRectF& space){
 /*
 Update the internal state to the source state
 */
-void Spectrum::updateSpectrum(const Data::CacheSpectrum& cache_spectrum) {
-    this->visible_excitation = cache_spectrum.visibleExcitation();
-    this->visible_emission = cache_spectrum.visibleEmission();
-    this->select_excitation = cache_spectrum.selectExcitation();
-    this->select_emission = cache_spectrum.selectEmission();
+void Spectrum::updateSpectrum() {
+    this->visible_excitation = this->spectrum_source.visibleExcitation();
+    this->visible_emission = this->spectrum_source.visibleEmission();
+    this->select_excitation = this->spectrum_source.selectExcitation();
+    this->select_emission = this->spectrum_source.selectEmission();
     
     // Now plot the updated curve
     this->update(this->boundingRect());
+}
+
+/*
+Updates the emission intensity to the excitation efficiency
+    :param lasers: the lasers to use for efficiency calculation
+*/
+void Spectrum::updateIntensity(const std::vector<Data::Laser>& lasers){
+    if(lasers.empty()){
+        this->intensity_coefficient = 1.0;
+        return;
+    }
+
+    double intensity = 0.0;
+    for(const Data::Laser& laser : lasers){
+        intensity += (this->spectrum_source.excitationAt(laser.wavelength()) * 0.01);
+    }
+
+    if(intensity < this->spectrum_source.intensityCutoff()){
+        intensity = 0.0;
+    }
+
+    this->intensity_coefficient = intensity;
 }
 
 /*
@@ -1589,7 +1781,7 @@ Constructor: constructs a graphicsitem that represents a laser in the scene.
 */
 Laser::Laser(QGraphicsItem* parent) :
     QGraphicsLineItem(parent),
-    laser_wavelength(0)
+    laser_wavelength(0.0)
 {
     this->setPos(0.0, 0.0);
 }
@@ -1599,7 +1791,7 @@ Constructor: constructs a graphicsitem that represents a laser in the scene.
     :param wavelength: the wavelength the laser represents
     :param parent: parent widget
 */
-Laser::Laser(int wavelength, QGraphicsItem* parent) :
+Laser::Laser(double wavelength, QGraphicsItem* parent) :
     QGraphicsLineItem(parent),
     laser_wavelength(wavelength)
 {
@@ -1609,7 +1801,7 @@ Laser::Laser(int wavelength, QGraphicsItem* parent) :
 Setter: sets the wavelength of the laser
     :param wavelength: the wavelength to set
 */
-void Laser::setWavelength(int wavelength){
+void Laser::setWavelength(double wavelength){
     this->laser_wavelength = wavelength;
 }
 
@@ -1617,7 +1809,7 @@ void Laser::setWavelength(int wavelength){
 Getter: gets the wavelength
     :returns: the wavelength of the laser
 */
-int Laser::wavelength() const {
+double Laser::wavelength() const {
     return this->laser_wavelength;
 }
 
@@ -1778,12 +1970,12 @@ void Filter::setPosition(const PlotRectF& space){
     }
     
     // Parameters for the bevels
-    double bevel_size_y = 15;
-    double bevel_size_x = 15;
+    double bevel_size_y = 10;
+    double bevel_size_x = 10;
     std::array<double, 15> math_sin = {0.00, 0.00, 0.01, 0.03, 0.08, 0.13, 0.21, 0.29, 0.39, 0.50, 0.62, 0.74, 0.87, 0.93, 1.00};
     std::array<double, 15> math_cos = {0.00, 0.07, 0.13, 0.26, 0.38, 0.50, 0.61, 0.71, 0.79, 0.87, 0.92, 0.97, 0.99, 1.00, 1.00};
     double offset_pen = 0.5 * this->pen_top.widthF();
-    double offset = offset_pen + space.margins().top();
+    double offset = offset_pen + 1 ; // space.margins().top() <- other option
 
     // Get boundaries 
     double left = space.toLocalX(this->wavelength_left);
@@ -1806,7 +1998,7 @@ void Filter::setPosition(const PlotRectF& space){
             bevel_size_x = std::min(bevel_size_x, (width));
         }
     }
-    // Technically the y could be too short to show a full 5px quarter circle, but a graph that small has more issues then just this
+    // Technically the y could be too short to show a full quarter circle, but a graph that small has more issues then just this
 
     // Calculate the left and right lines (if applicable)
     if(left > space.local().left()){
@@ -1948,6 +2140,20 @@ void Filter::updatePainter(const Graph::Format::Style* style){
     this->pen_left = style->penFilter(this->style_left);
     this->pen_right = style->penFilter(this->style_right);
     this->pen_top = style->penFilter(Qt::SolidLine);
+}
+
+/*
+Returns the wavelenght of the left (minimum) most wavelength 
+*/
+double Filter::wavelengthLeft() const {
+    return this->wavelength_left;
+}
+
+/*
+Return the wavelenght of the right (maximum) most wavelength
+*/
+double Filter::wavelengthRight() const {
+    return this->wavelength_right;
 }
 
 /*
@@ -2100,8 +2306,6 @@ int AbstractCollection<ITEM>::minimumHeight() const {
 
 /*
 Sets the position of all the ITEMs stores within this container by calling the items setPosition() function.
-    :param settings: the graph settings
-    :param space: the space appointed to the widget
 */
 template<typename ITEM>
 void AbstractCollection<ITEM>::setPosition() { 
@@ -2141,7 +2345,7 @@ Synchronizes all the spectra to the Cache state. Handles adding, order and remov
     :param input: a (ordered) vector of the cache state. Ordering is not required for proper functioning of the graph plotting
     :param settings: the graph settings, necessary for correct positioning of the new items
 */
-void SpectrumCollection::syncSpectra(const std::vector<Cache::CacheID>& cache_state){
+void SpectrumCollection::syncSpectra(const std::vector<Cache::CacheID>& cache_state, const std::vector<Data::Laser>& lasers){
     // Special case: cache is empty -> remove all
     if(cache_state.empty()){
         for(Graph::Spectrum* item : this->items){
@@ -2166,6 +2370,9 @@ void SpectrumCollection::syncSpectra(const std::vector<Cache::CacheID>& cache_st
             if(this->style){    // Can be nullptr
                 item_new->updatePainter(this->style);
             }
+
+            // all items are repositioned after synchronizing
+            item_new->updateIntensity(lasers);
             item_new->setPosition(this->items_space);
 
             this->items.insert(
@@ -2201,16 +2408,25 @@ void SpectrumCollection::syncSpectra(const std::vector<Cache::CacheID>& cache_st
     }
 
     // Now we have the correct spectra -> sync internal state (line visibility)
-    this->updateSpectra(cache_state);
+    this->updateSpectra();
 }
 
 /*
-Updates the internal spectra to the cache state. Assumes that the cache has been properly synced. Does not add or remove items.
-    :param cache_state: the state to update to
+Updates the internal spectra to the cache state. Uses the Spectrum internal source to update the drawing state
 */
-void SpectrumCollection::updateSpectra(const std::vector<Cache::CacheID>& cache_state){
+void SpectrumCollection::updateSpectra(){
     for(std::size_t i=0; i<this->items.size(); ++i){
-        this->items[i]->updateSpectrum(*cache_state[i].data);
+        this->items[i]->updateSpectrum();
+    }
+}
+
+/*
+Updates the intensity of the spectrum
+    :param lasers: the laser data to use for intensity calculation
+*/
+void SpectrumCollection::updateIntensity(const std::vector<Data::Laser>& lasers){
+    for(std::size_t i=0; i<this->items.size(); ++i){
+        this->items[i]->updateIntensity(lasers);
     }
 }
 
@@ -2271,52 +2487,25 @@ LaserCollection::LaserCollection(const PlotRectF& rect, QGraphicsItem* parent) :
 }
 
 /*
-Synchronizes the laser_state to the container laser items
-    :param laser_state: the laser state
-    :param settings: graph settings
+Returns a list of the Data::Laser representation of the internal Graph::Laser objects. 
+Data::Laser objects are mostly empty!!! Not all data is stored inside the Graph::Laser objects. 
 */
-void LaserCollection::syncLasers(const std::vector<int>& laser_state){
-    // Special clear state
-    if(laser_state.empty()){
-        for(Graph::Laser* item : this->items){
-            delete item;
-        }
-        this->items.clear();
-        return;
-    }
+const std::vector<Data::Laser> LaserCollection::lasers() const {
+    std::vector<Data::Laser> laser_wavelengths;
     
-    // Construct / Destruct the necessary amount of item
-    if(this->items.size() < laser_state.size()){
-        for(std::size_t i=this->items.size(); i < laser_state.size(); ++i){
-            Laser* item = new Laser(this);
-            this->items.push_back(item);
-        }
-    }else if(this->items.size() > laser_state.size()){
-        for(std::size_t i=laser_state.size(); i > this->items.size(); --i){
-            delete this->items[i];
-        }
-        this->items.erase(
-            std::next(this->items.begin(), static_cast<int>(laser_state.size())), 
-            this->items.cend()
-        );
+    for(const Graph::Laser* item : this->items){
+        laser_wavelengths.push_back(Data::Laser(item->wavelength()));
     }
 
-    // Synchronize the wavelength
-    for(std::size_t i=0; i<this->items.size(); ++i){
-        this->items[i]->setWavelength(laser_state[i]);
-        this->items[i]->setPosition(this->items_space);
-        if(this->style){    // Can be nullptr
-            this->items[i]->updatePainter(this->style);
-        }
-    }
+    return laser_wavelengths;
 }
 
 /*
 Synchronizes the collection to contain zero or one Graph::Laser.
-    :param int: the wavelength the Graph::Laser should show. A negative value will result in removal of the item
-    :param settings: the graph's settings
+    :param wavelength: the wavelength (in nm) the Graph::Laser should show. A negative value will result in removal of the item
+    :param visible: the visibility state of the laser
 */
-void LaserCollection::syncLaser(int wavelength){
+void LaserCollection::syncLaser(double wavelength){
     // If wavelength is below zero, all items will be removed
     if(wavelength < 0){
         for(Graph::Laser* item : this->items){
@@ -2354,6 +2543,58 @@ void LaserCollection::syncLaser(int wavelength){
     }
 }
 
+/*
+Synchronizes the laser_state to the container laser items
+    :param lasers: the lasers to synchronize
+    :param visible: whether the lasers are visible or not
+*/
+void LaserCollection::syncLasers(const std::vector<Data::Laser>& lasers){
+    // Special clear state
+    if(lasers.empty()){
+        for(Graph::Laser* item : this->items){
+            delete item;
+        }
+        this->items.clear();
+        return;
+    }
+    
+    // Construct / Destruct the necessary amount of item
+    if(this->items.size() < lasers.size()){
+        std::size_t to_add = lasers.size() - this->items.size();
+        for(std::size_t i=0; i < to_add; ++i){
+            Laser* item = new Laser(this);
+            this->items.push_back(item);
+        }
+    }else if(this->items.size() > lasers.size()){
+        for(std::size_t i=lasers.size(); i < this->items.size(); ++i){
+            delete this->items[i];
+        }
+        this->items.erase(
+            std::next(this->items.begin(), static_cast<int>(lasers.size())), 
+            this->items.cend()
+        );
+    }
+
+    // Synchronize the wavelength
+    for(std::size_t i=0; i<this->items.size(); ++i){
+        this->items[i]->setWavelength(lasers[i].wavelength());
+        if(this->style){    // Can be nullptr, has to be synchronized before setPosition, as the size of the line changes the location
+            this->items[i]->updatePainter(this->style);
+        }
+        this->items[i]->setPosition(this->items_space);
+    }
+}
+
+/*
+Update the visibility state of the laser items
+    :param visible: the visibility state
+*/
+void LaserCollection::updateLasers(bool visible){
+    for(std::size_t i=0; i<this->items.size(); ++i){
+        this->items[i]->setVisible(visible);
+    }
+}
+
 /* ############################################################################################################## */
 
 /*
@@ -2361,15 +2602,64 @@ Constructor: container for the Detector widgets. This mainly handles the adding 
     :param rect: the plotting rectangle.
     :param parent: parent widget
 */
-DetectorCollection::DetectorCollection(const PlotRectF& rect, QGraphicsItem* parent) : 
+FilterCollection::FilterCollection(const PlotRectF& rect, QGraphicsItem* parent) : 
     AbstractCollection(rect, parent)
 {
     this->items.reserve(6);
+}
 
-    //Filter* item = new Filter(550, 580, this);
-    //item->setBevel(Filter::BevelShape::Square, Filter::BevelShape::Round);
-    //item->setLineStyle(Qt::DashLine, Qt::SolidLine);
-    //this->items.push_back(item);
+/*
+Synchronizes the filters to the graph
+    :param filters: the filter to synchronize
+    :param visible: the visibility state of the filters
+*/
+void FilterCollection::syncFilters(const std::vector<Data::Filter>& filters){  
+    // Special clear state
+    if(filters.empty()){
+        for(Graph::Filter* item : this->items){
+            delete item;
+        }
+        this->items.clear();
+        return;
+    }
+    
+    // Construct / Destruct the necessary amount of item
+    if(this->items.size() < filters.size()){
+        std::size_t to_add = filters.size() - this->items.size();
+        for(std::size_t i=0; i < to_add; ++i){
+            Filter* item = new Filter(this);
+            item->setBevel(Filter::BevelShape::Round, Filter::BevelShape::Round);
+            item->setLineStyle(Qt::SolidLine, Qt::SolidLine);
+            this->items.push_back(item);
+        }
+    }else if(this->items.size() > filters.size()){
+        for(std::size_t i=filters.size(); i < this->items.size(); ++i){
+            delete this->items[i];
+        }
+        this->items.erase(
+            std::next(this->items.begin(), static_cast<int>(filters.size())), 
+            this->items.cend()
+        );
+    }
+
+    // Synchronize the wavelength
+    for(std::size_t i=0; i<this->items.size(); ++i){
+        this->items[i]->setWavelengths(filters[i].wavelengthMin(), filters[i].wavelengthMax()); 
+        if(this->style){    // Can be nullptr
+            this->items[i]->updatePainter(this->style);
+        }
+        this->items[i]->setPosition(this->items_space);
+    }
+}
+
+/*
+Update the visibility state of the laser items
+    :param visible: the visibility state
+*/
+void FilterCollection::updateFilters(bool visible){
+    for(std::size_t i=0; i<this->items.size(); ++i){
+        this->items[i]->setVisible(visible);
+    }
 }
 
 } // Graph namespace

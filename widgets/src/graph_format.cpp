@@ -140,6 +140,10 @@ Style::Style(QWidget* parent) :
     emission_width(1),
     emission_style(Qt::DashDotLine)
 {
+    // I connect it to the Graph::Controller for lifetime management and event inheritance
+    // But it should not be plotted
+    this->setVisible(false);
+
     this->installEventFilter(this);
 }
 

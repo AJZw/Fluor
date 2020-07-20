@@ -13,8 +13,9 @@
 namespace Cache {
 
 /*
-Constructor: Sets up the fluorophore cache. Ment as the central spil of all (inuse) fluorophore data.
-    :param source: the (on the HDD) data object to request data from. CANNOT be a nullptr
+Constructor: Sets up the fluorophore cache. Ment as the central spill of all (in-use) fluorophore data.
+    :param factory: the data factory, connects and provides safe access to the data files
+    :param source: the fluorophore reader provides access using the factory to the fluorophore spectra
 */
 Cache::Cache(Data::Factory& factory, Data::FluorophoreReader& source) :
     source_factory(factory),
@@ -354,20 +355,11 @@ void Cache::sync() {
 }
 
 /*
-Constructs the necessary outputs for update of the cache state to the GUI widgets.
-Assumes that the order and specific items didnt change.
-In principle identical to sync() just calls different signals, allows for more optimized treatment by the GUI widgets
+Returns an update call for the cache items. As all cache dependent items (fluorophore menu and graph spectra) contain 
+an internal cache_spectrum ptr, updating can happen according by reading data using this ptr.
 */
 void Cache::update() {
-    // Convert items set into a vector (for custom ordering)
-    std::vector<CacheID> cache_state;
-    cache_state.reserve(this->items.size());
-    cache_state.insert(cache_state.end(), this->items.begin(), this->items.end());
-
-    // Sort based on sort qualifyer, when properly implemented this code has to request the sorting order somehow
-    this->sortVector(cache_state, this->state.sort_mode);
-
-    emit this->cacheUpdate(cache_state);
+    emit this->cacheUpdate();
 }
 
 /*

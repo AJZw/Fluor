@@ -298,7 +298,7 @@ bool Instrument::isValid() const {
 }
 
 /*
-Returns whether the machine is empty
+Returns whether the instrument is empty
 */
 bool Instrument::isEmpty() const {
     if(this->instrument_optics.size() == 0){
@@ -324,6 +324,29 @@ void Instrument::sort(){
         this->instrument_optics.end(),
         [](LaserLine& a, LaserLine& b){return a.lasers()[0] < b.lasers()[0];}
     );
+}
+
+/*
+Checks whether a laser with the specified wavelength exists and if so returns a pointer to the laserline and laser
+    :param wavelength: the laser wavelength (in nm)
+*/
+std::pair<const Data::LaserLine*, const Data::Laser*> Instrument::findLaser(double wavelength) const {
+    if(this->isEmpty()){
+        return {nullptr, nullptr};
+    }
+
+    for(std::size_t i=0; i < this->instrument_optics.size(); ++i){
+        auto iterator = std::find_if(
+            this->instrument_optics[i].lasers().cbegin(),
+            this->instrument_optics[i].lasers().cend(),
+            [wavelength](const Laser& a){return a.wavelength() == wavelength;}
+        );
+        if(iterator != this->instrument_optics[i].lasers().cend()){
+            return {&this->instrument_optics[i], std::addressof(*iterator)};
+        }
+    }
+
+    return {nullptr, nullptr};
 }
 
 /* ############################################################################################################## */

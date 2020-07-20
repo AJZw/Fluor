@@ -36,7 +36,7 @@ Controller::Controller(QWidget* parent) :
     controller_layout->setRowMinimumHeight(0, 1);
     controller_layout->setRowStretch(0, 0);
     controller_layout->setRowStretch(1, 1);
-    controller_layout->setColumnMinimumWidth(0, 80);
+    controller_layout->setColumnMinimumWidth(0, 200);
     controller_layout->setColumnMinimumWidth(1, 80);
     controller_layout->setColumnStretch(0, 0);
     controller_layout->setColumnStretch(1, 1);
@@ -47,7 +47,7 @@ Controller::Controller(QWidget* parent) :
     Laser::Controller* controller_laser = new Laser::Controller(this);
     Bar::Controller* controller_toolbar = new Bar::Controller(this);
     Fluor::Controller* controller_fluor = new Fluor::Controller(this);
-    Graph::Controller* controller_graph = new Graph::Controller(this);
+    Graph::ScrollController* controller_graph = new Graph::ScrollController(this);
 
     controller_layout->addWidget(controller_laser, 0, 0, 1, 1);
     controller_layout->addWidget(controller_toolbar, 0, 1, 1, 1);
@@ -74,9 +74,12 @@ Controller::Controller(QWidget* parent) :
     QObject::connect(controller_toolbar, &Bar::Controller::sendToolbarStateChange, this, &Central::Controller::receiveToolbarStateChange);
     QObject::connect(this, &Central::Controller::sendToolbarStateUpdate, controller_toolbar, &Bar::Controller::receiveToolbarStateUpdate);
 
-    QObject::connect(this, &Central::Controller::sendCacheSync, controller_graph, &Graph::Controller::receiveCacheSync);
-    QObject::connect(this, &Central::Controller::sendCacheUpdate, controller_graph, &Graph::Controller::receiveCacheUpdate);
-    QObject::connect(controller_graph, &Graph::Controller::sendCacheRequestUpdate, this, &Central::Controller::receiveCacheRequestUpdate);
+    QObject::connect(this, &Central::Controller::sendCacheSync, controller_graph, &Graph::ScrollController::receiveCacheSync);
+    QObject::connect(this, &Central::Controller::sendCacheUpdate, controller_graph, &Graph::ScrollController::receiveCacheUpdate);
+    QObject::connect(this, &Central::Controller::sendGraphState, controller_graph, &Graph::ScrollController::receiveGraphState);
+    QObject::connect(controller_graph, &Graph::ScrollController::sendCacheRequestUpdate, this, &Central::Controller::receiveCacheRequestUpdate);
+    QObject::connect(controller_graph, &Graph::ScrollController::sendGraphSelect, this, &Central::Controller::receiveGraphSelect);
+
 }
 
 /*
@@ -165,8 +168,8 @@ void Controller::receiveCacheSync(const std::vector<Cache::CacheID>& cache_state
 /*
 Slot: forwards the synchronisation request to the graph
 */
-void Controller::receiveCacheUpdate(const std::vector<Cache::CacheID>& cache_state){
-    emit this->sendCacheUpdate(cache_state);
+void Controller::receiveCacheUpdate(){
+    emit this->sendCacheUpdate();
 }
 
 /*
@@ -194,6 +197,23 @@ Slot: receives and forwards Toolbar State update
 */
 void Controller::receiveToolbarStateUpdate(Bar::ButtonType type, bool active, bool enable){
     emit this->sendToolbarStateUpdate(type, active, enable);
+}
+
+/*
+Slot: receives and forwards graph select signal
+    :param index: the selected graphs index
+    :param state: the selections state
+*/
+void Controller::receiveGraphSelect(std::size_t index, bool state){
+    emit this->sendGraphSelect(index, state);
+}
+
+/*
+Slot: receives and forwards Graph Set signal
+    :param number: the amount of graphs that should exist
+*/
+void Controller::receiveGraphState(std::vector<State::GraphState>& state){
+    emit this->sendGraphState(state);
 }
 
 } // Central namespace

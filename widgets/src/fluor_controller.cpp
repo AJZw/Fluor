@@ -152,8 +152,8 @@ void Controller::receiveCacheSync(const std::vector<Cache::CacheID>& cache_state
 /*
 Slot: receives and sends cache's update state to the scrollcontroller
 */
-void Controller::receiveCacheUpdate(const std::vector<Cache::CacheID>& cache_state){
-    emit this->sendCacheUpdate(cache_state);
+void Controller::receiveCacheUpdate(){
+    emit this->sendCacheUpdate();
 }
 
 /*
@@ -304,9 +304,9 @@ void ScrollController::syncButtons(const std::vector<Cache::CacheID>& cache_stat
 Slot: Updates the internal ButtonsController widgets to the cache_state. Assumes synchronized state. Doesnt add or remove widgets
     :param cache_state: the state to update to
 */
-void ScrollController::updateButtons(const std::vector<Cache::CacheID>& cache_state){
+void ScrollController::updateButtons(){
     for(std::size_t i=0; i<this->button_widgets.size(); ++i){
-        this->button_widgets[i]->updateButtons(cache_state[i]);
+        this->button_widgets[i]->updateButtons();
     }
 }
 
@@ -412,18 +412,16 @@ void ButtonsController::syncButtons(const Cache::CacheID& cache_state){
     this->widget_emission->setText(this->name);
 
     // Finally update the button active state
-    this->updateButtons(cache_state);
+    this->updateButtons();
 }
 
 /*
-Update the buttonsController and internal widgets with the CacheID
-    :param cache_state: the state of the cache
+Update the buttonsController and internal widgets using the cache_spectrum data pointer
 */
-void ButtonsController::updateButtons(const Cache::CacheID& cache_state){
-    //qDebug() << cache_state.data->visibleExcitation() << cache_state.data->visibleEmission();
-    this->widget_excitation->setActive(cache_state.data->visibleExcitation());
-    this->widget_emission->setActive(cache_state.data->visibleEmission());
-    this->widget_emission->setSelect(cache_state.data->selectEmission());
+void ButtonsController::updateButtons(){
+    this->widget_excitation->setActive(this->data->visibleExcitation());
+    this->widget_emission->setActive(this->data->visibleEmission());
+    this->widget_emission->setSelect(this->data->selectEmission());
 }
 
 /*

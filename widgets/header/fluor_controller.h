@@ -82,7 +82,7 @@ class Controller : public QWidget{
         void receiveCacheAdd(std::vector<Data::FluorophoreID>& fluorophores);
         void receiveCacheRemove(std::vector<Data::FluorophoreID>& fluorophores);
         void receiveCacheSync(const std::vector<Cache::CacheID>& cache_state);
-        void receiveCacheUpdate(const std::vector<Cache::CacheID>& cache_state);
+        void receiveCacheUpdate();
 
     private slots:
         void clickedPushButton(bool checked);
@@ -98,11 +98,11 @@ class Controller : public QWidget{
         void showLineEdit();
         void hideLineEdit();
 
-        void sendCacheRequestUpdate();
         void sendCacheAdd(std::vector<Data::FluorophoreID>& fluorophores);
         void sendCacheRemove(std::vector<Data::FluorophoreID>& fluorophores);
         void sendCacheSync(const std::vector<Cache::CacheID>& cache_state);
-        void sendCacheUpdate(const std::vector<Cache::CacheID>& cache_state);
+        void sendCacheUpdate();
+        void sendCacheRequestUpdate();
 };
 
 class ButtonsController : public QWidget {
@@ -122,7 +122,7 @@ class ButtonsController : public QWidget {
         void setLayoutSpacing(QString layout_spacing);
 
         void syncButtons(const Cache::CacheID& cache_state);
-        void updateButtons(const Cache::CacheID& cache_state);
+        void updateButtons();
 
     private:
         Fluor::EmissionButton* widget_emission;
@@ -180,7 +180,7 @@ class ScrollController : public QScrollArea {
         void showingScrollBar();
 
         void syncButtons(const std::vector<Cache::CacheID>& cache_state);
-        void updateButtons(const std::vector<Cache::CacheID>& cache_state);
+        void updateButtons();
 
         void receiveCacheRequestUpdate();
         void receiveRemove(std::vector<Data::FluorophoreID>& fluorophores);

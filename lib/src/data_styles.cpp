@@ -760,14 +760,14 @@ QString Builder::buildToolBar(const QFontMetrics& metrics) const {
             "Bar--EmissionButton[active=false] {"
             " qproperty-icon: url(:/icons/%3_emission_inactive.png);"
             "} "
-            "Bar--DetectorButton[enabled=false] {"
-            " qproperty-icon: url(:/icons/%3_detector_disabled.png);"
+            "Bar--FilterButton[enabled=false] {"
+            " qproperty-icon: url(:/icons/%3_filter_disabled.png);"
             "} "
-            "Bar--DetectorButton[enabled=true][active=true] {"
-            " qproperty-icon: url(:/icons/%3_detector_active.png);"
+            "Bar--FilterButton[enabled=true][active=true] {"
+            " qproperty-icon: url(:/icons/%3_filter_active.png);"
             "} "
-            "Bar--DetectorButton[enabled=true][active=false] {"
-            " qproperty-icon: url(:/icons/%3_detector_inactive.png);"
+            "Bar--FilterButton[enabled=true][active=false] {"
+            " qproperty-icon: url(:/icons/%3_filter_inactive.png);"
             "} "
             "Bar--GraphAddButton[enabled=false]{"
             " qproperty-icon: url(:/icons/%3_graph_add_disabled.png);"
@@ -781,14 +781,14 @@ QString Builder::buildToolBar(const QFontMetrics& metrics) const {
             "Bar--GraphRemoveButton[enabled=true] {"
             " qproperty-icon: url(:/icons/%3_graph_remove_active.png);"
             "} "
-            "Bar--LasersButton[enabled=false] {"
-            " qproperty-icon: url(:/icons/%3_lasers_disabled.png);"
+            "Bar--LaserLinesButton[enabled=false] {"
+            " qproperty-icon: url(:/icons/%3_laserlines_disabled.png);"
             "} "
-            "Bar--LasersButton[enabled=true][active=true] {"
-            " qproperty-icon: url(:/icons/%3_lasers_active.png);"
+            "Bar--LaserLinesButton[enabled=true][active=true] {"
+            " qproperty-icon: url(:/icons/%3_laserlines_active.png);"
             "} "
-            "Bar--LasersButton[enabled=true][active=false] {"
-            " qproperty-icon: url(:/icons/%3_lasers_inactive.png);"
+            "Bar--LaserLinesButton[enabled=true][active=false] {"
+            " qproperty-icon: url(:/icons/%3_laserlines_inactive.png);"
             "} "
             "Bar--Label {"
             " min-width: 10em;"
@@ -961,54 +961,62 @@ Builds the stylesheet for graph
 */
 QString Builder::buildGraph(const QFontMetrics& metrics) const {
     QString style;
-    style = "Graph--ScrollArea .QWidget {"
-            " background: %1;"
-            //" qproperty-layout_margins_scroll_bar: %2;"
+    style = "Graph--ScrollController {"
+            " qproperty-layout_spacing: %1;"
+            " qproperty-layout_margins_scroll_bar: %2;"
             "} "
-            "Graph--ScrollArea QScrollBar::vertical {"
-            " margin: 0px 0px 0px 5px;"
-            " width: 20px;"
+            "Graph--ScrollController .QWidget {"
+            " background: %3;"
+            "} "
+            "Graph--ScrollController QScrollBar::vertical {"
+            " margin: 0px 0px 0px 0px;"
+            " width: %4px;"
             "} "
             "Graph--GraphicsView {"
             " border: 0px;"
             "} "
             "Graph--Format--Style {"
-            " qproperty-scene: %2;"
-            " qproperty-background: %3;"
-            " qproperty-background_hover: %4;"
-            " qproperty-background_press: %5;"
-            " qproperty-label: %6;"
-            " qproperty-label_weight: '%7';"
-            " qproperty-grid_label: %8;"
-            " qproperty-grid_label_weight: '%9';"
-            " qproperty-axis: %11;"
-            " qproperty-axis_hover: %12;"
-            " qproperty-axis_press: %13;"
-            " qproperty-absorption_width: %14;"
-            " qproperty-absorption_style: '%15';"
-            " qproperty-excitation_width: %16;"
-            " qproperty-excitation_style: '%17';"
-            " qproperty-emission_width: %18;"
-            " qproperty-emission_style: '%19';"
+            " qproperty-scene: %5;"
+            " qproperty-background: %6;"
+            " qproperty-background_hover: %7;"
+            " qproperty-background_press: %8;"
+            " qproperty-label: %9;"
+            " qproperty-label_weight: '%11';"
+            " qproperty-grid_label: %12;"
+            " qproperty-grid_label_weight: '%13';"
+            " qproperty-axis: %14;"
+            " qproperty-axis_hover: %15;"
+            " qproperty-axis_press: %16;"
+            " qproperty-absorption_width: %17;"
+            " qproperty-absorption_style: '%18';"
+            " qproperty-excitation_width: %19;"
+            " qproperty-excitation_style: '%21';"
+            " qproperty-emission_width: %22;"
+            " qproperty-emission_style: '%23';"
             "} ";
     style = style.arg(
+        Builder::toPixels(metrics, this->layout_spacing),
+        Builder::toPixels(metrics, this->layout_sub_spacing),
         this->background,
+        Builder::toPixels(metrics, "0.5em"),
         this->graph_scene,
         this->graph_background,
         this->graph_background_hover,
         this->graph_background_press,
-        this->graph_label,
-        this->graph_label_weight,
-        this->graph_grid_label,
-        this->graph_grid_label_weight
+        this->graph_label
     );
     style = style.arg(
+        this->graph_label_weight,
+        this->graph_grid_label,
+        this->graph_grid_label_weight,
         this->graph_axis,
         this->graph_axis_hover,
         this->graph_axis_press,
         Builder::toPixels(metrics, this->graph_absorption_width),
         this->graph_absorption_style,
-        Builder::toPixels(metrics, this->graph_excitation_width),
+        Builder::toPixels(metrics, this->graph_excitation_width)
+    );
+    style = style.arg(
         this->graph_excitation_style,
         Builder::toPixels(metrics, this->graph_emission_width),
         this->graph_emission_style

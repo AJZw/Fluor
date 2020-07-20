@@ -60,11 +60,11 @@ Controller::Controller(QWidget* parent) :
     Bar::LaserButton* widget_laser = new Bar::LaserButton(this);
     Bar::ExcitationButton* widget_excitation = new Bar::ExcitationButton(this);
     Bar::EmissionButton* widget_emission = new Bar::EmissionButton(this);
-    Bar::DetectorButton* widget_detector = new Bar::DetectorButton(this);
+    Bar::FilterButton* widget_filter = new Bar::FilterButton(this);
     layout_left->addWidget(widget_laser);
     layout_left->addWidget(widget_excitation);
     layout_left->addWidget(widget_emission);
-    layout_left->addWidget(widget_detector);
+    layout_left->addWidget(widget_filter);
     layout_left->addStretch(1);
 
     Bar::GraphAddButton* widget_graph_add = new Bar::GraphAddButton(this);
@@ -75,31 +75,31 @@ Controller::Controller(QWidget* parent) :
     layout_mid->addStretch(1);
 
     //Bar::Label* widget_label = new Bar::Label(this);
-    Bar::LasersButton* widget_lasers = new Bar::LasersButton(this);
+    Bar::LaserLinesButton* widget_laserlines = new Bar::LaserLinesButton(this);
     layout_right->addStretch(1);
     //layout_right->addWidget(widget_label);
-    layout_right->addWidget(widget_lasers);
+    layout_right->addWidget(widget_laserlines);
 
     // Connections
     QObject::connect(this, &Bar::Controller::enableLaser, widget_laser, &Bar::LaserButton::setEnabled);
-    QObject::connect(this, &Bar::Controller::enableDetector, widget_detector, &Bar::DetectorButton::setEnabled);
-    QObject::connect(this, &Bar::Controller::enableLasers, widget_lasers, &Bar::LasersButton::setEnabled);
+    QObject::connect(this, &Bar::Controller::enableFilter, widget_filter, &Bar::FilterButton::setEnabled);
+    QObject::connect(this, &Bar::Controller::enableLaserLines, widget_laserlines, &Bar::LaserLinesButton::setEnabled);
 
     QObject::connect(widget_laser, &Bar::SquarePushButton::clicked, this, &Bar::Controller::clickedLaser);
     QObject::connect(widget_excitation, &Bar::SquarePushButton::clicked, this, &Bar::Controller::clickedExcitation);
     QObject::connect(widget_emission, &Bar::SquarePushButton::clicked, this, &Bar::Controller::clickedEmission);
-    QObject::connect(widget_detector, &Bar::SquarePushButton::clicked, this, &Bar::Controller::clickedDetector);
+    QObject::connect(widget_filter, &Bar::SquarePushButton::clicked, this, &Bar::Controller::clickedFilter);
     QObject::connect(widget_graph_add, &Bar::SquarePushButton::clicked, this, &Bar::Controller::clickedGraphAdd);
     QObject::connect(widget_graph_remove, &Bar::SquarePushButton::clicked, this, &Bar::Controller::clickedGraphRemove);
-    QObject::connect(widget_lasers, &Bar::LasersButton::clicked, this, &Bar::Controller::clickedLasers);
+    QObject::connect(widget_laserlines, &Bar::LaserLinesButton::clicked, this, &Bar::Controller::clickedLaserLines);
 
     QObject::connect(this, &Bar::Controller::activateLaser, widget_laser, &Bar::SquarePushButton::setActive);
     QObject::connect(this, &Bar::Controller::activateExcitation, widget_excitation, &Bar::SquarePushButton::setActive);
     QObject::connect(this, &Bar::Controller::activateEmission, widget_emission, &Bar::SquarePushButton::setActive);
-    QObject::connect(this, &Bar::Controller::activateDetector, widget_detector, &Bar::SquarePushButton::setActive);
-    QObject::connect(this, &Bar::Controller::activateGraphAdd, widget_graph_add, &Bar::SquarePushButton::setActive);
-    QObject::connect(this, &Bar::Controller::activateGraphRemove, widget_graph_remove, &Bar::SquarePushButton::setActive);
-    QObject::connect(this, &Bar::Controller::activateLasers, widget_lasers, &Bar::LasersButton::setActive);
+    QObject::connect(this, &Bar::Controller::activateFilter, widget_filter, &Bar::SquarePushButton::setActive);
+    QObject::connect(this, &Bar::Controller::activateGraphAdd, widget_graph_add, &Bar::SquarePushButton::setEnabled);
+    QObject::connect(this, &Bar::Controller::activateGraphRemove, widget_graph_remove, &Bar::SquarePushButton::setEnabled);
+    QObject::connect(this, &Bar::Controller::activateLaserLines, widget_laserlines, &Bar::LaserLinesButton::setActive);
 }
 
 /*
@@ -146,19 +146,19 @@ void Controller::receiveToolbarStateUpdate(Bar::ButtonType type, bool active, bo
     case ButtonType::Emission:
         emit this->activateEmission(active);
         return;
-    case ButtonType::Detector:
-        emit this->enableDetector(enable);
-        emit this->activateDetector(active);
+    case ButtonType::Filter:
+        emit this->enableFilter(enable);
+        emit this->activateFilter(active);
         return;
     case ButtonType::GraphAdd:
-        emit this->activateGraphAdd(active);
+        emit this->activateGraphAdd(enable);
         return;
     case ButtonType::GraphRemove:
-        emit this->activateGraphRemove(active);
+        emit this->activateGraphRemove(enable);
         return;
-    case ButtonType::Lasers:
-        emit this->enableLasers(enable);
-        emit this->activateLasers(active);
+    case ButtonType::LaserLines:
+        emit this->enableLaserLines(enable);
+        emit this->activateLaserLines(active);
         return;
     default:
         qWarning() << "Toolbar::Controller::receiveToolbarStateUpdate: unknown button";
@@ -193,12 +193,12 @@ void Controller::clickedEmission(bool active) {
 }
 
 /*
-Slot: handles widget_detector::clicked() signals
+Slot: handles widget_filter::clicked() signals
     :param active: whether the widget is active or non-active (after the click)
 */
-void Controller::clickedDetector(bool active){
+void Controller::clickedFilter(bool active){
     //emit this->setVisibilityDetector(active);
-    emit this->sendToolbarStateChange(Bar::ButtonType::Detector, active, true);
+    emit this->sendToolbarStateChange(Bar::ButtonType::Filter, active, true);
 }
 
 /*
@@ -223,9 +223,9 @@ void Controller::clickedGraphRemove(bool active) {
 Slot: handles widget_laserse::clicked() signals
     :param active: whether the widget is active or non-active (after the click)
 */
-void Controller::clickedLasers(bool active) {
+void Controller::clickedLaserLines(bool active) {
     //emit this->expandLasers(active);
-    emit this->sendToolbarStateChange(Bar::ButtonType::Lasers, active, true);
+    emit this->sendToolbarStateChange(Bar::ButtonType::LaserLines, active, true);
 }
 
 } // Bar namespace

@@ -78,8 +78,8 @@ class DATALIB_EXPORT Polygon {
         friend QDebug operator<<(QDebug stream, const Polygon& object){return stream << "Data::Polygon{" << object.x_min << "-" << object.x_max << ":" << object.curve[0] << "-" << object.curve[object.curve.size() - 1] << "}";};
         
         bool empty() const;
-        qreal intensityAt(double wavelength, double cutoff=0.0) const;
-        qreal intensityAtIter(double wavelength, double cutoff=0.0) const;
+        double intensityAt(double wavelength, double cutoff=0.0) const;
+        double intensityAtIter(double wavelength, double cutoff=0.0) const;
         double intensityMax() const;
 
         const QColor& color() const;
@@ -215,8 +215,8 @@ class DATALIB_EXPORT CacheSpectrum {
         bool absorptionFlag() const;
         bool twoPhotonFlag() const;
 
-        qreal excitationAt(double wavelength) const;
-        qreal emissionAt(double wavelength) const;
+        double excitationAt(double wavelength) const;
+        double emissionAt(double wavelength) const;
 };
 
 } // Data namespace

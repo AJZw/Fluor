@@ -39,8 +39,7 @@
 #include <QWidget>
 #include <QResizeEvent>
 #include <QRect>
-
-//#include <QRectF>
+#include <QDebug>
 
 namespace Graph {
 

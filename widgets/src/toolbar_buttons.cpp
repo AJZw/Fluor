@@ -218,12 +218,12 @@ EmissionButton::EmissionButton(QWidget* parent) :
 Constructor: DetectorButton.
     :param parent: parent widget
 */
-DetectorButton::DetectorButton(QWidget* parent) :
+FilterButton::FilterButton(QWidget* parent) :
     IconPushButton(parent)
 {
-    this->tooltip_disabled = QString("No detectors enabled");
-    this->tooltip_active = QString("Toggle visibility detectors (on)");
-    this->tooltip_inactive = QString("Toggle visibilty detectors (off)");
+    this->tooltip_disabled = QString("No filters enabled");
+    this->tooltip_active = QString("Toggle visibility filters (on)");
+    this->tooltip_inactive = QString("Toggle visibilty filters (off)");
     this->setActive(false);
     this->setEnabled(false);
     this->setToolTip();
@@ -277,12 +277,12 @@ void GraphRemoveButton::setActive(bool active){
 /*
 Constructor: Lasers-button for add and removing all lasers from a plot
 */
-LasersButton::LasersButton(QWidget* parent) :
+LaserLinesButton::LaserLinesButton(QWidget* parent) :
     IconPushButton(parent)
 {
     this->tooltip_disabled = QString("No instrument enabled");
-    this->tooltip_active = QString("Expand graphs");
-    this->tooltip_inactive = QString("Reduce graphs");
+    this->tooltip_active = QString("Expand laserlines");
+    this->tooltip_inactive = QString("Reduce laserlines");
     this->setActive(true);
     this->setEnabled(true);
     this->setToolTip();

@@ -39,6 +39,7 @@
 #include "data_fluorophores.h"
 #include "data_instruments.h"
 #include "cache.h"
+#include "state_gui.h"
 #include <vector>
 
 #include <QScreen>
@@ -84,12 +85,14 @@ class Controller : public QMainWindow {
         void receiveCacheRequestUpdate();
         void receiveCacheAdd(std::vector<Data::FluorophoreID>& fluorophores);
         void receiveCacheRemove(std::vector<Data::FluorophoreID>& fluorophores);
-
         void receiveCacheSync(const std::vector<Cache::CacheID>& cache_state);
-        void receiveCacheUpdate(const std::vector<Cache::CacheID>& cache_state);
+        void receiveCacheUpdate();
 
         void receiveToolbarStateChange(Bar::ButtonType type, bool active, bool enable);
         void receiveToolbarStateUpdate(Bar::ButtonType type, bool active, bool enable);
+
+        void receiveGraphSelect(std::size_t index, bool state);
+        void receiveGraphState(std::vector<State::GraphState>& state);
 
     signals:
         void resized(const QWidget* widget);
@@ -104,14 +107,16 @@ class Controller : public QMainWindow {
         void sendCacheRequestUpdate();
         void sendCacheAdd(std::vector<Data::FluorophoreID>& fluorophores);
         void sendCacheRemove(std::vector<Data::FluorophoreID>& fluorophores);
-
         void sendCacheSync(const std::vector<Cache::CacheID>& cache_state);
-        void sendCacheUpdate(const std::vector<Cache::CacheID>& cache_state);
+        void sendCacheUpdate();
 
         void sendLaser(int wavelength);
 
         void sendToolbarStateChange(Bar::ButtonType type, bool active, bool enable=true);
         void sendToolbarStateUpdate(Bar::ButtonType type, bool active, bool enable=true);
+        
+        void sendGraphSelect(std::size_t index, bool state);
+        void sendGraphState(std::vector<State::GraphState>& state);
 };
 
 } // Main namespace

@@ -1,13 +1,13 @@
 /**** General **************************************************************
-** Version:    v0.9.5
-** Date:       2019-09-12
+** Version:    v0.9.7
+** Date:       2020-01-17
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
 ***************************************************************************/
 
 /**** LGPLv3 License *******************************************************
-** state.h is part of Fluor
+** state_program.h is part of Fluor
 **        
 ** Fluor is free software: you can redistribute it and/or
 ** modify it under the terms of the Lesser GNU General Public License as
@@ -27,19 +27,13 @@
 ** Handles the global state and connections of the GUI to non-GUI properties
 ** Aka the glue between all parts
 **
-** :enum: State::ExcitationOption
-** The fluoresence excitation method
-**
-** :struct: State::GUIGlobal
-** Storage class for the global GUI properties
-**
-** :class: State::State
+** :class: State::Program
 ** Main state of the program. Combines GUI with the non-GUI properties
 ** 
 ***************************************************************************/
 
-#ifndef STATE_H
-#define STATE_H
+#ifndef STATE_PROGRAM_H
+#define STATE_PROGRAM_H
 
 #include <QObject>
 #include "global.h"
@@ -48,71 +42,60 @@
 #include "data_instruments.h"
 #include "data_styles.h"
 #include "cache.h"
+#include "state_gui.h"
 #include "main_controller.h"
-#include "toolbar_controller.h"
-
 
 namespace State {
 
-enum class ExcitationOption {
-    SinglePhoton,
-    MultiPhoton
-};
-
-struct GUIGlobal {
-    bool active_laser = false;
-    bool active_excitation = false;
-    bool active_emission = true;
-    bool active_detector = false;
-    bool active_graph_add = true;
-    bool active_graph_remove = false;
-    bool active_lasers = false;
-
-    bool enabled_laser = false;
-    bool enabled_detector = false;
-    bool enabled_lasers = false;
-
-    SortMode sort_fluorophores = SortMode::Additive;
-
-    QString style = QString("BLACKBLUE");
-};
-
-class State : public QObject {
+class Program : public QObject {
     Q_OBJECT
     
     public:
-        State(Data::Factory& factory);
-        State(const State&) = delete;
-        State& operator=(const State&) = delete;
-        State(State&&) = delete;
-        State& operator=(State&&) = delete;
-        ~State() = default;
+        Program(Data::Factory& factory);
+        Program(const Program&) = delete;
+        Program& operator=(const Program&) = delete;
+        Program(Program&&) = delete;
+        Program& operator=(Program&&) = delete;
+        ~Program() = default;
 
     private:
         Data::Factory& factory;
         Data::FluorophoreReader data_fluorophores;
         Data::InstrumentReader data_instruments;
         Data::Style::Builder style;
-        Cache::Cache cache;
-        Main::Controller gui;
-
-        GUIGlobal global;
         Data::Instrument instrument;
 
-        void syncGlobal();
-        void syncInstrument();
+        Cache::Cache cache;
+        State::GUI state_gui;
+        Main::Controller gui;
+
+        void retreiveStateGUI();
+        void retreiveInstrument();
+    
         void syncToolbar();
+        void syncGraphs();
         void syncCache();
+        void syncInstrument();
+        void syncFluorophores();
+
+        void loadInstrument(const QString& instrument_name);
+        void refreshToolbar();
 
     signals:
         void sendToolbarState(Bar::ButtonType type, bool active, bool enable);
+        
         void sendCacheState(Cache::CacheState state);
         void sendCacheStateExcitation(bool visible);
         void sendCacheStateEmission(bool visible);
         void sendCacheStateSorting(SortMode mode);
+        
+        void sendGraphState(std::vector<State::GraphState>& state);
 
     public slots:
         void receiveToolbarState(Bar::ButtonType type, bool active, bool enable);
+        void receiveLaser(double wavelength);
+        void receiveLasers(std::vector<double>& wavelength);
+        void receiveGraphSelect(std::size_t index, bool state);
 
     private slots:
         void reloadStyle(QWidget* source);
@@ -122,4 +105,4 @@ class State : public QObject {
 
 }   // State namespace
 
-#endif  // STATE_H
+#endif  // STATE_PROGRAM_H
