@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.2
-** Date:       2019-02-03
+** Version:    v0.9.8
+** Date:       2020-08-05
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -21,7 +21,6 @@
 #include <QObjectList>
 
 #include <QDebug>
-
 
 namespace Fluor {
 
@@ -211,6 +210,22 @@ ScrollController::ScrollController(QWidget* parent) :
 }
 
 /*
+Receives the scrollcontrollers resize events.
+Gets the new size to calculate the maximum width. This to prevent the internal
+buttoncontrollers from resizing the layout_internal, causing buttons to fall outside the viewport.
+    :param event: the resize event
+*/
+void ScrollController::resizeEvent(QResizeEvent* event){
+    QScrollArea::resizeEvent(event);
+
+    int scrollbar_width = 0;
+    if(this->verticalScrollBar()->isVisible()){
+        scrollbar_width = this->verticalScrollBar()->width();
+    }
+    this->widget()->setMaximumWidth(this->width() - scrollbar_width);
+}
+
+/*
 Getter for layout spacing property, as it has to return a QString it returns the value in pixels
 */
 QString ScrollController::layoutMarginsScrollBar() const {
@@ -373,6 +388,7 @@ ButtonsController::ButtonsController(QWidget* parent) :
     QObject::connect(this->widget_emission, &Fluor::EmissionButton::hoverLeaved, this, &Fluor::ButtonsController::hoverLeaved);
     QObject::connect(this->widget_emission, &Fluor::EmissionButton::selected, this, &Fluor::ButtonsController::receiveSelected);
 }
+
 
 /*
 Reimplementation of paintEvent. This allows proper stylesheet management of QWidget inheriting widget

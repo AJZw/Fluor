@@ -160,7 +160,7 @@ class ScrollController : public QScrollArea {
         ScrollController& operator=(const ScrollController &obj) = delete;
         ScrollController(ScrollController&&) = delete;
         ScrollController& operator=(ScrollController&&) = delete;
-        ~ScrollController() = default;
+        virtual ~ScrollController() = default;
 
         QString layoutSpacing() const;
         void setLayoutSpacing(QString layout_spacing);
@@ -174,6 +174,9 @@ class ScrollController : public QScrollArea {
     signals:
         void sendCacheRequestUpdate();
         void sendRemove(std::vector<Data::FluorophoreID>& fluorophores);
+
+    protected:
+        virtual void resizeEvent(QResizeEvent* event) override;
 
     public slots:
         void hidingScrollBar();

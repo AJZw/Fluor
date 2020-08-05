@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.2
-** Date:       2019-03-11
+** Version:    v0.9.8
+** Date:       2020-08-05
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -36,7 +36,7 @@ Controller::Controller(QWidget* parent) :
     controller_layout->setRowMinimumHeight(0, 1);
     controller_layout->setRowStretch(0, 0);
     controller_layout->setRowStretch(1, 1);
-    controller_layout->setColumnMinimumWidth(0, 200);
+    controller_layout->setColumnMinimumWidth(0, 80);
     controller_layout->setColumnMinimumWidth(1, 80);
     controller_layout->setColumnStretch(0, 0);
     controller_layout->setColumnStretch(1, 1);

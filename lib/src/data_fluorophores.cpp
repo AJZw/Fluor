@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.4
-** Date:       2019-07-20
+** Version:    v0.9.8
+** Date:       2020-08-05
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -116,8 +116,16 @@ Data::Spectrum FluorophoreReader::getSpectrum(const Data::Factory& data, const Q
     fluorophores->beginGroup(id);
 
     // Load data and transform to Data::Polygon's
-    QStringList excitation_wavelength = fluorophores->value("excitation_wavelength", "0.0,0.0").toStringList();
-    QStringList excitation_intensity = fluorophores->value("excitation_intensity", "0.0,0.0").toStringList();
+    bool is_absorption = false;
+    QStringList excitation_wavelength = fluorophores->value("excitation_wavelength", QVariant()).toStringList();
+    QStringList excitation_intensity = fluorophores->value("excitation_intensity", QVariant()).toStringList();
+
+    // If no excitation is available fallback to absorption
+    if(excitation_wavelength.empty() || excitation_intensity.empty()){
+        is_absorption = true;
+        excitation_wavelength = fluorophores->value("absorption_wavelength", "0.0,0.0").toStringList();
+        excitation_intensity = fluorophores->value("absorption_intensity", "0.0,0.0").toStringList();
+    }
     Data::Polygon excitation = this->toPolygon(excitation_wavelength, excitation_intensity);
 
     QStringList emission_wavelength = fluorophores->value("emission_wavelength", "0.0,0.0").toStringList();
@@ -132,6 +140,7 @@ Data::Spectrum FluorophoreReader::getSpectrum(const Data::Factory& data, const Q
 
     // Verify validity, if invalid return
     Data::Spectrum spectrum(id, excitation, emission);
+    spectrum.setAbsorptionFlag(is_absorption);
     
     if(!spectrum.isValid()){      
         qWarning() << "Data::FluorophoreReader::getSpectrum: Data::Spectrum object of id " << id << " is invalid. Is the Data complete?";
@@ -155,18 +164,29 @@ Data::CacheSpectrum FluorophoreReader::getCacheSpectrum(const Data::Factory& dat
 
     // Load data and transform to Data::Polygon's
     // Needs to do proper selection and flag setting for absorption / excitation curves - for now ignore two_photon
-    QStringList excitation_wavelength = fluorophores->value("excitation_wavelength", "0.0,0.0").toStringList();
-    QStringList excitation_intensity = fluorophores->value("excitation_intensity", "0.0,0.0").toStringList();
+    bool is_absorption = false;
+    int excitation_max = fluorophores->value("excitation_max", -1).toInt();
+    QStringList excitation_wavelength = fluorophores->value("excitation_wavelength", QVariant()).toStringList();
+    QStringList excitation_intensity = fluorophores->value("excitation_intensity", QVariant()).toStringList();
+
+    // If no excitation is available fallback to absorption
+    if(excitation_wavelength.empty() || excitation_intensity.empty()){
+        is_absorption = true;
+        excitation_max = fluorophores->value("absorption_max", -1).toInt();
+        excitation_wavelength = fluorophores->value("absorption_wavelength", "0.0,0.0").toStringList();
+        excitation_intensity = fluorophores->value("absorption_intensity", "0.0,0.0").toStringList();
+    }
     Data::Polygon excitation = this->toPolygon(excitation_wavelength, excitation_intensity);
 
+    int emission_max = fluorophores->value("emission_max", -1).toInt();
     QStringList emission_wavelength = fluorophores->value("emission_wavelength", "0.0,0.0").toStringList();
     QStringList emission_intensity = fluorophores->value("emission_intensity", "0.0,0.0").toStringList();
     Data::Polygon emission = this->toPolygon(emission_wavelength, emission_intensity);
 
     // Get meta data
     Data::Meta meta;
-    meta.excitation_max = fluorophores->value("excitation_max", -1).toInt();
-    meta.emission_max = fluorophores->value("emission_max", -1).toInt();
+    meta.excitation_max = excitation_max;
+    meta.emission_max = emission_max;
 
     fluorophores->endGroup();
 
@@ -180,13 +200,14 @@ Data::CacheSpectrum FluorophoreReader::getCacheSpectrum(const Data::Factory& dat
 
     // Verify validity, if invalid return
     Data::Spectrum spectrum(id, excitation, emission);
+    spectrum.setAbsorptionFlag(is_absorption);
     
     if(!spectrum.isValid()){      
         qWarning() << "Data::FluorophoreReader::getCacheSpectrum: DataSpectrum object of id " << id << " is invalid. Is the fluorophores.ini complete?";
     }
     
     // Wrap in cache
-    Data::CacheSpectrum cache(index, std::move(spectrum), std::move(meta));
+    Data::CacheSpectrum cache(index, spectrum, meta);
 
     return cache;
 }

@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.4
-** Date:       2019-07-22
+** Version:    v0.9.8
+** Date:       2020-08-05
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -19,7 +19,7 @@ Application::Application(int &argc, char **argv) :
 {
     this->setOrganizationName("AJZw");
     this->setApplicationName("Fluor");
-    this->setApplicationVersion("v0.9.7");
+    this->setApplicationVersion("v0.9.8");
 
     this->installEventFilter(this);
 

@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.3
-** Date:       2019-04-23
+** Version:    v0.9.8
+** Date:       2020-08-05
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -1453,6 +1453,9 @@ void Colorbar::updatePainter(const Graph::Format::Style* style){
     }else{
         this->setPen(this->pen_default);
     }
+
+    // Also set height
+    this->minimum_height = style->heightColorbar();
 }
 
 /*
@@ -1659,16 +1662,9 @@ bool Spectrum::contains(const PlotRectF& space, const QPointF& point) const {
 Sets the location of the item within the space allocated, assumes enough space to adhere to minimumWidth and minimumHeight.
     :param space: the allocated space
 */
-void Spectrum::setPosition(const PlotRectF& space){
-    // Set bounding region
-    // Bounding box can be more precise if we check the left and right values after scaling
-    if(space.local() != this->spectrum_space){
-        this->spectrum_space = space.local();
-        this->prepareGeometryChange();
-    }
-
+void Spectrum::setPosition(const PlotRectF& space){  
     // Correct plotting space for line width
-    QRectF plot_space = this->spectrum_space;
+    QRectF plot_space = space.local();
     double pen_adjust = this->pen_excitation.widthF() * 0.5;
     plot_space.adjust(pen_adjust, pen_adjust, -pen_adjust, -pen_adjust);
 
@@ -1682,7 +1678,7 @@ void Spectrum::setPosition(const PlotRectF& space){
     );
 
     // Correct plotting space for line width
-    plot_space = this->spectrum_space;
+    plot_space = space.local();
     pen_adjust = this->pen_emission.widthF() * 0.5;
     plot_space.adjust(pen_adjust, pen_adjust, -pen_adjust, -pen_adjust);
     // Scale emission second
@@ -1696,7 +1692,41 @@ void Spectrum::setPosition(const PlotRectF& space){
 
     // Copy and close emission data into fill
     this->spectrum_emission_fill.copyCurve(this->spectrum_emission);
-    this->spectrum_emission_fill.closeCurve(this->spectrum_space);
+    this->spectrum_emission_fill.closeCurve(space.local());
+
+    // Recalculate bounding box for efficient drawing and contain look-up
+    // Get outer x-axis bounds of the two spectra
+    // For y assume full plot height, no non-iterative way to find the highest point.
+    qreal left;
+    qreal right;
+    if(this->spectrum_excitation.polygon().empty()){
+        if(!this->spectrum_emission.polygon().empty()){
+            left = this->spectrum_emission.polygon()[0].x();
+            right = this->spectrum_emission.polygon()[this->spectrum_emission.polygon().length() - 1].x();
+        }else{
+            left = 0;
+            right = 0;
+        }
+    }else if(this->spectrum_emission.polygon().empty()){
+        left = this->spectrum_excitation.polygon()[0].x();
+        right = this->spectrum_excitation.polygon()[this->spectrum_excitation.polygon().length() - 1].x();
+    }else{ 
+        left = std::min(
+            this->spectrum_excitation.polygon()[0].x(),
+            this->spectrum_emission.polygon()[0].x()
+        );
+        right = std::max(
+            this->spectrum_excitation.polygon()[this->spectrum_excitation.polygon().length() - 1].x(),
+            this->spectrum_emission.polygon()[this->spectrum_emission.polygon().length() - 1].x()
+        );
+    }
+    
+    QRectF bounding_box(QPointF(left, space.local().top()), QPointF(right, space.local().bottom()));
+
+    if(bounding_box != this->spectrum_space){
+        this->spectrum_space = bounding_box;
+        this->prepareGeometryChange();
+    }
 }
 
 /*

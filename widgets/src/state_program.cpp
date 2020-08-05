@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.5
-** Date:       2019-09-12
+** Version:    v0.9.8
+** Date:       2020-08-05
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -56,20 +56,22 @@ Program::Program(Data::Factory& factory) :
     QObject::connect(&this->gui, &Main::Controller::screenChanged, this, &State::Program::reloadStyle);
     QObject::connect(&this->gui, &Main::Controller::screenDPIChanged, this, &State::Program::reloadStyle);
 
+    //#######################
     QObject::connect(&this->gui, &Main::Controller::sendCacheAdd, &this->cache, &Cache::Cache::cacheAdd);
     QObject::connect(&this->gui, &Main::Controller::sendCacheRemove, &this->cache, &Cache::Cache::cacheRemove);
-    QObject::connect(&this->gui, &Main::Controller::sendCacheRequestUpdate, &this->cache, &Cache::Cache::cacheRequestUpdate);
-    
+    QObject::connect(&this->gui, &Main::Controller::sendCacheRequestUpdate, &this->cache, &Cache::Cache::cacheRequestUpdate);    
+
     QObject::connect(&this->cache, &Cache::Cache::cacheSync, &this->gui, &Main::Controller::receiveCacheSync);
     QObject::connect(&this->cache, &Cache::Cache::cacheUpdate, &this->gui, &Main::Controller::receiveCacheUpdate);
-
-    QObject::connect(&this->gui, &Main::Controller::sendToolbarStateChange, this, &State::Program::receiveToolbarState);
-    QObject::connect(this, &State::Program::sendToolbarState, &this->gui, &Main::Controller::receiveToolbarStateUpdate);
 
     QObject::connect(this, &State::Program::sendCacheState, &this->cache, &Cache::Cache::cacheStateSet);
     QObject::connect(this, &State::Program::sendCacheStateExcitation, &this->cache, &Cache::Cache::cacheStateSetExcitation);
     QObject::connect(this, &State::Program::sendCacheStateEmission, &this->cache, &Cache::Cache::cacheStateSetEmission);
     QObject::connect(this, &State::Program::sendCacheStateSorting, &this->cache, &Cache::Cache::cacheStateSetSorting);
+    //#######################
+
+    QObject::connect(&this->gui, &Main::Controller::sendToolbarStateChange, this, &State::Program::receiveToolbarState);
+    QObject::connect(this, &State::Program::sendToolbarState, &this->gui, &Main::Controller::receiveToolbarStateUpdate);
 
     QObject::connect(this, &State::Program::sendGraphState, &this->gui, &Main::Controller::receiveGraphState);
     QObject::connect(&this->gui, &Main::Controller::sendGraphSelect, this, &State::Program::receiveGraphSelect);

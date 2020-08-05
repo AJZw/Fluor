@@ -99,7 +99,7 @@ class Cache : public QObject {
         std::set<CacheID> items;
         std::unordered_map<QString, Data::CacheSpectrum> data;
 
-        // For proper Cache item initiating, requires to now some general properties:
+        // For proper Cache item initiating, requires to know some general properties:
         CacheState state;
 
     private:

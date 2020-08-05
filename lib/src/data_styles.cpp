@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.5
-** Date:       2019-07-30
+** Version:    v0.9.8
+** Date:       2020-08-05
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -927,7 +927,7 @@ QString Builder::buildFluorMenu(const QFontMetrics& metrics) const {
     style = style.arg(
         Builder::toPixels(metrics, this->layout_spacing),
         Builder::toPixels(metrics, this->layout_sub_spacing),
-        Builder::toPixels(metrics, "15em"),
+        Builder::toPixels(metrics, "23em"),
         this->pushbutton_hover_background,
         this->pushbutton_hover_border,
         this->pushbutton_hover_text,
@@ -993,6 +993,7 @@ QString Builder::buildGraph(const QFontMetrics& metrics) const {
             " qproperty-excitation_style: '%21';"
             " qproperty-emission_width: %22;"
             " qproperty-emission_style: '%23';"
+            " qproperty-colorbar_height: %24;"
             "} ";
     style = style.arg(
         Builder::toPixels(metrics, this->layout_spacing),
@@ -1019,11 +1020,11 @@ QString Builder::buildGraph(const QFontMetrics& metrics) const {
     style = style.arg(
         this->graph_excitation_style,
         Builder::toPixels(metrics, this->graph_emission_width),
-        this->graph_emission_style
+        this->graph_emission_style,
+        Builder::toPixels(metrics, "1.5em")
     );
     return(style);
 }
-
 
 /*
 Transforms a px, em (=M width), ex (=x height), eh (=font height) measure into pixels

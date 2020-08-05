@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.4
-** Date:       2019-07-24
+** Version:    v0.9.8
+** Date:       2020-08-05
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -138,7 +138,8 @@ Style::Style(QWidget* parent) :
     excitation_width(1),
     excitation_style(Qt::DashDotLine),
     emission_width(1),
-    emission_style(Qt::DashDotLine)
+    emission_style(Qt::DashDotLine),
+    colorbar_height(10)
 {
     // I connect it to the Graph::Controller for lifetime management and event inheritance
     // But it should not be plotted
@@ -278,6 +279,13 @@ QString Style::emissionStyle() const {
 }
 void Style::setEmissionStyle(QString emission_style){
     this->emission_style = Style::textToPenStyle(emission_style, Qt::SolidLine);
+}
+
+QString Style::colorbarHeight() const {
+    return QString::number(this->colorbar_height, 'f', 0);
+}
+void Style::setColorbarHeight(QString height) {
+    this->colorbar_height = height.toInt();
 }
 
 /*
@@ -604,6 +612,13 @@ QPen Style::penFilter(Qt::PenStyle line_style) const {
     pen.setJoinStyle(Qt::MiterJoin);
     pen.setColor(QColor("#CCCCCC"));
     return pen;
+}
+
+/*
+Returns the stylized height of the colorbar
+*/
+int Style::heightColorbar() const {
+    return this->colorbar_height;
 }
 
 } // Format namespace

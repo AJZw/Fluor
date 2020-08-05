@@ -195,6 +195,7 @@ class Style : public QWidget {
     Q_PROPERTY(QString excitation_style READ excitationStyle WRITE setExcitationStyle)
     Q_PROPERTY(QString emission_width READ emissionWidth WRITE setEmissionWidth)
     Q_PROPERTY(QString emission_style READ emissionStyle WRITE setEmissionStyle)
+    Q_PROPERTY(QString colorbar_height READ colorbarHeight WRITE setColorbarHeight)
 
     public:
         explicit Style(QWidget* parent=nullptr);
@@ -243,6 +244,8 @@ class Style : public QWidget {
         void setEmissionWidth(QString emission_width);
         QString emissionStyle() const;
         void setEmissionStyle(QString emission_style);
+        QString colorbarHeight() const;
+        void setColorbarHeight(QString colorbar_height);
 
     private:
         QColor style_scene;
@@ -262,6 +265,7 @@ class Style : public QWidget {
         Qt::PenStyle excitation_style;
         int emission_width;
         Qt::PenStyle emission_style;
+        int colorbar_height;
 
         static QFont::Weight textToFontWeight(const QString& text, QFont::Weight fallback=QFont::Bold);
         static QString fontWeightToText(QFont::Weight weight);
@@ -294,6 +298,8 @@ class Style : public QWidget {
         QPen penEmissionSelect(QColor color) const;
         QPen penLaser(QColor color) const;
         QPen penFilter(Qt::PenStyle line_style) const;
+
+        int heightColorbar() const;
     
     signals:
         void styleChanged();

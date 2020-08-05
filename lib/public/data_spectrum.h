@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.4
-** Date:       2019-07-21
+** Version:    v0.9.8
+** Date:       2020-08-05
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -100,10 +100,10 @@ class DATALIB_EXPORT Polygon {
         void closeCurve(const QRectF& size);
 
     private:
-        double x_min;
-        double x_max;
-        double y_min;
-        double y_max;
+        double x_min;   // in wavelength (nm)
+        double x_max;   // in wavelength (nm)
+        double y_min;   // in intensity (%)
+        double y_max;   // in intensity (%)
         QColor curve_color;
         QPolygonF curve;
 };

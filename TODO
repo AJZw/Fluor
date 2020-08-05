@@ -1,9 +1,7 @@
 TO DO:
 
 GENERAL:
-    Add code signing on MacOS
-    >> Make licensing window
-    >> Make about window
+    >> Make about window (with licensing info)
     Add a way to intercept all Errors and parse those to a popup window / possible?
     Implement logging as a better alternative! -> capture QDebug() messages and output to window
     Including logging window! which is openable independently and is updated on every log event
@@ -12,31 +10,25 @@ GENERAL:
     A way to export the plots
     Sometimes (exp shift+windows_key) moves the window, this should close all open drop-down menu's.
 
-PARSERS
-    > TEST QSettings settings on macintosh, does it follow the QApp defined names
-
 DATA:
-    Check for absorption / excitation curves, pick most precise one and set absorption flag
+    Implement json parser for new fluorophore spectra data structure
     Implement two_photon excitation
 
 CACHE:
     In common usage check to what size the unordered_map grow, now just a guess
-    To make more consistent with rest of the state mechanisms, remove the Q_OBJECT / signal+slot required -> move it to State::Program
-
-FLUOR:
-    Make fluor lineedit widths style dependent, so text doesnt get squeezed of on higher scaling settings
+    >> To make more consistent with rest of the state mechanisms, remove the Q_OBJECT / signal+slot required -> move it to State::Program
 
 LASER & FLUOR:
     If selected plot with laser -> see if entree in QModel, if so -> select
-    Upon DPI change the rowSizeHint lags behind one paint, which can cause imperfect popup size. Not sure you can work your way around this one.
+    Upon DPI change the rowSizeHint lags behind one paint(), which can cause imperfect popup size. Not sure you can work your way around this one.
 
 GRAPH:
-    Make colorbar height scale with the screen
     Save graph properties and reload upon opening -> for now disabled cause it breaks the BarLayout
     'black' axes face_color option allow for white out of visible spectrum plotting
     Colinear lasers object
     Selection in Plot -> see statistics of each plot
-    >> Proper Graph::Spectrum bounding box determinations
 
 MAC:
-    Check stylesheet 
+    TEST QSettings settings on macintosh, does it follow the QApp defined names
+    Check stylesheet
+    Add code signing on MacOS
