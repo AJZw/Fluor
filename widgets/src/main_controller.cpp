@@ -50,7 +50,7 @@ Controller::Controller(QWidget* parent) :
     QObject::connect(controller_widget, &Central::Controller::sendCacheAdd, this, &Main::Controller::receiveCacheAdd);
     QObject::connect(controller_widget, &Central::Controller::sendCacheRemove, this, &Main::Controller::receiveCacheRemove);
     QObject::connect(controller_widget, &Central::Controller::sendLaser, this, &Main::Controller::receiveLaser);
-    QObject::connect(this, &Main::Controller::sendCacheSync, controller_widget, &Central::Controller::receiveCacheSync);
+    QObject::connect(this, &Main::Controller::sendCacheState, controller_widget, &Central::Controller::receiveCacheState);
     QObject::connect(this, &Main::Controller::sendCacheUpdate, controller_widget, &Central::Controller::receiveCacheUpdate);
 
     QObject::connect(controller_widget, &Central::Controller::sendToolbarStateChange, this, &Main::Controller::receiveToolbarStateChange);
@@ -151,6 +151,20 @@ void Controller::receiveGlobalEvent(QEvent* event){
 }
 
 /*
+Slot: forwards the new data signal
+*/
+void Controller::receiveData(const Data::FluorophoreReader& data){
+    emit this->sendData(data);
+}
+
+/*
+Slot: forwards the new instrument signal
+*/
+void Controller::receiveInstrument(const Data::Instrument& instrument){
+    emit this->sendInstrument(instrument);
+}
+
+/*
 Slot: forwards the request to the cache to update
 */
 void Controller::receiveCacheRequestUpdate(){
@@ -181,8 +195,8 @@ void Controller::receiveLaser(int wavelenght){
 /*
 Slot: forwards the cache'ssynchronisation request
 */
-void Controller::receiveCacheSync(const std::vector<Cache::CacheID>& cache_state){
-    emit this->sendCacheSync(cache_state);
+void Controller::receiveCacheState(const std::vector<Cache::ID>& cache_state){
+    emit this->sendCacheState(cache_state);
 }
 
 /*

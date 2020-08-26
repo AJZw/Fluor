@@ -72,7 +72,7 @@ class Controller : public QWidget {
         void receiveCacheAdd(std::vector<Data::FluorophoreID>& fluorophores);
         void receiveCacheRemove(std::vector<Data::FluorophoreID>& fluorophores);
 
-        void receiveCacheSync(const std::vector<Cache::CacheID>& cache_state);
+        void receiveCacheState(const std::vector<Cache::ID>& cache_state);
         void receiveCacheUpdate();
 
         void receiveLaser(int wavelength);
@@ -93,7 +93,7 @@ class Controller : public QWidget {
         void sendCacheAdd(std::vector<Data::FluorophoreID>& fluorophores);
         void sendCacheRemove(std::vector<Data::FluorophoreID>& fluorophores);
 
-        void sendCacheSync(const std::vector<Cache::CacheID>& cache_state);
+        void sendCacheState(const std::vector<Cache::ID>& cache_state);
         void sendCacheUpdate();
         
         void sendLaser(int wavelength);

@@ -2375,7 +2375,7 @@ Synchronizes all the spectra to the Cache state. Handles adding, order and remov
     :param input: a (ordered) vector of the cache state. Ordering is not required for proper functioning of the graph plotting
     :param settings: the graph settings, necessary for correct positioning of the new items
 */
-void SpectrumCollection::syncSpectra(const std::vector<Cache::CacheID>& cache_state, const std::vector<Data::Laser>& lasers){
+void SpectrumCollection::syncSpectra(const std::vector<Cache::ID>& cache_state, const std::vector<Data::Laser>& lasers){
     // Special case: cache is empty -> remove all
     if(cache_state.empty()){
         for(Graph::Spectrum* item : this->items){
@@ -2388,7 +2388,7 @@ void SpectrumCollection::syncSpectra(const std::vector<Cache::CacheID>& cache_st
     // Iteration has to happen with indexes, as the .insert() can cause the vector to reallocate -> invalidates all iterators
     // Sort and add items
     std::size_t index_current = 0;
-    for(const Cache::CacheID& id : cache_state){
+    for(const Cache::ID& id : cache_state){
         // First look for index (if available)
         std::size_t index_item = this->findIndex(*id.data, index_current);
 

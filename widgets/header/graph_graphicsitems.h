@@ -662,7 +662,7 @@ class SpectrumCollection : public AbstractCollection<Spectrum> {
     public:
         void setSelect(bool select);
 
-        void syncSpectra(const std::vector<Cache::CacheID>& cache_state, const std::vector<Data::Laser>& lasers);
+        void syncSpectra(const std::vector<Cache::ID>& cache_state, const std::vector<Data::Laser>& lasers);
         void updateSpectra();
         void updateIntensity(const std::vector<Data::Laser>& lasers);
 

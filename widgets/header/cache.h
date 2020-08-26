@@ -53,38 +53,36 @@
 
 namespace Cache {
 
-struct CacheID {
-    CacheID(const QString id, const QString name) : id(id), name(name), data(nullptr) {};
-    CacheID(const CacheID&) = default;
-    CacheID& operator=(const CacheID&) = default;
-    CacheID(CacheID&&) = default;
-    CacheID& operator=(CacheID&&) = default;
-    ~CacheID() = default;
+struct ID {
+    ID(const QString id, const QString name) : id(id), name(name), data(nullptr) {};
+    ID(const ID&) = default;
+    ID& operator=(const ID&) = default;
+    ID(ID&&) = default;
+    ID& operator=(ID&&) = default;
+    ~ID() = default;
 
-    friend QDebug operator<<(QDebug stream, const CacheID& object){return stream << "{" << object.id << ":" << object.name << ":" << object.data << "}";};
-    bool operator<(const CacheID& other) const {return this->id < other.id;}
+    friend QDebug operator<<(QDebug stream, const ID& object){return stream << "{" << object.id << ":" << object.name << ":" << object.data << "}";};
+    bool operator<(const ID& other) const {return this->id < other.id;}
 
     QString id;
     mutable QString name;
     mutable Data::CacheSpectrum* data;
 };
 
-struct CacheState {
+struct Settings {
     bool visible_excitation = false;
     bool visible_emission = true;
     State::SortMode sort_mode = State::SortMode::Additive;
 };
 
-class Cache : public QObject {
-    Q_OBJECT
-
+class Cache {
     public:
         explicit Cache(Data::Factory& factory, Data::FluorophoreReader& source);
         Cache(const Cache &obj) = delete;
         Cache& operator=(const Cache &obj) = delete;
         Cache(Cache&&) = delete;
         Cache& operator=(Cache&&) = delete;
-        ~Cache() = default;
+        ~Cache() noexcept = default;
 
         void printState() const;
 
@@ -96,39 +94,33 @@ class Cache : public QObject {
         const Data::Factory& source_factory;
         const Data::FluorophoreReader& source_data;
 
-        std::set<CacheID> items;
+        std::set<ID> items;
         std::unordered_map<QString, Data::CacheSpectrum> data;
 
         // For proper Cache item initiating, requires to know some general properties:
-        CacheState state;
+        Settings cache_settings;
 
     private:
         unsigned int getCounter(unsigned int size);
         Data::CacheSpectrum* getData(const QString& id, const unsigned int counter);
         void rebuildCounter();
-        void rebuildCache(bool sync=true);
+        void rebuildCache();
 
-        void sync();
-        void update();
-        static void sortVector(std::vector<CacheID>& input, State::SortMode mode);
+        // void sync();
+        // void update();
+        static void sortVector(std::vector<ID>& input, State::SortMode mode);
 
-    public slots:
-        void cacheAdd(std::vector<Data::FluorophoreID>& fluorophores);
-        void cacheRemove(std::vector<Data::FluorophoreID>& fluorophores);
-        void cacheRequestSync();
-        void cacheRequestUpdate();
+    public:
+        void add(std::vector<Data::FluorophoreID>& fluorophores);
+        void remove(std::vector<Data::FluorophoreID>& fluorophores);
 
-        void cacheStateSet(CacheState state);
-        void cacheStateSetExcitation(bool visible);
-        void cacheStateSetEmission(bool visible);
-        void cacheStateSetSorting(State::SortMode mode);
+        Settings settings() const;
+        void setSettings(Settings settings);
+        void setSettingsExcitation(bool visible);
+        void setSettingsEmission(bool visible);
+        void setSettingsSorting(State::SortMode mode);
 
-    signals:
-        // sync signals are for adding and removing cache entrees
-        void cacheSync(const std::vector<CacheID>& cache_state);
-        // update signals are for updating the state of the widgets, no adding and removing
-        void cacheUpdate();
-
+        const std::vector<ID> state() const;
 };
 
 } // Cache namespace

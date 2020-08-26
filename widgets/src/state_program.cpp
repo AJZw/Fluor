@@ -53,28 +53,31 @@ Program::Program(Data::Factory& factory) :
     this->gui.setStyleSheet(this->style.getStyleSheet());
 
     // Connect the interface to the other components
+    // DPI/Screen scaling
     QObject::connect(&this->gui, &Main::Controller::screenChanged, this, &State::Program::reloadStyle);
     QObject::connect(&this->gui, &Main::Controller::screenDPIChanged, this, &State::Program::reloadStyle);
 
-    //#######################
-    QObject::connect(&this->gui, &Main::Controller::sendCacheAdd, &this->cache, &Cache::Cache::cacheAdd);
-    QObject::connect(&this->gui, &Main::Controller::sendCacheRemove, &this->cache, &Cache::Cache::cacheRemove);
-    QObject::connect(&this->gui, &Main::Controller::sendCacheRequestUpdate, &this->cache, &Cache::Cache::cacheRequestUpdate);    
+    // Data loading
+    QObject::connect(this, &State::Program::sendData, &this->gui, &Main::Controller::receiveData);
+    QObject::connect(this, &State::Program::sendInstrument, &this->gui, &Main::Controller::receiveInstrument);
 
-    QObject::connect(&this->cache, &Cache::Cache::cacheSync, &this->gui, &Main::Controller::receiveCacheSync);
-    QObject::connect(&this->cache, &Cache::Cache::cacheUpdate, &this->gui, &Main::Controller::receiveCacheUpdate);
+    // Cache
+    QObject::connect(&this->gui, &Main::Controller::sendCacheAdd, this, &State::Program::receiveCacheAdd);
+    QObject::connect(&this->gui, &Main::Controller::sendCacheRemove, this, &State::Program::receiveCacheRemove);
+    QObject::connect(&this->gui, &Main::Controller::sendCacheRequestUpdate, this, &State::Program::receiveCacheRequestUpdate);    
 
-    QObject::connect(this, &State::Program::sendCacheState, &this->cache, &Cache::Cache::cacheStateSet);
-    QObject::connect(this, &State::Program::sendCacheStateExcitation, &this->cache, &Cache::Cache::cacheStateSetExcitation);
-    QObject::connect(this, &State::Program::sendCacheStateEmission, &this->cache, &Cache::Cache::cacheStateSetEmission);
-    QObject::connect(this, &State::Program::sendCacheStateSorting, &this->cache, &Cache::Cache::cacheStateSetSorting);
-    //#######################
+    QObject::connect(this, &State::Program::sendCacheState, &this->gui, &Main::Controller::receiveCacheState);
+    QObject::connect(this, &State::Program::sendCacheUpdate, &this->gui, &Main::Controller::receiveCacheUpdate);
 
+    // Toolbar
     QObject::connect(&this->gui, &Main::Controller::sendToolbarStateChange, this, &State::Program::receiveToolbarState);
     QObject::connect(this, &State::Program::sendToolbarState, &this->gui, &Main::Controller::receiveToolbarStateUpdate);
 
+    // Graphs
     QObject::connect(this, &State::Program::sendGraphState, &this->gui, &Main::Controller::receiveGraphState);
     QObject::connect(&this->gui, &Main::Controller::sendGraphSelect, this, &State::Program::receiveGraphSelect);
+
+    // Laser selection
     QObject::connect(&this->gui, &Main::Controller::sendLaser, this, &State::Program::receiveLaser);
 
     // Start GUI
@@ -160,21 +163,24 @@ void Program::syncGraphs() {
 Synchronizes the cache state to the GUI state (needed by the fluor scrollarea)
 */
 void Program::syncCache() {
-    emit this->sendCacheState({this->state_gui.active_excitation, this->state_gui.active_emission, this->state_gui.sort_fluorophores});
+    this->cache.setSettings({this->state_gui.active_excitation, this->state_gui.active_emission, this->state_gui.sort_fluorophores});
+
+    // Need to synchronize as the sort order can be changed
+    emit this->sendCacheState(this->cache.state());
 }
 
 /*
 Synchronizes the fluorophore to the GUI (needed by the fluor lineedit)
 */
 void Program::syncFluorophores() {
-    emit this->gui.sendData(this->data_fluorophores);
+    emit this->sendData(this->data_fluorophores);
 }
 
 /*
 Synchronizes the instrument to the GUI (needed by the laser lineedit)
 */
 void Program::syncInstrument() {
-    emit this->gui.sendInstrument(this->instrument);
+    emit this->sendInstrument(this->instrument);
 }
 
 /*
@@ -251,12 +257,14 @@ void Program::receiveToolbarState(Bar::ButtonType type, bool active, bool enable
 
     case Bar::ButtonType::Excitation:
         this->state_gui.active_excitation = active;
-        emit this->sendCacheStateExcitation(active);
+        this->cache.setSettingsExcitation(active);
+        emit this->sendCacheUpdate();
         break;
 
     case Bar::ButtonType::Emission:
         this->state_gui.active_emission = active;
-        emit this->sendCacheStateEmission(active);
+        this->cache.setSettingsEmission(active);
+        emit this->sendCacheUpdate();
         break;
 
     case Bar::ButtonType::Filter:
@@ -305,35 +313,6 @@ void Program::receiveToolbarState(Bar::ButtonType type, bool active, bool enable
 }
 
 /*
-Slot: receives dpi/screen changes and reloads the style
-    :param source: widget that needs to reload the style
-*/
-void Program::reloadStyle(QWidget* source){
-    if(source){
-        QFontMetrics metrics = QFontMetrics(source->font(), source);
-        this->style.buildStyleSheet(metrics);
-
-        source->setStyleSheet(this->style.getStyleSheet());
-    }else{
-        QFontMetrics metrics = QFontMetrics(qApp->font());
-        this->style.buildStyleSheet(metrics);
-
-        source->setStyleSheet(this->style.getStyleSheet());
-    }
-}
-
-/*
-Slot: receive Graph select signal and forwards to the state_gui
-    :param index: the graph index that sends the signal
-    :param state: the select state
-*/
-void Program::receiveGraphSelect(std::size_t index, bool state){
-    this->state_gui.setGraphSelect(index, state);
-
-    emit this->sendGraphState(this->state_gui.graphs());
-}
-
-/*
 Slot: receives a Laser signal and forwards it to the state_gui
     :param wavelength: the laser wavelength (zero value means no selection, negative value means removal of laser)
 */
@@ -355,6 +334,69 @@ Slot: receives a Laser signal and forwards it to the state_gui
 void Program::receiveLasers(std::vector<double>& wavelengths){
     Q_UNUSED(wavelengths);
     qWarning() << "State::Program::receiveLasers:: yet to be implemented";
+}
+
+/*
+Slot: receives a Cache add signal, connects the signal to the cache and handles synchronisation with GUI
+*/
+void Program::receiveCacheAdd(std::vector<Data::FluorophoreID>& fluorophores){
+    this->cache.add(fluorophores);
+
+    // Synchronize
+    emit this->sendCacheState(this->cache.state());
+}
+
+/*
+Slot: receives a Cache remove signal, connects the signal to the cache and handles synchronisation with GUI
+*/
+void Program::receiveCacheRemove(std::vector<Data::FluorophoreID>& fluorophores){
+    this->cache.remove(fluorophores);
+
+    // Synchronize
+    emit this->sendCacheState(this->cache.state());
+}
+
+/*
+Slot: receives a Cache request sync signal, forces GUI synchronisation
+*/
+void Program::receiveCacheRequestSync(){
+    emit this->sendCacheState(this->cache.state());
+}
+
+/*
+Slot: receives a Cache request update signal, forces GUI update
+*/
+void Program::receiveCacheRequestUpdate(){
+    emit this->sendCacheUpdate();
+}
+
+/*
+Slot: receive Graph select signal and forwards to the state_gui
+    :param index: the graph index that sends the signal
+    :param state: the select state
+*/
+void Program::receiveGraphSelect(std::size_t index, bool state){
+    this->state_gui.setGraphSelect(index, state);
+
+    emit this->sendGraphState(this->state_gui.graphs());
+}
+
+/*
+Slot: receives dpi/screen changes and reloads the style
+    :param source: widget that needs to reload the style
+*/
+void Program::reloadStyle(QWidget* source){
+    if(source){
+        QFontMetrics metrics = QFontMetrics(source->font(), source);
+        this->style.buildStyleSheet(metrics);
+
+        source->setStyleSheet(this->style.getStyleSheet());
+    }else{
+        QFontMetrics metrics = QFontMetrics(qApp->font());
+        this->style.buildStyleSheet(metrics);
+
+        source->setStyleSheet(this->style.getStyleSheet());
+    }
 }
 
 } // State namespace

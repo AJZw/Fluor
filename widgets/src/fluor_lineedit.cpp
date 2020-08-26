@@ -748,11 +748,11 @@ void LineEdit::reloadData(const Data::FluorophoreReader& data){
 /*
 Slot: synchronizes the fluorophores names loaded into the cache.items into the lineedit
 */
-void LineEdit::sync(const std::vector<Cache::CacheID>& input){
+void LineEdit::sync(const std::vector<Cache::ID>& input){
     std::vector<QString> new_vector;
     new_vector.reserve(input.size());
 
-    for(const Cache::CacheID& id : input){
+    for(const Cache::ID& id : input){
         new_vector.push_back(id.name);
     }
 

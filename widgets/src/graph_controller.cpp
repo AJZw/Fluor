@@ -34,7 +34,7 @@ Controller::Controller(QWidget* parent) :
     this->setContentsMargins(0, 0, 0, 0);
     this->setMinimumSize(300, 200);
 
-    // Should contain a scrollwidget but for now just contain the graphics_view + scene
+    // Graph components
     this->graphics_scene = new Graph::GraphicsScene(Graph::Format::Settings(), this);
     this->graphics_view = new Graph::GraphicsView(graphics_scene, this);
     this->graphics_style = new Graph::Format::Style(this);
@@ -47,8 +47,8 @@ Controller::Controller(QWidget* parent) :
 
     // Connect
     QObject::connect(this->graphics_view, &Graph::GraphicsView::resizedView, this->graphics_scene, Graph::GraphicsScene::resizeScene);
-    QObject::connect(this, &Graph::Controller::sendCacheSync, this->graphics_scene, &Graph::GraphicsScene::sync);
-    QObject::connect(this, &Graph::Controller::sendCacheUpdate, this->graphics_scene, &Graph::GraphicsScene::update);
+    QObject::connect(this, &Graph::Controller::sendCacheState, this->graphics_scene, &Graph::GraphicsScene::syncSpectra);
+    QObject::connect(this, &Graph::Controller::sendCacheUpdate, this->graphics_scene, &Graph::GraphicsScene::updateSpectra);
     QObject::connect(this, &Graph::Controller::sendGraphState, this->graphics_scene, &Graph::GraphicsScene::syncGraphState);
 
     QObject::connect(this->graphics_scene, &Graph::GraphicsScene::spectrumSelected, this, &Graph::Controller::sendCacheRequestUpdate);
@@ -73,8 +73,8 @@ void Controller::paintEvent(QPaintEvent* event) {
 /* 
 Slot: receives cache sync events for the graph
 */
-void Controller::receiveCacheSync(const std::vector<Cache::CacheID>& cache_state){
-    emit this->sendCacheSync(cache_state);
+void Controller::receiveCacheState(const std::vector<Cache::ID>& cache_state){
+    emit this->sendCacheState(cache_state);
 }
 
 /* 
@@ -212,7 +212,7 @@ void ScrollController::addGraph(){
     Graph::Controller* graph = new Graph::Controller(this);
 
     // Connect the signals
-    QObject::connect(this, &Graph::ScrollController::sendCacheSync, graph, &Graph::Controller::receiveCacheSync);
+    QObject::connect(this, &Graph::ScrollController::sendCacheState, graph, &Graph::Controller::receiveCacheState);
     QObject::connect(this, &Graph::ScrollController::sendCacheUpdate, graph, &Graph::Controller::receiveCacheUpdate);
     QObject::connect(graph, &Graph::Controller::sendCacheRequestUpdate, this, &Graph::ScrollController::receiveCacheRequestUpdate);
     QObject::connect(graph, &Graph::Controller::sendGraphSelect, this, &Graph::ScrollController::receiveGraphSelect);
@@ -254,8 +254,8 @@ void ScrollController::rebuildLayout(){
 /* 
 Slot: receives cache sync events for the graph
 */
-void ScrollController::receiveCacheSync(const std::vector<Cache::CacheID>& cache_state){
-    emit this->sendCacheSync(cache_state);
+void ScrollController::receiveCacheState(const std::vector<Cache::ID>& cache_state){
+    emit this->sendCacheState(cache_state);
 }
 
 /* 

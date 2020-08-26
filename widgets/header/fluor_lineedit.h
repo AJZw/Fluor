@@ -114,7 +114,7 @@ class LineEdit : public QLineEdit {
 
         void reloadSize(const QWidget* widget=nullptr);
         void reloadData(const Data::FluorophoreReader& data);
-        void sync(const std::vector<Cache::CacheID>& input);
+        void sync(const std::vector<Cache::ID>& input);
 
         void updatePopupHighlighted(const QString& text);
         void updatePopupActivated(const QString& text);

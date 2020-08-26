@@ -66,9 +66,9 @@ Controller::Controller(QWidget* parent) :
     QObject::connect(widget_lineedit, &Fluor::LineEdit::output, this, &Fluor::Controller::receiveCacheAdd);
     
     // Forward events to/from ScrollController
-    QObject::connect(this, &Fluor::Controller::sendCacheSync, widget_scrollarea, &Fluor::ScrollController::syncButtons);
+    QObject::connect(this, &Fluor::Controller::sendCacheState, widget_scrollarea, &Fluor::ScrollController::syncButtons);
     QObject::connect(this, &Fluor::Controller::sendCacheUpdate, widget_scrollarea, &Fluor::ScrollController::updateButtons);
-    QObject::connect(this, &Fluor::Controller::sendCacheSync, widget_lineedit, &Fluor::LineEdit::sync);
+    QObject::connect(this, &Fluor::Controller::sendCacheState, widget_lineedit, &Fluor::LineEdit::sync);
     QObject::connect(widget_scrollarea, &Fluor::ScrollController::sendCacheRequestUpdate, this, &Fluor::Controller::receiveCacheRequestUpdate);
     QObject::connect(widget_scrollarea, &Fluor::ScrollController::sendRemove, this, &Fluor::Controller::receiveCacheRemove);
 }
@@ -144,8 +144,8 @@ void Controller::receiveCacheRemove(std::vector<Data::FluorophoreID>& output){
 /*
 Slot: receives and sends cache's synchronisation state to the scrollcontroller
 */
-void Controller::receiveCacheSync(const std::vector<Cache::CacheID>& cache_state){
-    emit this->sendCacheSync(cache_state);
+void Controller::receiveCacheState(const std::vector<Cache::ID>& cache_state){
+    emit this->sendCacheState(cache_state);
 }
 
 /*
@@ -277,7 +277,7 @@ Slot: Synchronizes the internal ButtonsController widgets to the cache_state. Ad
 ButtonsController and resets the name, id, cache pointers.
     :param cache_state: the to-be-synced ids
 */
-void ScrollController::syncButtons(const std::vector<Cache::CacheID>& cache_state){
+void ScrollController::syncButtons(const std::vector<Cache::ID>& cache_state){
     // qDebug() << "ScrollController::syncButtons:" << this->button_widgets.size() << ":" << inputs.size();
     
     // First add/remove to requested buttonControllers count
@@ -420,7 +420,7 @@ void ButtonsController::setLayoutSpacing(QString layout_spacing){
 Sync the buttonsController and internal widgets with a CacheID
     :param cache_state: cacheid (assumed to have a valid data pointer)
 */
-void ButtonsController::syncButtons(const Cache::CacheID& cache_state){
+void ButtonsController::syncButtons(const Cache::ID& cache_state){
     this->id = cache_state.id;
     this->name = cache_state.name;
     this->data = cache_state.data;

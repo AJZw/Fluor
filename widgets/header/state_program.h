@@ -82,26 +82,33 @@ class Program : public QObject {
         void refreshToolbar();
 
     signals:
+        void sendData(const Data::FluorophoreReader& data);
+        void sendInstrument(const Data::Instrument& instrument);
+
         void sendToolbarState(Bar::ButtonType type, bool active, bool enable);
         
-        void sendCacheState(Cache::CacheState state);
-        void sendCacheStateExcitation(bool visible);
-        void sendCacheStateEmission(bool visible);
-        void sendCacheStateSorting(SortMode mode);
-        
+        void sendCacheState(const std::vector<Cache::ID>& cache_state);
+        void sendCacheUpdate();
+       
         void sendGraphState(std::vector<State::GraphState>& state);
 
     public slots:
         void receiveToolbarState(Bar::ButtonType type, bool active, bool enable);
+        
         void receiveLaser(double wavelength);
         void receiveLasers(std::vector<double>& wavelength);
+        
+        void receiveCacheAdd(std::vector<Data::FluorophoreID>& fluorophores);
+        void receiveCacheRemove(std::vector<Data::FluorophoreID>& fluorophores);
+        void receiveCacheRequestSync();
+        void receiveCacheRequestUpdate();
+        
         void receiveGraphSelect(std::size_t index, bool state);
 
     private slots:
         void reloadStyle(QWidget* source);
 
 };
-
 
 }   // State namespace
 

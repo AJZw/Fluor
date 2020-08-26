@@ -62,7 +62,7 @@ Controller::Controller(QWidget* parent) :
     QObject::connect(this, &Central::Controller::sendGlobalEvent, controller_fluor, &Fluor::Controller::receiveGlobalEvent);
     QObject::connect(this, &Central::Controller::sendGlobalSize, controller_fluor, &Fluor::Controller::receiveGlobalSize);
     QObject::connect(this, &Central::Controller::sendData, controller_fluor, &Fluor::Controller::receiveData);
-    QObject::connect(this, &Central::Controller::sendCacheSync, controller_fluor, &Fluor::Controller::receiveCacheSync);
+    QObject::connect(this, &Central::Controller::sendCacheState, controller_fluor, &Fluor::Controller::receiveCacheState);
     QObject::connect(this, &Central::Controller::sendCacheUpdate, controller_fluor, &Fluor::Controller::receiveCacheUpdate);
 
     QObject::connect(controller_laser, &Laser::Controller::sendOutput, this, &Central::Controller::receiveLaser);
@@ -74,7 +74,7 @@ Controller::Controller(QWidget* parent) :
     QObject::connect(controller_toolbar, &Bar::Controller::sendToolbarStateChange, this, &Central::Controller::receiveToolbarStateChange);
     QObject::connect(this, &Central::Controller::sendToolbarStateUpdate, controller_toolbar, &Bar::Controller::receiveToolbarStateUpdate);
 
-    QObject::connect(this, &Central::Controller::sendCacheSync, controller_graph, &Graph::ScrollController::receiveCacheSync);
+    QObject::connect(this, &Central::Controller::sendCacheState, controller_graph, &Graph::ScrollController::receiveCacheState);
     QObject::connect(this, &Central::Controller::sendCacheUpdate, controller_graph, &Graph::ScrollController::receiveCacheUpdate);
     QObject::connect(this, &Central::Controller::sendGraphState, controller_graph, &Graph::ScrollController::receiveGraphState);
     QObject::connect(controller_graph, &Graph::ScrollController::sendCacheRequestUpdate, this, &Central::Controller::receiveCacheRequestUpdate);
@@ -161,8 +161,8 @@ void Controller::receiveCacheRemove(std::vector<Data::FluorophoreID>& fluorophor
 /*
 Slot: receives and forwards the synchronisation request of the fluor buttons
 */
-void Controller::receiveCacheSync(const std::vector<Cache::CacheID>& cache_state){
-    emit this->sendCacheSync(cache_state);
+void Controller::receiveCacheState(const std::vector<Cache::ID>& cache_state){
+    emit this->sendCacheState(cache_state);
 }
 
 /*

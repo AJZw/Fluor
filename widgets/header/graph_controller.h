@@ -68,7 +68,7 @@ class Controller : public QWidget {
         Graph::Format::Style* graphics_style;
 
     signals:
-        void sendCacheSync(const std::vector<Cache::CacheID>& cache_state);
+        void sendCacheState(const std::vector<Cache::ID>& cache_state);
         void sendCacheUpdate();
         void sendCacheRequestUpdate();
 
@@ -78,7 +78,7 @@ class Controller : public QWidget {
         void sendPainterUpdate(const Graph::Format::Style* style);
 
     public slots:
-        void receiveCacheSync(const std::vector<Cache::CacheID>& cache_state);
+        void receiveCacheState(const std::vector<Cache::ID>& cache_state);
         void receiveCacheUpdate();
 
         void setSelect(bool state);
@@ -118,7 +118,7 @@ class ScrollController : public QScrollArea {
         void rebuildLayout();
     
     signals:
-        void sendCacheSync(const std::vector<Cache::CacheID>& cache_state);
+        void sendCacheState(const std::vector<Cache::ID>& cache_state);
         void sendCacheUpdate();
         void sendCacheRequestUpdate();
 
@@ -129,7 +129,7 @@ class ScrollController : public QScrollArea {
         void showingScrollBar();
 
     public slots:
-        void receiveCacheSync(const std::vector<Cache::CacheID>& cache_state);
+        void receiveCacheState(const std::vector<Cache::ID>& cache_state);
         void receiveCacheUpdate();
         void receiveCacheRequestUpdate();
 

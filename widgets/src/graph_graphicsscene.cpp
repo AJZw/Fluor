@@ -242,7 +242,7 @@ bool GraphicsScene::eventFilter(QObject* obj, QEvent* event){
 Slot: receives synchronisation requests forwards it to the spectra object
     :param cache_state: the state of the cache
 */
-void GraphicsScene::sync(const std::vector<Cache::CacheID>& cache_state){
+void GraphicsScene::syncSpectra(const std::vector<Cache::ID>& cache_state){
     this->item_spectra->syncSpectra(cache_state, this->item_lasers->lasers());
     // Schedule a redraw
     QGraphicsScene::update(this->sceneRect());
@@ -252,7 +252,7 @@ void GraphicsScene::sync(const std::vector<Cache::CacheID>& cache_state){
 Slot: receives update requests forwards it to the spectra object
     :param cache_state: the state of the cache
 */
-void GraphicsScene::update(){
+void GraphicsScene::updateSpectra(){
     this->item_spectra->updateSpectra();
     // Schedule a redraw
     QGraphicsScene::update(this->sceneRect());

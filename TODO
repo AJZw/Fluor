@@ -16,16 +16,17 @@ DATA:
 
 CACHE:
     In common usage check to what size the unordered_map grow, now just a guess
-    >> To make more consistent with rest of the state mechanisms, remove the Q_OBJECT / signal+slot required -> move it to State::Program
 
 LASER & FLUOR:
-    If selected plot with laser -> see if entree in QModel, if so -> select
     Upon DPI change the rowSizeHint lags behind one paint(), which can cause imperfect popup size. Not sure you can work your way around this one.
+
+    If selected plot with laser -> see if entree in QModel, if so -> select
+    Laser add -> should be a vector of wavelengths (to unify the system with colinear laser setups)
+    Colinear lasers popup
 
 GRAPH:
     Save graph properties and reload upon opening -> for now disabled cause it breaks the BarLayout
     'black' axes face_color option allow for white out of visible spectrum plotting
-    Colinear lasers object
     Selection in Plot -> see statistics of each plot
 
 MAC:

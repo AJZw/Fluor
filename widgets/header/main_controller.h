@@ -79,14 +79,16 @@ class Controller : public QMainWindow {
         void receiveDPIChanged(qreal dpi);
 
         void receiveGlobalEvent(QEvent* event);
-
-        void receiveLaser(int wavelength);
+        void receiveData(const Data::FluorophoreReader& data);
+        void receiveInstrument(const Data::Instrument& instrument);
 
         void receiveCacheRequestUpdate();
         void receiveCacheAdd(std::vector<Data::FluorophoreID>& fluorophores);
         void receiveCacheRemove(std::vector<Data::FluorophoreID>& fluorophores);
-        void receiveCacheSync(const std::vector<Cache::CacheID>& cache_state);
+        void receiveCacheState(const std::vector<Cache::ID>& cache_state);
         void receiveCacheUpdate();
+
+        void receiveLaser(int wavelength);
 
         void receiveToolbarStateChange(Bar::ButtonType type, bool active, bool enable);
         void receiveToolbarStateUpdate(Bar::ButtonType type, bool active, bool enable);
@@ -107,7 +109,7 @@ class Controller : public QMainWindow {
         void sendCacheRequestUpdate();
         void sendCacheAdd(std::vector<Data::FluorophoreID>& fluorophores);
         void sendCacheRemove(std::vector<Data::FluorophoreID>& fluorophores);
-        void sendCacheSync(const std::vector<Cache::CacheID>& cache_state);
+        void sendCacheState(const std::vector<Cache::ID>& cache_state);
         void sendCacheUpdate();
 
         void sendLaser(int wavelength);

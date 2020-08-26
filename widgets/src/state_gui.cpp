@@ -199,7 +199,6 @@ void GUI::addLaser(double wavelength, Data::Instrument& instrument){
         return;
     }
 
-
     // Find selected graph or set first graph
     std::size_t index = this->findSelectedGraph();
     if(index >= this->graphs_state.size()){

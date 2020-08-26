@@ -100,8 +100,8 @@ class GraphicsScene : public QGraphicsScene {
     public slots:
         virtual void resizeScene(const QSize& rect);
 
-        void sync(const std::vector<Cache::CacheID>& cache_state);
-        void update();
+        void syncSpectra(const std::vector<Cache::ID>& cache_state);
+        void updateSpectra();
 
         void syncGraphState(const State::GraphState& state);
 

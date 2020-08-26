@@ -19,7 +19,7 @@ Application::Application(int &argc, char **argv) :
 {
     this->setOrganizationName("AJZw");
     this->setApplicationName("Fluor");
-    this->setApplicationVersion("v0.9.8");
+    this->setApplicationVersion("v0.9.9");
 
     this->installEventFilter(this);
 
