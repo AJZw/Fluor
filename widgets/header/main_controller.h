@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.2
-** Date:       2019-03-11
+** Version:    v0.9.10
+** Date:       2020-10-13
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -88,7 +88,7 @@ class Controller : public QMainWindow {
         void receiveCacheState(const std::vector<Cache::ID>& cache_state);
         void receiveCacheUpdate();
 
-        void receiveLaser(int wavelength);
+        void receiveLasers(std::vector<Data::LaserID>& lasers);
 
         void receiveToolbarStateChange(Bar::ButtonType type, bool active, bool enable);
         void receiveToolbarStateUpdate(Bar::ButtonType type, bool active, bool enable);
@@ -112,7 +112,7 @@ class Controller : public QMainWindow {
         void sendCacheState(const std::vector<Cache::ID>& cache_state);
         void sendCacheUpdate();
 
-        void sendLaser(int wavelength);
+        void sendLasers(std::vector<Data::LaserID>& lasers);
 
         void sendToolbarStateChange(Bar::ButtonType type, bool active, bool enable=true);
         void sendToolbarStateUpdate(Bar::ButtonType type, bool active, bool enable=true);

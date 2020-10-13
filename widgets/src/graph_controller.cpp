@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.3
-** Date:       2019-04-23
+** Version:    v0.9.10
+** Date:       2020-10-13
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -46,7 +46,10 @@ Controller::Controller(QWidget* parent) :
     controller_layout->addWidget(this->graphics_view);
 
     // Connect
-    QObject::connect(this->graphics_view, &Graph::GraphicsView::resizedView, this->graphics_scene, Graph::GraphicsScene::resizeScene);
+    QObject::connect(this->graphics_view, &Graph::GraphicsView::resizedView, this->graphics_scene, &Graph::GraphicsScene::resizeScene);
+    QObject::connect(this, &Graph::Controller::sendGlobalEvent, this->graphics_view, &Graph::GraphicsView::receiveGlobalEvent);
+    QObject::connect(this->graphics_view, &Graph::GraphicsView::globalMouseReleaseEvent, this->graphics_scene, &Graph::GraphicsScene::globalMouseReleaseEvent);
+    
     QObject::connect(this, &Graph::Controller::sendCacheState, this->graphics_scene, &Graph::GraphicsScene::syncSpectra);
     QObject::connect(this, &Graph::Controller::sendCacheUpdate, this->graphics_scene, &Graph::GraphicsScene::updateSpectra);
     QObject::connect(this, &Graph::Controller::sendGraphState, this->graphics_scene, &Graph::GraphicsScene::syncGraphState);
@@ -68,6 +71,13 @@ void Controller::paintEvent(QPaintEvent* event) {
     style_option.initFrom(this);
     QPainter painter(this);
     this->style()->drawPrimitive(QStyle::PE_Widget, &style_option, &painter, this);
+}
+
+/*
+Slot: receives global events. This is used to handle selection & closing of menu's correctly
+*/
+void Controller::receiveGlobalEvent(QEvent* event){
+    emit this->sendGlobalEvent(event);
 }
 
 /* 
@@ -212,6 +222,7 @@ void ScrollController::addGraph(){
     Graph::Controller* graph = new Graph::Controller(this);
 
     // Connect the signals
+    QObject::connect(this, &Graph::ScrollController::sendGlobalEvent, graph, &Graph::Controller::receiveGlobalEvent);
     QObject::connect(this, &Graph::ScrollController::sendCacheState, graph, &Graph::Controller::receiveCacheState);
     QObject::connect(this, &Graph::ScrollController::sendCacheUpdate, graph, &Graph::Controller::receiveCacheUpdate);
     QObject::connect(graph, &Graph::Controller::sendCacheRequestUpdate, this, &Graph::ScrollController::receiveCacheRequestUpdate);
@@ -249,6 +260,13 @@ void ScrollController::rebuildLayout(){
 
         layout->addWidget(this->graph_widgets[index], row, col, 1, 1);
     }
+}
+
+/*
+Slot: receives global events. This is used to handle selection & closing of menu's correctly
+*/
+void ScrollController::receiveGlobalEvent(QEvent* event){
+    emit this->sendGlobalEvent(event);
 }
 
 /* 

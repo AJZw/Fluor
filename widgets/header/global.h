@@ -75,7 +75,4 @@ enum class ButtonType{
 
 } // namespace Bar
 
-
-
-
 #endif // GLOBAL_H

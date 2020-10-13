@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.6
-** Date:       2020-01-02
+** Version:    v0.9.10
+** Date:       2020-10-13
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -33,6 +33,10 @@
 **
 ** :class: Data::LaserLine
 ** Data representation of a line of lasers with filters that are part of the same light path
+**
+** :class: Data::LaserID
+** Data representation of a Laser (belonging to a laserline)
+** Class is purily used for communication with the GUI
 **
 ** :class: Data::InstrumentID
 ** The ID and name of an Instrument in instruments.ini
@@ -145,6 +149,31 @@ class DATALIB_EXPORT LaserLine {
 
         bool isValid() const;
         void sort();
+};
+
+struct DATALIB_EXPORT LaserID {
+    LaserID(const Data::Laser* laser, const Data::LaserLine* laserline=nullptr) : 
+        laser(laser),
+        laserline(laserline),
+        custom_wavelength(0.0)
+    {};
+    LaserID(const LaserID&) = default;
+    LaserID& operator=(const LaserID&) = default;
+    LaserID(LaserID&&) = default;
+    LaserID& operator=(LaserID&&) = default;
+    ~LaserID() = default;
+
+    friend QDebug operator<<(QDebug stream, const LaserID& object){
+        if(object.custom_wavelength != 0.0){
+            return stream << "{C:" << object.custom_wavelength << "nm}";
+        }else{
+            return stream << "{" << object.laser->wavelength() << "nm}";
+        }
+    };
+
+    const Data::Laser* laser;
+    const Data::LaserLine* laserline;
+    double custom_wavelength;
 };
 
 struct DATALIB_EXPORT InstrumentID {

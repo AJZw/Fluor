@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.4
-** Date:       2019-07-21
+** Version:    v0.9.10
+** Date:       2020-10-13
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -27,7 +27,8 @@
 ** The fluorophore data classes
 **
 ** :class: Data::FluorophoreID
-** A struct holding the basic information of a Fluorophore entree.
+** A struct holding the basic informantion of a Fluorophore entree.
+** This struct is purely used for communication with(in) the GUI.
 **
 ** :class: Data::Fluorophore
 ** Object that loads fluorophore data from a QSettings. Builds maps/sets,
@@ -73,8 +74,8 @@ struct DATALIB_EXPORT FluorophoreID {
     bool operator!=(const FluorophoreID& other) const {return this->id != other.id;};
 
     const QString id;
-    mutable QString name;
-    mutable unsigned int order;
+    QString name;
+    unsigned int order;
 };
 
 class DATALIB_EXPORT FluorophoreReader {

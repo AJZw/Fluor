@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.7
-** Date:       2020-01-17
+** Version:    v0.9.10
+** Date:       2020-10-13
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -190,10 +190,10 @@ void GUI::clearGraphs(){
 
 /*
 Adds a laser to the selected. If no graphs are selected, adds a laser to the first graph
-    :param wavelength: the wavelength to add
+    :param lasers: the laser identifiers to add
     :param instrument: the instrument the laser (might) belong to
 */
-void GUI::addLaser(double wavelength, Data::Instrument& instrument){
+void GUI::addLasers(std::vector<Data::LaserID> lasers, Data::Instrument& instrument){
     // Check if there is any graph
     if(this->graphs_state.empty()){
         return;
@@ -205,25 +205,59 @@ void GUI::addLaser(double wavelength, Data::Instrument& instrument){
         index = 0;
     }
 
-    // If wavelength is negative clear all wavelength from the indexed graph
-    if(wavelength < 0){
+    // If lasers is empty -> no lasers are selected for that graph
+    if(lasers.empty()){
         this->graphs_state[index].setLasers().clear();
         this->graphs_state[index].setLaserLine(nullptr);
         return;
     }
 
-    // Find the relevant LaserLine
-    auto laserline = instrument.findLaser(wavelength);
-    
-    // Set the relevant graph to the correct laser/laserline state
-    this->graphs_state[index].setLaserLine(laserline.first);
+    // Check how many laserline are included in the input data
+    // If multiple start at index 0 and make sure enough graphs exist
+    std::vector<const Data::LaserLine*> laserlines;
+    laserlines.reserve(instrument.optics().size() + 1);
+    for(const auto& laser : lasers){
+        if(std::find(laserlines.begin(), laserlines.end(), laser.laserline) == laserlines.end()){
+            laserlines.push_back(laser.laserline);
+        }
+    }
 
-    if(laserline.second){
+    // One laserlines (can be nullptr), means the selection is valid, so use that
+    if(laserlines.size() == 1){
+        this->graphs_state[index].setLaserLine(laserlines[0]);
         this->graphs_state[index].setLasers().clear();
-        this->graphs_state[index].setLasers().push_back(*laserline.second);
-    }else{
+        for(const auto& laser : lasers){
+            if(laser.laser == nullptr){
+                // Object can be custom, in that case no laser pointer is provided
+
+                // Search for potential laserline???
+
+                this->graphs_state[index].setLasers().push_back(Data::Laser(laser.custom_wavelength));
+            }else{
+                this->graphs_state[index].setLasers().push_back(*laser.laser);
+            }
+        }
+        return;
+    }
+
+    // Multiple laserlines means we have to adjust multiple GraphStates
+    for(std::size_t i=this->graphCount(); i<laserlines.size(); ++i){
+        this->addGraph();
+    }
+
+    for(std::size_t index=0; index<laserlines.size(); ++index){
+        this->graphs_state[index].setLaserLine(laserlines[index]);
         this->graphs_state[index].setLasers().clear();
-        this->graphs_state[index].setLasers().push_back(Data::Laser(wavelength));
+        for(const auto& laser : lasers){
+            if(laser.laserline == laserlines[index]){
+                if(laser.laser == nullptr){
+                // Object can be custom, in that case no laser pointer is provided
+                    this->graphs_state[index].setLasers().push_back(Data::Laser(laser.custom_wavelength));
+                }else{
+                    this->graphs_state[index].setLasers().push_back(*laser.laser);
+                }
+            }
+        }
     }
 }
 
@@ -244,7 +278,7 @@ void GUI::fillGraphs(Data::Instrument& instrument){
 /*
 Removes the lasers from the selected (otherwise first) graph
 */
-void GUI::removeLaser(){
+void GUI::removeLasers(){
     // Check if there is any graph
     if(this->graphs_state.empty()){
         return;

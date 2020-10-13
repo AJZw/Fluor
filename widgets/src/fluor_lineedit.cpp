@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.2
-** Date:       2019-02-03
+** Version:    v0.9.10
+** Date:       2020-10-13
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -976,6 +976,16 @@ Eventfilter for the viewport. Intercepts mousemove events to correctly fire high
 */
 bool Popup::eventFilter(QObject* obj, QEvent* event){
     switch(event->type()){
+    case QEvent::MouseButtonPress:
+    case QEvent::MouseButtonRelease:{
+        QMouseEvent* event_mouse = static_cast<QMouseEvent*>(event);
+        if(event_mouse->button() == Qt::LeftButton){
+            break;
+        }else{
+            return true;
+        }
+        break;
+    }
     case QEvent::MouseMove:{
         // Fires when mouse button is clicked and held
         QMouseEvent* event_mouse = static_cast<QMouseEvent*>(event);
@@ -998,6 +1008,8 @@ bool Popup::eventFilter(QObject* obj, QEvent* event){
                 // This prevents disabled items of 'taking' activity from the last selected valid item
                 return true;
             }
+        }else{
+            return true;
         }
         break;
     }
@@ -1020,6 +1032,8 @@ bool Popup::eventFilter(QObject* obj, QEvent* event){
             }else{
                 emit this->dblClicked(QString());
             }
+        }else{
+            return true;
         }
         // Must return true; if not double click will also emit activated event
         // This will cause side-effects with the dblClick() signal and capture of LineEdit

@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.3
-** Date:       2019-04-27
+** Version:    v0.9.10
+** Date:       2020-10-13
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -55,10 +55,20 @@ class GraphicsView : public QGraphicsView {
         ~GraphicsView() = default;
 
     private:
+        bool ignore_next_global_mouse_release = false;
+        QPoint button_down_screen_position = QPoint();
+        QPointF button_down_scene_position = QPointF();
+
+    private:
         void resizeEvent(QResizeEvent* event);
+
+    public slots:
+        void receiveGlobalEvent(QEvent* event);
 
     signals:
         void resizedView(const QSize space);
+        void globalMouseReleaseEvent(QGraphicsSceneMouseEvent* event);
+
 };
 
 

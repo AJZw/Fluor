@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.8
-** Date:       2020-08-05
+** Version:    v0.9.10
+** Date:       2020-10-13
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -78,7 +78,7 @@ Program::Program(Data::Factory& factory) :
     QObject::connect(&this->gui, &Main::Controller::sendGraphSelect, this, &State::Program::receiveGraphSelect);
 
     // Laser selection
-    QObject::connect(&this->gui, &Main::Controller::sendLaser, this, &State::Program::receiveLaser);
+    QObject::connect(&this->gui, &Main::Controller::sendLasers, this, &State::Program::receiveLasers);
 
     // Start GUI
     this->gui.show();
@@ -316,24 +316,11 @@ void Program::receiveToolbarState(Bar::ButtonType type, bool active, bool enable
 Slot: receives a Laser signal and forwards it to the state_gui
     :param wavelength: the laser wavelength (zero value means no selection, negative value means removal of laser)
 */
-void Program::receiveLaser(double wavelength){
-    // If wavelength is 0, the signal can be ignored, as that specifies a undefined wavelength input
-    if(wavelength == 0){
-        return;
-    }
-
-    this->state_gui.addLaser(wavelength, this->instrument);
+void Program::receiveLasers(std::vector<Data::LaserID>& lasers){
+    // Let the GUI add the lasers
+    this->state_gui.addLasers(lasers, this->instrument);
     
     emit this->sendGraphState(this->state_gui.graphs());
-}
-
-/*
-Slot: receives a Laser signal and forwards it to the state_gui
-    :param wavelengths: a vector of wavelengths
-*/
-void Program::receiveLasers(std::vector<double>& wavelengths){
-    Q_UNUSED(wavelengths);
-    qWarning() << "State::Program::receiveLasers:: yet to be implemented";
 }
 
 /*

@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.3
-** Date:       2019-04-23
+** Version:    v0.9.10
+** Date:       2020-10-13
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -116,12 +116,14 @@ class GraphicsScene : public QGraphicsScene {
         void updatePainter(const Graph::Format::Style* style);
         void selectSpectrum(const QPointF& point, std::size_t index=0);
 
+    public slots:
+        void globalMouseReleaseEvent(QGraphicsSceneMouseEvent* event);
+
     protected slots:
         virtual void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
         virtual void mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event) override;
         virtual void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override;
         virtual void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
-
         virtual void wheelEvent(QGraphicsSceneWheelEvent* event) override;
 
     signals:

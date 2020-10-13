@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.2
-** Date:       2019-02-03
+** Version:    v0.9.10
+** Date:       2020-10-13
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -29,16 +29,25 @@
 #include <QScreen>
 #include <QScrollBar>
 
+// Add const void* to allow for storing of typeless data in itemviews items
+Q_DECLARE_METATYPE(const void*)
+
 namespace Laser {
 
 /*
-Constructor: Builds the popup for the Laser::LineEdit
+Role specifyers for modelitem.data()
+*/
+const int LaserLineRole = Qt::UserRole + 1;
+const int LaserRole = Qt::UserRole + 2;
+const int LaserWavelengthRole = Qt::UserRole + 3;
+
+/*
+Constructor: Builds the AbstractPopup for the Laser::LineEdit
     :param parent: parent widget
 */
-Popup::Popup(QWidget* widget) :
+AbstractPopup::AbstractPopup(QWidget* widget) : 
     QListView(widget),
     margin_scrollbar(3),
-    max_visible_items(50),
     max_size()
 {
     // Set standard settings:
@@ -62,12 +71,8 @@ Popup::Popup(QWidget* widget) :
     General::ScrollBar* vertical_scrollbar = new General::ScrollBar(this);
     this->setVerticalScrollBar(vertical_scrollbar);
 
-    QObject::connect(static_cast<General::ScrollBar*>(this->verticalScrollBar()), &General::ScrollBar::showing, this, &Laser::Popup::showingScrollBar);
-    QObject::connect(static_cast<General::ScrollBar*>(this->verticalScrollBar()), &General::ScrollBar::hiding, this, &Laser::Popup::hidingScrollBar);
-
-    // Set sample data
-    std::vector<int> data_example = {350, 405, 562, 640, 900};
-    this->buildModel(data_example);
+    QObject::connect(static_cast<General::ScrollBar*>(this->verticalScrollBar()), &General::ScrollBar::showing, this, &Laser::AbstractPopup::showingScrollBar);
+    QObject::connect(static_cast<General::ScrollBar*>(this->verticalScrollBar()), &General::ScrollBar::hiding, this, &Laser::AbstractPopup::hidingScrollBar);
 
     // Set eventfilter on the viewport to capture mouvemove events
     this->viewport()->installEventFilter(this);
@@ -77,14 +82,14 @@ Popup::Popup(QWidget* widget) :
 /*
 Getter for layout spacing property, as it has to return a QString it returns the value in pixels
 */
-QString Popup::viewportMarginsScrollBar() const {
+QString AbstractPopup::viewportMarginsScrollBar() const {
     return QString::number(this->margin_scrollbar, 'f', 0);
 }
 
 /*
 Receives layout scaling properties from the stylesheet
 */
-void Popup::setViewportMarginsScrollBar(QString layout_spacing_scroll_bar){
+void AbstractPopup::setViewportMarginsScrollBar(QString layout_spacing_scroll_bar){
     this->margin_scrollbar = layout_spacing_scroll_bar.toInt();
     if(this->verticalScrollBar()->isVisible()){
         this->setViewportMargins(0, 0, layout_spacing_scroll_bar.toInt(), 0);
@@ -94,10 +99,10 @@ void Popup::setViewportMarginsScrollBar(QString layout_spacing_scroll_bar){
 }
 
 /*
-Updates the popup as if a Key_Up is pressed (popup will never receive these events so is propagated from parent)
+Updates the popup as if a Key_Up is pressed (popup will never receive these events so it is propagated from parent)
     :returns: whether the event is (fully) handled
 */
-bool Popup::updateKeyUp(){
+bool AbstractPopup::updateKeyUp(){
     QModelIndex index_current = this->currentIndex();
     if(!index_current.isValid()){
         int row_count = this->model()->rowCount();
@@ -119,7 +124,7 @@ bool Popup::updateKeyUp(){
 Updates the popup as if a Key_Down is pressed (popup will never receive these events so is propagated from parent)
     :returns: whether the event is (fully) handled
 */
-bool Popup::updateKeyDown(){
+bool AbstractPopup::updateKeyDown(){
     QModelIndex index_current = this->currentIndex();
     if(!index_current.isValid()){
         QModelIndex index_first = this->model()->index(0, 0);
@@ -137,74 +142,60 @@ bool Popup::updateKeyDown(){
 }
 
 /*
-Builds and sets an 'empty' QListview model
+Returns a list of the active (for example selected) items
 */
-void Popup::buildModel(){
-    // Get old model, and build new model
-    QAbstractItemModel* model_old = this->model();
-    QStandardItemModel* model_new = new QStandardItemModel(this);
+std::vector<Data::LaserID> AbstractPopup::active_items() const{
+    std::vector<Data::LaserID> items;
+    items.reserve(1);
 
-    // Set 'empty' model
-    QStandardItem* item_remove = new QStandardItem("Remove Laser");
-    item_remove->setCheckable(false);
-    item_remove->setData(-1);
-    model_new->appendRow(item_remove);
+    QModelIndex selected = this->currentIndex();
 
-    this->setModel(model_new);
+    if(selected.isValid()){
+        const Data::Laser* laser = static_cast<const Data::Laser*>(qvariant_cast<const void*>(selected.data(LaserRole)));
+        if(laser == nullptr){
+            Data::LaserID custom_id = Data::LaserID(nullptr, nullptr);
+            custom_id.custom_wavelength = selected.data(LaserWavelengthRole).toDouble();
+    
+            // items with a value below 0, refer to 'remove laser' entrees
+            if(custom_id.custom_wavelength != 0){
+                items.push_back(custom_id);
+            }
 
-    // Delete old model
-    delete model_old;
-}
-
-/*
-Builds and sets the QListView model
-    :param wavelengths: list of laser wavelengths
-*/
-void Popup::buildModel(const std::vector<int>& wavelengths){
-    // Get original model as the original has to be deleted manually
-    QAbstractItemModel* model_old = this->model();
-    QStandardItemModel* model_new = new QStandardItemModel(this);
-
-    QStandardItem* item_remove = new QStandardItem("Remove Laser");
-    item_remove->setCheckable(false);
-    item_remove->setData(-1);
-    model_new->appendRow(item_remove);
-
-    for(int wavelength : wavelengths){
-        QString item_text = "%1nm - test";
-        item_text = item_text.arg(wavelength);
-        QStandardItem* item_widget = new QStandardItem(item_text);
-        item_widget->setCheckable(false);
-        item_widget->setData(wavelength, Qt::UserRole +1);
-        model_new->appendRow(item_widget);
+        }else{
+            const Data::LaserLine* laserline = static_cast<const Data::LaserLine*>(qvariant_cast<const void*>(selected.data(LaserLineRole)));
+            items.push_back(Data::LaserID(laser, laserline));
+        }
     }
 
-    this->setModel(model_new);
-    delete model_old;
+    return items;
 }
 
 /*
 Slot: Receives hiding signal from the vertical scrollbar and removes scrollbar margin
 */
-void Popup::hidingScrollBar(){
+void AbstractPopup::hidingScrollBar(){
     this->setViewportMargins(0, 0, 0, 0);
 }
 
 /*
 Slot: Receives showing signal from the vertical scrollbar and adds scrollbar margin
 */
-void Popup::showingScrollBar(){
+void AbstractPopup::showingScrollBar(){
     this->setViewportMargins(0, 0, this->margin_scrollbar, 0);
 }
 
 /*
 Modified QCompleter::showPopup() to correct the popup size to not be bigger then a specified QWidget
 */
-void Popup::showPopup(){
+void AbstractPopup::showPopup(){
     QWidget* parent_widget = static_cast<QWidget*>(this->parent());
 
     // sizeHintForRow is not updated until the listview has been painted with the new (DPI adjusted) font
-    int height = this->sizeHintForRow(0) * std::min(this->max_visible_items, this->model()->rowCount()) + 14;
+    // As the popup listview can contain custom items which are of smaller size, iteratively count row hints
+    int height = 14;
+    for(int i; i<this->model()->rowCount(); ++i){
+        height += this->sizeHintForRow(i);
+    }
 
     QScrollBar* horizontal_scrollbar = this->horizontalScrollBar();
     if(horizontal_scrollbar){
@@ -253,13 +244,30 @@ void Popup::showPopup(){
 }
 
 /*
+Slot: Update the popup according to text modification made in the parent QLineEdit
+    :param wavelength: the wavelength in the text after modification. Can be -1 in case of invalid wavelenghts.
+*/
+void AbstractPopup::wavelengthEdited(){
+}
+
+/*
 Eventfilter for the viewport. Intercepts mousemove events to correctly fire highlight events
     :param obj: object that fires the event
     :param event: event
     :returns: whether the event is (fully) handled
 */
-bool Popup::eventFilter(QObject* obj, QEvent* event){
+bool AbstractPopup::eventFilter(QObject* obj, QEvent* event){
     switch(event->type()){
+    case QEvent::MouseButtonPress:
+    case QEvent::MouseButtonRelease:{
+        QMouseEvent* event_mouse = static_cast<QMouseEvent*>(event);
+        if(event_mouse->button() == Qt::LeftButton){
+            break;
+        }else{
+            return true;
+        }
+        break;
+    }
     case QEvent::MouseMove:{
         // Fires when mouse button is clicked and held
         QMouseEvent* event_mouse = static_cast<QMouseEvent*>(event);
@@ -268,13 +276,15 @@ bool Popup::eventFilter(QObject* obj, QEvent* event){
         if( (event_mouse->buttons()&Qt::LeftButton) == Qt::LeftButton){
             QPoint point_local = this->mapFromGlobal(event_mouse->globalPos());
             
-            // I get coordinate from widget, but have to correct to viewport by removing the marings
+            // I get coordinate from widget, but have to correct to viewport by removing the margins
             point_local.setY(point_local.y() - this->contentsMargins().top());
             point_local.setX(point_local.x() - this->contentsMargins().left());
 
             QModelIndex index_current = this->indexAt(point_local);
             
             emit this->highlighted(index_current);
+        }else{
+            return true;
         }
         break;
     }
@@ -293,6 +303,8 @@ bool Popup::eventFilter(QObject* obj, QEvent* event){
             QModelIndex index_current = this->indexAt(point_local);
 
             emit this->dblClicked(index_current);
+        }else{
+            return true;
         }
         break;
     }
@@ -303,22 +315,10 @@ bool Popup::eventFilter(QObject* obj, QEvent* event){
 }
 
 /*
-Slot: Receives the activated QModelIndex, receives and emits the proper output
-    :param index: the activated index
-*/
-void Popup::buildOutput(const QModelIndex& index){
-    qDebug() << "Laser::Popup:buildOutput";
-    if(index.isValid()){
-        int index_data = index.data(Qt::UserRole +1).toInt();
-        emit this->output(index_data);
-    }
-}
-
-/*
 Slot: Updates the popup max size parameter
     :param widget: (optional) the widget to base the popup size upon, or if not specified bases it upon the screen size
 */
-void Popup::updateRect(const QWidget* widget){
+void AbstractPopup::updateRect(const QWidget* widget){
     QWidget* parent_widget = static_cast<QWidget*>(this->parent());
 
     QRect size;
@@ -342,14 +342,480 @@ void Popup::updateRect(const QWidget* widget){
 Slot: Reloads and repopulates the model
     :param instrument: the instrument data to load into the model
 */
-void Popup::reloadModel(const Data::Instrument& instrument){
+void AbstractPopup::reloadModel(const Data::Instrument& instrument){
+    this->buildModel(instrument);
+}
+
+/*
+Slot: receives the graphstate and updates the listview accordingly
+    :param state: the graphsstates
+*/
+void AbstractPopup::updateState(std::vector<::State::GraphState>& state){
+    Q_UNUSED(state);
+    return;
+}
+
+// ################################################################################# //
+
+/*
+Constructor: Builds the popup for the Laser::LineEdit
+    :param parent: parent widget
+*/
+LaserLinePopup::LaserLinePopup(QWidget* widget) :
+    AbstractPopup(widget)
+{
+    // To allow for special painting of separator objects, change the itemdelegate to the separator delegate
+    // Set delegate for proper stylesheet usage.
+    auto old_delegate = this->itemDelegate();
+    General::CustomDelegate* delegate_popup = new General::CustomDelegate{this};
+    this->setItemDelegate(delegate_popup);
+    delete old_delegate;
+
+    // Set default data
+    this->buildModel();
+}
+
+/*
+Builds and sets an 'empty' QListview model
+*/
+void LaserLinePopup::buildModel(){
+    // Get old model, and build new model
+    QAbstractItemModel* model_old = this->model();
+    QStandardItemModel* model_new = new QStandardItemModel(this);
+
+    this->setModel(model_new);
+
+    // Delete old model
+    delete model_old;
+}
+
+/*
+Builds and sets the QListView model
+    :param wavelengths: list of laser wavelengths
+*/
+void LaserLinePopup::buildModel(const Data::Instrument& instrument){
+    // Get original model as the original has to be deleted manually
+    QAbstractItemModel* model_old = this->model();
+    QStandardItemModel* model_new = new QStandardItemModel(this);
+
+    //for(const Data::LaserLine& line : instrument.optics()){
+    for(std::size_t line_index = 0; line_index < instrument.optics().size(); ++line_index){
+        const Data::LaserLine& line = instrument.optics()[line_index];
+        for(const Data::Laser& laser : line.lasers()){
+            QString text = QString();
+            if(laser.name().isNull()){
+                text = QString("%1nm").arg(laser.wavelength());
+            }else{
+                text = QString("%1nm - %2").arg(QString::number(static_cast<int>(laser.wavelength())), laser.name());
+            }
+
+            QStandardItem* item_widget = new QStandardItem(text);
+            item_widget->setCheckable(true);
+
+            item_widget->setData(laser.wavelength(), LaserWavelengthRole);
+            // To store the pointer in the item, cast to void
+            const void* void_laser = &laser;
+            item_widget->setData(QVariant::fromValue<const void*>(void_laser), LaserRole);
+            const void* void_line = &instrument.optics()[line_index];
+            item_widget->setData(QVariant::fromValue<const void*>(void_line), LaserLineRole);
+            
+            model_new->appendRow(item_widget);
+        }
+
+        if(line_index < instrument.optics().size() - 1){
+            General::SeparatorItem* item_widget = new General::SeparatorItem(this);
+            model_new->appendRow(item_widget);
+        }
+    }
+
+    this->setModel(model_new);
+    delete model_old;
+}
+
+/*
+Returns a list of the active (for example selected) items
+*/
+std::vector<Data::LaserID> LaserLinePopup::active_items() const{
+    std::vector<Data::LaserID> items;
+    items.reserve(5);
+
+    for(int row=0; row<this->model()->rowCount(); ++row){
+        QModelIndex index_row = this->model()->index(row, 0);
+
+        if(index_row.data(General::CustomItemTypeRole).canConvert<int>() && qvariant_cast<int>(index_row.data(General::CustomItemTypeRole) == General::SeparatorItemType)){
+            // separator -> ignore
+            continue;
+        }
+
+        if(index_row.data(Qt::CheckStateRole).toInt() == Qt::Checked){
+            const Data::Laser* laser = static_cast<const Data::Laser*>(qvariant_cast<const void*>(index_row.data(LaserRole)));
+            
+            if(laser == nullptr){
+                Data::LaserID custom_id = Data::LaserID(nullptr, nullptr);
+                custom_id.custom_wavelength = index_row.data(LaserWavelengthRole).toDouble();
+                items.push_back(custom_id);
+            }else{
+                const Data::LaserLine* laserline = static_cast<const Data::LaserLine*>(qvariant_cast<const void*>(index_row.data(LaserLineRole)));
+                items.push_back(Data::LaserID(laser, laserline));
+            }
+        }
+    }
+
+    return items;
+}
+
+/*
+Eventfilter for the viewport. Intercepts mousemove events to correctly fire highlight events
+    :param obj: object that fires the event
+    :param event: event
+    :returns: whether the event is (fully) handled
+*/
+bool LaserLinePopup::eventFilter(QObject* obj, QEvent* event){
+    switch(event->type()){
+    case QEvent::MouseButtonPress:{
+        QMouseEvent* event_mouse = static_cast<QMouseEvent*>(event);
+        if(event_mouse->button() == Qt::LeftButton){
+            QPoint point_local = this->mapFromGlobal(event_mouse->globalPos());
+        
+            // I get coordinate from widget, but have to correct to viewport by removing the margins
+            point_local.setY(point_local.y() - this->contentsMargins().top());
+            point_local.setX(point_local.x() - this->contentsMargins().left());
+
+            QModelIndex index_current = this->indexAt(point_local);
+            if(index_current.data(General::CustomItemTypeRole).canConvert<int>() && qvariant_cast<int>(index_current.data(General::CustomItemTypeRole) == General::SeparatorItemType)){
+                // Do nothing if clicked on separator
+                return true;
+            }
+            return QListView::eventFilter(obj, event);
+        }else{
+            return true;
+        }
+        break;
+    }
+    case QEvent::MouseButtonRelease:{
+        QMouseEvent* event_mouse = static_cast<QMouseEvent*>(event);
+
+        //if( (event_mouse->buttons() & Qt::LeftButton) == Qt::LeftButton){
+        if(event_mouse->button() == Qt::LeftButton){
+            // Block additional release handling after dbl clicking
+            if(this->ignore_next_mouse_release){
+                this->ignore_next_mouse_release = false;
+                return true;
+            }
+
+            QPoint point_local = this->mapFromGlobal(event_mouse->globalPos());
+        
+            // I get coordinate from widget, but have to correct to viewport by removing the margins
+            point_local.setY(point_local.y() - this->contentsMargins().top());
+            point_local.setX(point_local.x() - this->contentsMargins().left());
+
+            QModelIndex index_current = this->indexAt(point_local);
+            if(!index_current.isValid()){
+                // Do nothing when the index is invalid
+            }else if(index_current.data(General::CustomItemTypeRole).canConvert<int>() && qvariant_cast<int>(index_current.data(General::CustomItemTypeRole) == General::SeparatorItemType)){
+                // Do nothing if clicked on separator
+            }else{
+                // To set the states
+                QMap<int, QVariant> map_check;
+                map_check.insert(Qt::CheckStateRole, QVariant::fromValue<int>(Qt::Checked));
+                QMap<int, QVariant> map_uncheck;
+                map_uncheck.insert(Qt::CheckStateRole, QVariant::fromValue<int>(Qt::Unchecked));
+
+                if(index_current.data(Qt::CheckStateRole).toInt() == Qt::Checked){
+                    this->model()->setItemData(index_current, map_uncheck);
+                    emit this->pressed(QModelIndex());
+                }else if(index_current.data(Qt::CheckStateRole).toInt() == Qt::Unchecked){
+                    // When checking only laser in one laserline can be checked, so flip all others
+                    // No need to cast to const Data::LaserLine* from const void* as different addresses mean different laserlines
+                    const void* laserline = qvariant_cast<const void*>(index_current.data(LaserLineRole));
+                    for(int row=0; row<this->model()->rowCount(); ++row){
+                        QModelIndex index_row = this->model()->index(row, 0);
+                        
+                        if(index_row.data(General::CustomItemTypeRole).canConvert<int>() && qvariant_cast<int>(index_row.data(General::CustomItemTypeRole) == General::SeparatorItemType)){
+                            // separator -> ignore
+                        }
+
+                        if(qvariant_cast<const void*>(index_row.data(LaserLineRole)) != laserline){
+                            this->model()->setItemData(index_row, map_uncheck);
+                        }
+                    }
+                    this->model()->setItemData(index_current, map_check);   
+                    emit this->pressed(index_current);
+                }
+            }
+        }
+        return true;
+
+        break;
+    }
+    case QEvent::MouseMove:{
+        // Fires when mouse button is clicked and held
+        QMouseEvent* event_mouse = static_cast<QMouseEvent*>(event);
+
+        // Check if left mouse button is pressed
+        if( (event_mouse->buttons() & Qt::LeftButton) == Qt::LeftButton){
+            QPoint point_local = this->mapFromGlobal(event_mouse->globalPos());
+            
+            // I get coordinate from widget, but have to correct to viewport by removing the margins
+            point_local.setY(point_local.y() - this->contentsMargins().top());
+            point_local.setX(point_local.x() - this->contentsMargins().left());
+
+            QModelIndex index_current = this->indexAt(point_local);
+
+            // Check if separator item
+            if(index_current.data(General::CustomItemTypeRole).canConvert<int>() && qvariant_cast<int>(index_current.data(General::CustomItemTypeRole) == General::SeparatorItemType)){
+                //emit this->highlighted(QModelIndex());
+            }else{
+                emit this->highlighted(index_current);
+            }
+            return QListView::eventFilter(obj, event);
+        }else{
+            return true;
+        }
+        break;
+    }
+    case QEvent::MouseButtonDblClick:{
+        QMouseEvent* event_mouse = static_cast<QMouseEvent*>(event);
+
+        // Skip abstractPopup double click behavior
+        if( (event_mouse->buttons() & Qt::LeftButton) == Qt::LeftButton){
+            QPoint point_local = this->mapFromGlobal(event_mouse->globalPos());
+            
+            // I get coordinate from widget, but have to correct to viewport by removing the margins
+            point_local.setY(point_local.y() - this->contentsMargins().top());
+            point_local.setX(point_local.x() - this->contentsMargins().left());
+
+            QModelIndex index_current = this->indexAt(point_local);
+
+            // Check if separator item
+            if(index_current.data(General::CustomItemTypeRole).canConvert<int>() && qvariant_cast<int>(index_current.data(General::CustomItemTypeRole) == General::SeparatorItemType)){
+                return true;
+            }
+
+            // Prevents selection after closing of the lineedit
+            this->ignore_next_mouse_release = true;
+
+            //emit this->dblClicked(index_current);
+            return QListView::eventFilter(obj, event);
+        }else{
+            return true;
+        }
+        break;
+    }
+    default:
+        break;    
+    }
+    return AbstractPopup::eventFilter(obj, event);
+}
+
+/*
+Updates the popup as if a Key_Up is pressed
+(popup will never receive these events so it is propagated from parent)
+    :returns: whether the event is (fully) handled
+*/
+bool LaserLinePopup::updateKeyUp(){
+    QModelIndex index_current = this->currentIndex();
+
+    int row;
+    if(!index_current.isValid()){
+        row = this->model()->rowCount() -1;
+    }else{
+        row = index_current.row() -1;
+    }
+
+    // Find next 'non-separator' index
+    while(true){
+        // Fallback if no valid index
+        if(row < 0){
+            this->setCurrentIndex(QModelIndex());
+            break;
+        }
+
+        QModelIndex index_row = this->model()->index(row, 0);
+        // Check if index is separator
+        if(index_row.data(General::CustomItemTypeRole).canConvert<int>() && qvariant_cast<int>(index_row.data(General::CustomItemTypeRole) == General::SeparatorItemType)){
+            row -= 1;
+            continue;
+        }
+
+        this->setCurrentIndex(index_row);
+        break;
+    }
+
+    // Emit highlighted signal
+    emit this->highlighted(this->currentIndex());
+    return true;
+}
+
+/*
+Updates the popup as if a Key_Down is pressed
+(popup will never receive these events so is propagated from parent)
+    :returns: whether the event is (fully) handled
+*/
+bool LaserLinePopup::updateKeyDown(){
+    QModelIndex index_current = this->currentIndex();
+
+    int row;
+    if(!index_current.isValid()){
+        row = 0;
+    }else{
+        row = index_current.row() +1;
+    }
+
+    // Find next 'non-separator' index
+    while(true){
+        // Fallback if no valid index
+        if(row >= this->model()->rowCount()){
+            this->setCurrentIndex(QModelIndex());
+            break;
+        }
+
+        QModelIndex index_row = this->model()->index(row, 0);
+        // Check if index is separator
+        if(index_row.data(General::CustomItemTypeRole).canConvert<int>() && qvariant_cast<int>(index_row.data(General::CustomItemTypeRole) == General::SeparatorItemType)){
+            row += 1;
+            continue;
+        }
+
+        this->setCurrentIndex(index_row);
+        break;
+    }
+
+    // Emit highlighted signal
+    emit this->highlighted(this->currentIndex());
+    return true;
+}
+
+/*
+Slot: Update the popup according to text modification made in the parent QLineEdit
+    :param wavelength: the wavelength in the text after modification. Can be -1 in case of invalid wavelenghts.
+*/
+void LaserLinePopup::wavelengthEdited(){
+    // In case of modification remove any selection in the popup menu
+    QMap<int, QVariant> map_uncheck;
+    map_uncheck.insert(Qt::CheckStateRole, QVariant::fromValue<int>(Qt::Unchecked));
+
+    for(int row=0; row<this->model()->rowCount(); ++row){
+        QModelIndex index_row = this->model()->index(row, 0);
+        
+        if(index_row.data(General::CustomItemTypeRole).canConvert<int>() && qvariant_cast<int>(index_row.data(General::CustomItemTypeRole) == General::SeparatorItemType)){
+            // separator -> ignore
+            continue;
+        }
+        this->model()->setItemData(index_row, map_uncheck);
+    }
+}
+
+/*
+Slot: receives the graphstate and updates the listview accordingly
+    :param state: the graphsstates
+*/
+void LaserLinePopup::updateState(std::vector<::State::GraphState>& state){
+    // To start default uncheck all
+    QMap<int, QVariant> map_check;
+    map_check.insert(Qt::CheckStateRole, QVariant::fromValue<int>(Qt::Checked));
+    QMap<int, QVariant> map_uncheck;
+    map_uncheck.insert(Qt::CheckStateRole, QVariant::fromValue<int>(Qt::Unchecked));
+
+    for(int row=0; row<this->model()->rowCount(); ++row){
+        QModelIndex index_row = this->model()->index(row, 0);
+        
+        if(index_row.data(General::CustomItemTypeRole).canConvert<int>() && qvariant_cast<int>(index_row.data(General::CustomItemTypeRole) == General::SeparatorItemType)){
+            // separator -> ignore
+            continue;
+        }
+        this->model()->setItemData(index_row, map_uncheck);
+    }
+
+    // Check if any states exists, otherwise its UB to index on the vector
+    if(state.empty()){
+        return;
+    }
+
+    // Find selected graph (and if no selection, take the first graph)
+    std::size_t index = 0;
+    for(std::size_t i=0; i<state.size(); ++i){
+        if(state[i].isSelected()){
+            index = i;
+            break;
+        }
+    }
+
+    // Use the state of graph to properly check item entrees
+    const ::State::GraphState& graph_state = state[index];
+    for(int row=0; row<this->model()->rowCount(); ++row){
+        QModelIndex index_row = this->model()->index(row, 0);
+        
+        if(index_row.data(General::CustomItemTypeRole).canConvert<int>() && qvariant_cast<int>(index_row.data(General::CustomItemTypeRole) == General::SeparatorItemType)){
+            // separator -> ignore
+            continue;
+        }
+
+        const Data::LaserLine* line = static_cast<const Data::LaserLine*>(qvariant_cast<const void*>(index_row.data(LaserLineRole)));
+        if(line == graph_state.laserLine()){
+            const Data::Laser* laser = static_cast<const Data::Laser*>(qvariant_cast<const void*>(index_row.data(LaserRole)));
+
+            for(const Data::Laser& laser_state : graph_state.lasers()){
+                if(laser_state.wavelength() == laser->wavelength()){
+                    this->model()->setItemData(index_row, map_check);
+                    break;
+                }
+            }
+        }
+    }
+}
+
+// ################################################################################# //
+
+/*
+Constructor: Builds the popup for the Laser::LineEdit
+    :param parent: parent widget
+*/
+Popup::Popup(QWidget* widget) :
+    AbstractPopup(widget)
+{
+    // Set default data
+    this->buildModel();
+}
+
+/*
+Builds and sets an 'empty' QListview model
+*/
+void Popup::buildModel(){
+    // Get old model, and build new model
+    QAbstractItemModel* model_old = this->model();
+    QStandardItemModel* model_new = new QStandardItemModel(this);
+
+    // Set 'empty' model
+    QStandardItem* item_remove = new QStandardItem("Remove Laser");
+    item_remove->setCheckable(false);
+    item_remove->setData(-1.0, LaserWavelengthRole);
+    item_remove->setData(QVariant::fromValue<const void*>(nullptr), LaserRole);
+    // To store the pointer in the item, caste to void
+    item_remove->setData(QVariant::fromValue<const void*>(nullptr), LaserLineRole);
+
+    model_new->appendRow(item_remove);
+
+    this->setModel(model_new);
+
+    // Delete old model
+    delete model_old;
+}
+
+/*
+Builds and sets the QListView model
+    :param wavelengths: list of laser wavelengths
+*/
+void Popup::buildModel(const Data::Instrument& instrument){
     // Get original model as the original has to be deleted manually
     QAbstractItemModel* model_old = this->model();
     QStandardItemModel* model_new = new QStandardItemModel(this);
 
     QStandardItem* item_remove = new QStandardItem("Remove Laser");
     item_remove->setCheckable(false);
-    item_remove->setData(-1);
+    item_remove->setData(-1.0, LaserWavelengthRole);
+    item_remove->setData(QVariant::fromValue<const void*>(nullptr), LaserRole);
+    item_remove->setData(QVariant::fromValue<const void*>(nullptr), LaserLineRole);
     model_new->appendRow(item_remove);
 
     for(const Data::LaserLine& line : instrument.optics()){
@@ -363,7 +829,12 @@ void Popup::reloadModel(const Data::Instrument& instrument){
 
             QStandardItem* item_widget = new QStandardItem(text);
             item_widget->setCheckable(false);
-            item_widget->setData(laser.wavelength(), Qt::UserRole +1);
+            item_widget->setData(laser.wavelength(), LaserWavelengthRole);
+            // To store the pointer in the item, caste to void
+            const void* void_laser = &laser;
+            item_widget->setData(QVariant::fromValue<const void*>(void_laser), LaserRole);
+            const void* void_line = &line;
+            item_widget->setData(QVariant::fromValue<const void*>(void_line), LaserLineRole);
             model_new->appendRow(item_widget);
 
         }
@@ -373,11 +844,13 @@ void Popup::reloadModel(const Data::Instrument& instrument){
     delete model_old;
 }
 
+// ################################################################################# //
+
 /*
 Constructor: Constructs a Fluorophore LineEdit object.
     :param parent: pointer to parent widget
 */
-LineEdit::LineEdit(QWidget* parent) : 
+LineEdit::LineEdit(QWidget* parent) :
     QLineEdit(parent),
     widget_popup(nullptr),
     text_before("Wavelength: "),
@@ -386,6 +859,9 @@ LineEdit::LineEdit(QWidget* parent) :
     text_write_length(3),
     text_write_end(this->text_write_start + this->text_write_length)
 {
+    // if lower then 0 undefined before will happen
+    assert(text_write_length > 0);
+
     // Setup QLineEdit
     this->setProperty("popup", false);  // needs a property for proper stylesheet handling
     this->setContextMenuPolicy(Qt::NoContextMenu);
@@ -394,45 +870,47 @@ LineEdit::LineEdit(QWidget* parent) :
     this->setCursorPosition(this->text_write_end);
 
     // Builds and sets widget
-    Laser::Popup* popup_widget = new Laser::Popup(this);
+    Laser::AbstractPopup* popup_widget = new Laser::LaserLinePopup(this);
+    //Laser::AbstractPopup* popup_widget = new Laser::Popup(this);
     this->setPopup(popup_widget);
 
     this->installEventFilter(this);
-
 }
 
 /*
 Sets popup. Takes ownership of the popup (dont share popup with other widgets)
     :param popup: popup widget
 */
-void LineEdit::setPopup(Laser::Popup* popup){
+void LineEdit::setPopup(Laser::AbstractPopup* popup){
     // Remove previous popup
     if(this->widget_popup){
-        QObject::disconnect(this->popup(), &Laser::Popup::pressed, this, &Laser::LineEdit::updatePopupActivated);
-        QObject::disconnect(this->popup(), &Laser::Popup::highlighted, this, &Laser::LineEdit::updatePopupActivated);
-        QObject::disconnect(this->popup(), &Laser::Popup::dblClicked, this, &Laser::LineEdit::updatePopupDblClicked);
-        //QObject::disconnect(this, &LineEdit::highlightPopup, static_cast<Fluor::Completer*>(this->completer()), &Fluor::Completer::updateHighlight);
+        QObject::disconnect(this, &Laser::LineEdit::wavelengthEdited, this->popup(), &Laser::AbstractPopup::wavelengthEdited);
+        QObject::disconnect(this, &Laser::LineEdit::updatePopupGraphState, this->popup(), &Laser::AbstractPopup::updateState);
+        QObject::disconnect(this->popup(), &Laser::AbstractPopup::pressed, this, &Laser::LineEdit::updatePopupActivated);
+        QObject::disconnect(this->popup(), &Laser::AbstractPopup::highlighted, this, &Laser::LineEdit::updatePopupActivated);
+        QObject::disconnect(this->popup(), &Laser::AbstractPopup::dblClicked, this, &Laser::LineEdit::updatePopupDblClicked);
         delete this->widget_popup;
     }
     
     this->widget_popup = popup;
-    QObject::connect(this->popup(), &Laser::Popup::pressed, this, &Laser::LineEdit::updatePopupActivated);
-    QObject::connect(this->popup(), &Laser::Popup::highlighted, this, &Laser::LineEdit::updatePopupActivated);
-    QObject::connect(this->popup(), &Laser::Popup::dblClicked, this, &Laser::LineEdit::updatePopupDblClicked);
-    //QObject::connect(this, &LineEdit::highlightPopup, static_cast<Fluor::Completer*>(this->completer()), &Fluor::Completer::updateHighlight);
+    QObject::connect(this, &Laser::LineEdit::wavelengthEdited, this->popup(), &Laser::AbstractPopup::wavelengthEdited);
+    QObject::connect(this, &Laser::LineEdit::updatePopupGraphState, this->popup(), &Laser::AbstractPopup::updateState);
+    QObject::connect(this->popup(), &Laser::AbstractPopup::pressed, this, &Laser::LineEdit::updatePopupActivated);
+    QObject::connect(this->popup(), &Laser::AbstractPopup::highlighted, this, &Laser::LineEdit::updatePopupActivated);
+    QObject::connect(this->popup(), &Laser::AbstractPopup::dblClicked, this, &Laser::LineEdit::updatePopupDblClicked);
 }
 
 /*
-Gets popup for LineEdit.
+Gets popup for LineEdit. If none is available constructs a default Popup.
     :returns: popup widget
 */
-Laser::Popup* LineEdit::popup(){
+Laser::AbstractPopup* LineEdit::popup(){
     if(this->widget_popup){
         return this->widget_popup;
     }
 
-    // No popup has been set, so build one:
-    Laser::Popup* popup_new = new Laser::Popup(this);
+    // No popup has been set, so build default one:
+    Laser::AbstractPopup* popup_new = new Laser::Popup(this);
     this->setPopup(popup_new);  
 
     return this->widget_popup;
@@ -472,30 +950,46 @@ void LineEdit::clearFocus(){
 Construct output integer and emits->output() 
 */
 void LineEdit::buildOutput(){
-    // Check if popup has remove selected as that one is exempt from text modification
-    QModelIndex popup_index_current = this->popup()->currentIndex();
-    int output = 0;
-    if(popup_index_current.data(Qt::UserRole + 1).toInt() == -1){
-        output = -1;
-    }else{
-        QString text = this->text();
-        
-        // Validate output
-        QString output_text("");
-        for(int i = this->text_write_start; i < this->text_write_end; ++i){
-            QChar letter(text[i]);
+    // Check the state of the popup
+    std::vector<Data::LaserID> items = this->popup()->active_items();
 
-            // Only accept numbers
-            if(letter.isNumber()){
-                output_text.append(letter);
+    // Get the LineEdit output
+    QString text = this->text();
+    
+    // Validate output
+    QString output_text("");
+    for(int i = this->text_write_start; i < this->text_write_end; ++i){
+        QChar letter(text[i]);
+
+        // Only accept numbers
+        if(letter.isNumber()){
+            output_text.append(letter);
+        }
+    }
+
+    // If we have lineedit text, compare to popup to see if the lineedit text is custom
+    if(output_text != ""){
+        double text_wavelength = output_text.toDouble();
+        // Check if text is custom, if so, it has priority
+        bool is_custom = true;
+        for(const Data::LaserID& item : items){
+            if(item.laser->wavelength() == text_wavelength){
+                is_custom = false;
+                break;
             }
         }
 
-        output = output_text.toInt();
+        if(is_custom){
+            items.clear();
+            Data::LaserID custom_id = Data::LaserID(nullptr, nullptr);
+            custom_id.custom_wavelength = text_wavelength;
+            items.push_back(custom_id);
+        }
     }
 
-    qDebug() << "Laser::LineEdit: emits output: " << output;
-    emit this->output(output);
+    qDebug() << "Laser::LineEdit: emits output: " << items;
+
+    emit this->output(items);
     emit this->finished();
 }
 
@@ -571,6 +1065,7 @@ bool LineEdit::eventFilter(QObject *obj, QEvent *event){
                     this->buildText(std::move(output));
                     this->setCursorPosition(cursor_pos +1);
                     this->popup()->setCurrentIndex(QModelIndex());
+                    emit this->wavelengthEdited();
                 }
             }else{
                 int select_start = this->selectionStart();
@@ -602,6 +1097,7 @@ bool LineEdit::eventFilter(QObject *obj, QEvent *event){
                 this->buildText(std::move(output));
                 this->setCursorPosition(select_start + this->text_write_start + 1);
                 this->popup()->setCurrentIndex(QModelIndex());
+                emit this->wavelengthEdited();
             }
 
             return true;
@@ -621,6 +1117,7 @@ bool LineEdit::eventFilter(QObject *obj, QEvent *event){
                     this->buildText(std::move(output));
                     this->setCursorPosition(cursor_pos -1);
                     this->popup()->setCurrentIndex(QModelIndex());
+                    emit this->wavelengthEdited();
                 }
             }else{
                 int select_start = this->selectionStart();
@@ -652,8 +1149,8 @@ bool LineEdit::eventFilter(QObject *obj, QEvent *event){
                 this->buildText(std::move(output));
                 this->setCursorPosition(select_start + this->text_write_start);
                 this->popup()->setCurrentIndex(QModelIndex());
+                emit this->wavelengthEdited();
             }
-
             return true;
         }
         case Qt::Key_Delete:{
@@ -676,6 +1173,7 @@ bool LineEdit::eventFilter(QObject *obj, QEvent *event){
                     this->buildText(std::move(output));
                     this->setCursorPosition(cursor_pos);
                     this->popup()->setCurrentIndex(QModelIndex());
+                    emit this->wavelengthEdited();
                 }
             }else{
                 int select_start = this->selectionStart();
@@ -707,6 +1205,7 @@ bool LineEdit::eventFilter(QObject *obj, QEvent *event){
                 this->buildText(std::move(output));
                 this->setCursorPosition(select_start + this->text_write_start);
                 this->popup()->setCurrentIndex(QModelIndex());
+                emit this->wavelengthEdited();
             }
             return true;
         }
@@ -829,6 +1328,7 @@ bool LineEdit::eventFilter(QObject *obj, QEvent *event){
             return true;
         case Qt::Key_Escape:
             this->buildText(-1);
+            emit this->wavelengthEdited();
             this->setCursorPosition(this->text_write_start);
             this->buildOutput();
             return true;
@@ -914,6 +1414,7 @@ bool LineEdit::eventFilter(QObject *obj, QEvent *event){
                     // Output results
                     this->buildText(std::move(output));
                     this->setCursorPosition(select_start + this->text_write_start);
+                    emit this->wavelengthEdited();
                 }
             }
             return true;
@@ -974,6 +1475,7 @@ bool LineEdit::eventFilter(QObject *obj, QEvent *event){
                     int cursor_output = std::min(select_start + text_numbers.length(), this->text_write_length);
                     this->setCursorPosition(cursor_output + this->text_write_start);
                     this->popup()->setCurrentIndex(QModelIndex());
+                    emit this->wavelengthEdited();
                 }else{
                     int cursor_pos = this->cursorPosition();
                     // check if cursor_pos is valid, if not limit ot modifyable area
@@ -990,6 +1492,7 @@ bool LineEdit::eventFilter(QObject *obj, QEvent *event){
                     int cursor_output = std::min(cursor_pos + text_numbers.length(), this->text_write_length);
                     this->setCursorPosition(cursor_output + this->text_write_start);
                     this->popup()->setCurrentIndex(QModelIndex());
+                    emit this->wavelengthEdited();
                 }
             }
             return true;
@@ -1163,18 +1666,13 @@ Slot: unfocuses the widget, based upon a global QEvent::MouseButtonRelease. Diff
     :param event: the global QEvent::MouseButtonRelease
 */
 void LineEdit::unfocus(QEvent* event){
-    // Cast dynamically, because event is of undefined super class
-    QMouseEvent* mouse_event = dynamic_cast<QMouseEvent*>(event);
-
-    // No mouse event
-    if(!mouse_event){
-        return;
-    }
-    
     // Make sure it is the correct mouse event
-    if(mouse_event->type() != QEvent::MouseButtonRelease){
+    if(event->type() != QEvent::MouseButtonRelease){
         return;
     }
+
+    // Cast dynamically, because event is of undefined super class
+    QMouseEvent* mouse_event = static_cast<QMouseEvent*>(event);
 
     // Check if it is a click on this widget -> if so, ignore
     if(this->rect().contains(this->mapFromGlobal(mouse_event->globalPos()))){
@@ -1221,12 +1719,12 @@ Slot: upon popup item activation adds data of activated entree to LineEdit text
 */
 void LineEdit::updatePopupActivated(const QModelIndex& index){
     if(index.isValid()){
-        int index_data = index.data(Qt::UserRole +1).toInt();
+        int index_data = index.data(LaserWavelengthRole).toInt();
         
         // Incase of negative values -> reset text, so make sure cursor is in correct location
         int index_data_str_length = 0;
         if(index_data >= 0){
-            index_data_str_length = index.data(Qt::UserRole +1).toString().length();
+            index_data_str_length = index.data(LaserWavelengthRole).toString().length();
         }
 
         this->buildText(index_data);
@@ -1244,6 +1742,13 @@ Slot: upon popup double clicking. Clear focus.
 void LineEdit::updatePopupDblClicked(const QModelIndex& index){
     Q_UNUSED(index);
     this->clearFocus();
+}
+
+/*
+Slot: receives graph states and update popup listview to reflect it
+*/
+void LineEdit::receiveGraphState(std::vector<State::GraphState>& state){
+    emit this->updatePopupGraphState(state);
 }
 
 /*

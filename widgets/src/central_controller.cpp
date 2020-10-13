@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.8
-** Date:       2020-08-05
+** Version:    v0.9.10
+** Date:       2020-10-13
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -65,7 +65,8 @@ Controller::Controller(QWidget* parent) :
     QObject::connect(this, &Central::Controller::sendCacheState, controller_fluor, &Fluor::Controller::receiveCacheState);
     QObject::connect(this, &Central::Controller::sendCacheUpdate, controller_fluor, &Fluor::Controller::receiveCacheUpdate);
 
-    QObject::connect(controller_laser, &Laser::Controller::sendOutput, this, &Central::Controller::receiveLaser);
+    QObject::connect(this, &Central::Controller::sendGraphState, controller_laser, &Laser::Controller::receiveGraphState);
+    QObject::connect(controller_laser, &Laser::Controller::sendOutput, this, &Central::Controller::receiveLasers);
 
     QObject::connect(controller_fluor, &Fluor::Controller::sendCacheAdd, this, &Central::Controller::receiveCacheAdd);
     QObject::connect(controller_fluor, &Fluor::Controller::sendCacheRemove, this, &Central::Controller::receiveCacheRemove);
@@ -74,6 +75,7 @@ Controller::Controller(QWidget* parent) :
     QObject::connect(controller_toolbar, &Bar::Controller::sendToolbarStateChange, this, &Central::Controller::receiveToolbarStateChange);
     QObject::connect(this, &Central::Controller::sendToolbarStateUpdate, controller_toolbar, &Bar::Controller::receiveToolbarStateUpdate);
 
+    QObject::connect(this, &Central::Controller::sendGlobalEvent, controller_graph, &Graph::ScrollController::receiveGlobalEvent);
     QObject::connect(this, &Central::Controller::sendCacheState, controller_graph, &Graph::ScrollController::receiveCacheState);
     QObject::connect(this, &Central::Controller::sendCacheUpdate, controller_graph, &Graph::ScrollController::receiveCacheUpdate);
     QObject::connect(this, &Central::Controller::sendGraphState, controller_graph, &Graph::ScrollController::receiveGraphState);
@@ -175,8 +177,8 @@ void Controller::receiveCacheUpdate(){
 /*
 Slot: receives and forwards the laser wavelength input
 */
-void Controller::receiveLaser(int wavelength){
-    emit this->sendLaser(wavelength);
+void Controller::receiveLasers(std::vector<Data::LaserID>& lasers){
+    emit this->sendLasers(lasers);
 }
 
 /*

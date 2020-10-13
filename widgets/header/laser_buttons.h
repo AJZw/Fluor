@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.1
-** Date:       2019-04-07
+** Version:    v0.9.10
+** Date:       2020-10-13
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -35,6 +35,8 @@
 #define LASER_BUTTONS_H
 
 #include <QPushButton>
+#include "data_instruments.h"
+#include "state_gui.h"
 
 namespace Laser {
 
@@ -50,6 +52,8 @@ class PushButton : public QPushButton {
         ~PushButton() = default;
     
     public slots:
+        void receiveGraphState(std::vector<State::GraphState>& state);
+
         void hideButton();
         void showButton();
 };

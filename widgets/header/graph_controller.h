@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.3
-** Date:       2019-04-23
+** Version:    v0.9.10
+** Date:       2020-10-13
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -68,6 +68,8 @@ class Controller : public QWidget {
         Graph::Format::Style* graphics_style;
 
     signals:
+        void sendGlobalEvent(QEvent* event);
+
         void sendCacheState(const std::vector<Cache::ID>& cache_state);
         void sendCacheUpdate();
         void sendCacheRequestUpdate();
@@ -78,6 +80,8 @@ class Controller : public QWidget {
         void sendPainterUpdate(const Graph::Format::Style* style);
 
     public slots:
+        void receiveGlobalEvent(QEvent* event);
+
         void receiveCacheState(const std::vector<Cache::ID>& cache_state);
         void receiveCacheUpdate();
 
@@ -118,6 +122,7 @@ class ScrollController : public QScrollArea {
         void rebuildLayout();
     
     signals:
+        void sendGlobalEvent(QEvent* event);
         void sendCacheState(const std::vector<Cache::ID>& cache_state);
         void sendCacheUpdate();
         void sendCacheRequestUpdate();
@@ -129,6 +134,7 @@ class ScrollController : public QScrollArea {
         void showingScrollBar();
 
     public slots:
+        void receiveGlobalEvent(QEvent* event);
         void receiveCacheState(const std::vector<Cache::ID>& cache_state);
         void receiveCacheUpdate();
         void receiveCacheRequestUpdate();

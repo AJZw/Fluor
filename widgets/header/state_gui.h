@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.7
-** Date:       2020-01-17
+** Version:    v0.9.10
+** Date:       2020-10-13
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -122,8 +122,8 @@ class GUI {
         void clearGraphs();
         void fillGraphs(Data::Instrument& instrument);
 
-        void addLaser(double wavelength, Data::Instrument& instrument);
-        void removeLaser();
+        void addLasers(std::vector<Data::LaserID> lasers, Data::Instrument& instrument);
+        void removeLasers();
 
         void setGraphVisibleLaser(bool visible);
         void setGraphVisibleFilter(bool visible);

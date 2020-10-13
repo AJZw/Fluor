@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.1
-** Date:       2018-04-10
+** Version:    v0.9.10
+** Date:       2020-10-13
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -49,7 +49,7 @@ class Application : public QApplication {
         Application(int &argc, char **argv);
 
     signals:
-        void globalMouseButtonRelease(QEvent* event);
+        void globalEvent(QEvent* event);
 
 };
 

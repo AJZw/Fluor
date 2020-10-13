@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.8
-** Date:       2020-08-05
+** Version:    v0.9.10
+** Date:       2020-10-13
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -586,6 +586,51 @@ QString Builder::buildListView() const {
             " background-color: %12;"
             " color: %13;"
             "} "
+            "QListView::indicator {"
+            " color: %7;"
+            " border-color: %7;"
+            " border-style: solid;"
+            " border-width: %5;"
+            "} "
+            "QListView::indicator::unchecked {"
+            " color: %7;"
+            "} "
+            "QListView::indicator::unchecked::hover {"
+            " color: %9;"
+            " border-color: %9;"
+            "} "
+            "QListView::indicator::unchecked::selected {"
+            " color: %11;"
+            " border-color: %11;"
+            "} "
+            "QListView::indicator::unchecked::hover::selected {"
+            " color: %11;"
+            " border-color: %11;"
+            "} "
+            "QListView::indicator::checked {"
+            " color: %7;"
+            " background-color: %7;"
+            "} "
+            "QListView::indicator::checked::hover {"
+            " background-color: %9;"
+            " color: %9;"
+            " border-color: %9;"
+            "} "
+            "QListView::indicator::checked::selected {"
+            " background-color: %11;"
+            " color: %11;"
+            " border-color: %11;"
+            "} "
+            "QListView::indicator::checked::hover::selected {"
+            " background-color: %11;"
+            " color: %11;"
+            " border-color: %11;"
+            "} "
+            "QListView::indicator::checked::disabled {"
+            " background-color: %13;"
+            " color: %13;"
+            " border-color: %13;"
+            "} "
             "QListView .QWidget {"
             " background: %1;"
             "} ";
@@ -814,15 +859,20 @@ QString Builder::buildLaserMenu(const QFontMetrics& metrics) const {
             " width: %1px;"
             " max-height: %2px;"
             "} "
-            "Laser--Popup {"
+            "Laser--AbstractPopup {"
             " qproperty-viewport_margins_scroll_bar: %3;"
             "} "
-            "Laser--Popup .QWidget {"
+            "Laser--AbstractPopup .QWidget {"
             " background: %4;"
             "} "
-            "Laser--Popup QScrollBar::vertical {"
+            "Laser--AbstractPopup QScrollBar::vertical {"
             " margin: 0px 0px 0px 0px;"
             " width: %5px;"
+            "} "
+            "General--Separator {"
+            " qproperty-separator_height: %6;"
+            " qproperty-separator_color: %7;"
+            " qproperty-separator_width: %8;"
             "} ";
     
     style = style.arg(
@@ -830,8 +880,12 @@ QString Builder::buildLaserMenu(const QFontMetrics& metrics) const {
         Builder::toPixels(metrics, "1eh"),
         Builder::toPixels(metrics, this->layout_sub_spacing),
         this->lasermenu_popup,
-        Builder::toPixels(metrics, "0.5em")
+        Builder::toPixels(metrics, "0.5em"),
+        Builder::toPixels(metrics, this->layout_spacing),
+        this->listview_border,
+        this->listview_border_width
     );
+
     return(style);
 }
 

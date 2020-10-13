@@ -42,9 +42,12 @@ Controller::Controller(QWidget* parent) :
 
     // Connect internal signals and slots
     QObject::connect(widget_button, &Laser::PushButton::clicked, this, &Laser::Controller::clickedPushButton);
-    QObject::connect(widget_lineedit, &Laser::LineEdit::finished, this, &Laser::Controller::finishedLineEdit);
+    QObject::connect(this, &Laser::Controller::sendGraphState, widget_button, &Laser::PushButton::receiveGraphState);
     QObject::connect(this, &Laser::Controller::showPushButton, widget_button, &Laser::PushButton::showButton);
     QObject::connect(this, &Laser::Controller::hidePushButton, widget_button, &Laser::PushButton::hideButton);
+
+    QObject::connect(widget_lineedit, &Laser::LineEdit::finished, this, &Laser::Controller::finishedLineEdit);
+    QObject::connect(this, &Laser::Controller::sendGraphState, widget_lineedit, &Laser::LineEdit::receiveGraphState);
     QObject::connect(this, &Laser::Controller::showLineEdit, widget_lineedit, &Laser::LineEdit::showButton);
     QObject::connect(this, &Laser::Controller::hideLineEdit, widget_lineedit, &Laser::LineEdit::hideButton);
 
@@ -90,10 +93,18 @@ void Controller::receiveInstrument(const Data::Instrument& instrument){
 }
 
 /*
+Slot: receives the graph states. Extracts the lasers in the selected graph
+and sends the button update signals accordingly
+*/
+void Controller::receiveGraphState(std::vector<State::GraphState>& state){
+    emit this->sendGraphState(state);
+}
+
+/*
 Slot: receives and sends the output data
 */
-void Controller::receiveOutput(int wavelength){
-    emit this->sendOutput(wavelength);
+void Controller::receiveOutput(std::vector<Data::LaserID>& lasers){
+    emit this->sendOutput(lasers);
 }
 
 /*

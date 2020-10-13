@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.2
-** Date:       2019-03-11
+** Version:    v0.9.10
+** Date:       2020-10-13
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -37,7 +37,7 @@ Controller::Controller(QWidget* parent) :
     this->installEventFilter(this);
 
     // Receive global events
-    QObject::connect(static_cast<Application*>(QApplication::instance()), &Application::globalMouseButtonRelease, this, &Main::Controller::receiveGlobalEvent);
+    QObject::connect(static_cast<Application*>(QApplication::instance()), &Application::globalEvent, this, &Main::Controller::receiveGlobalEvent);
     
     // Connect signals and slots
     QObject::connect(this, &Main::Controller::sendGlobalEvent, controller_widget, &Central::Controller::receiveGlobalEvent);
@@ -49,7 +49,7 @@ Controller::Controller(QWidget* parent) :
     QObject::connect(controller_widget, &Central::Controller::sendCacheRequestUpdate, this, &Main::Controller::receiveCacheRequestUpdate);
     QObject::connect(controller_widget, &Central::Controller::sendCacheAdd, this, &Main::Controller::receiveCacheAdd);
     QObject::connect(controller_widget, &Central::Controller::sendCacheRemove, this, &Main::Controller::receiveCacheRemove);
-    QObject::connect(controller_widget, &Central::Controller::sendLaser, this, &Main::Controller::receiveLaser);
+    QObject::connect(controller_widget, &Central::Controller::sendLasers, this, &Main::Controller::receiveLasers);
     QObject::connect(this, &Main::Controller::sendCacheState, controller_widget, &Central::Controller::receiveCacheState);
     QObject::connect(this, &Main::Controller::sendCacheUpdate, controller_widget, &Central::Controller::receiveCacheUpdate);
 
@@ -188,8 +188,8 @@ void Controller::receiveCacheRemove(std::vector<Data::FluorophoreID>& flourophor
 /*
 Slot: forwards the laser event
 */
-void Controller::receiveLaser(int wavelenght){
-    emit this->sendLaser(wavelenght);
+void Controller::receiveLasers(std::vector<Data::LaserID>& lasers){
+    emit this->sendLasers(lasers);
 }
 
 /*

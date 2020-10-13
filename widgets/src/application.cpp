@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.8
-** Date:       2020-08-05
+** Version:    v0.9.10
+** Date:       2020-10-13
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -19,7 +19,7 @@ Application::Application(int &argc, char **argv) :
 {
     this->setOrganizationName("AJZw");
     this->setApplicationName("Fluor");
-    this->setApplicationVersion("v0.9.9");
+    this->setApplicationVersion("v0.9.10");
 
     this->installEventFilter(this);
 
@@ -53,12 +53,15 @@ eventFilter
 */
 bool Application::eventFilter(QObject* obj, QEvent* event){
     switch(event->type()){
+    case QEvent::MouseButtonPress:
+    case QEvent::MouseButtonDblClick:
+    case QEvent::MouseMove:
     case QEvent::MouseButtonRelease:{
         // The object name depends on the QMainWindow widget name
         // So if that is changed, the object name changes!
         // If not used multiple events will be send upon each click
         if(obj->objectName() == "Main::ControllerClassWindow"){
-            emit this->globalMouseButtonRelease(event);
+            emit this->globalEvent(event);
         }
         return false;
     }

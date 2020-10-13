@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.2
-** Date:       2019-04-07
+** Version:    v0.9.10
+** Date:       2020-10-13
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -38,6 +38,7 @@
 #include <QStringList>
 #include <QPaintEvent>
 #include "data_instruments.h"
+#include "state_gui.h"
 
 namespace Laser {
 
@@ -58,7 +59,9 @@ class Controller : public QWidget{
         void receiveGlobalEvent(QEvent* event);
         void receiveGlobalSize(const QWidget* widget=nullptr);
         void receiveInstrument(const Data::Instrument& instrument);
-        void receiveOutput(int output);
+        void receiveGraphState(std::vector<State::GraphState>& state);
+
+        void receiveOutput(std::vector<Data::LaserID>& lasers);
 
     private slots:
         void clickedPushButton(bool checked);
@@ -68,7 +71,9 @@ class Controller : public QWidget{
         void sendGlobalEvent(QEvent* event);
         void sendGlobalSize(const QWidget* widget=nullptr);
         void sendInstrument(const Data::Instrument& instrument);
-        void sendOutput(int output);
+        void sendGraphState(std::vector<State::GraphState>& lasers);
+
+        void sendOutput(std::vector<Data::LaserID>& lasers);
 
         void showPushButton();
         void hidePushButton();

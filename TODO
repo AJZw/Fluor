@@ -19,15 +19,11 @@ CACHE:
 
 LASER & FLUOR:
     Upon DPI change the rowSizeHint lags behind one paint(), which can cause imperfect popup size. Not sure you can work your way around this one.
-
-    If selected plot with laser -> see if entree in QModel, if so -> select
-    Laser add -> should be a vector of wavelengths (to unify the system with colinear laser setups)
-    Colinear lasers popup
+    Maybe by manually reapplying the delegate on the item (see source QStandardItem::sizeHint / paint)
 
 GRAPH:
     Save graph properties and reload upon opening -> for now disabled cause it breaks the BarLayout
     'black' axes face_color option allow for white out of visible spectrum plotting
-    Selection in Plot -> see statistics of each plot
 
 MAC:
     TEST QSettings settings on macintosh, does it follow the QApp defined names

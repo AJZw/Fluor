@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.7
-** Date:       2020-01-17
+** Version:    v0.9.10
+** Date:       2020-10-13
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -94,9 +94,8 @@ class Program : public QObject {
 
     public slots:
         void receiveToolbarState(Bar::ButtonType type, bool active, bool enable);
-        
-        void receiveLaser(double wavelength);
-        void receiveLasers(std::vector<double>& wavelength);
+
+        void receiveLasers(std::vector<Data::LaserID>& lasers);
         
         void receiveCacheAdd(std::vector<Data::FluorophoreID>& fluorophores);
         void receiveCacheRemove(std::vector<Data::FluorophoreID>& fluorophores);

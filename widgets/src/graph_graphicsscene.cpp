@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.7
-** Date:       2020-02-02
+** Version:    v0.9.10
+** Date:       2020-10-13
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -13,6 +13,7 @@
 #include <QGraphicsRectItem>
 #include <QGraphicsItem>
 #include <QPointF>
+#include <QMouseEvent>
 
 namespace Graph {
 
@@ -374,11 +375,6 @@ void GraphicsScene::mousePressEvent(QGraphicsSceneMouseEvent* event) {
 
     if(this->plot_rect.local().contains(event->scenePos()) || (this->settings.enable_colorbar && this->item_x_colorbar->contains(event->scenePos()))){
         this->setPressed(true);
-        if(this->isSelected()){
-            emit this->plotSelected(false);
-        }else{
-            emit this->plotSelected(true);
-        }
     }
 }
 
@@ -392,15 +388,6 @@ void GraphicsScene::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event) {
     }
 
     this->selectSpectrum(event->scenePos(), this->scroll_count);
-
-    if(this->plot_rect.local().contains(event->scenePos()) || (this->settings.enable_colorbar && this->item_x_colorbar->contains(event->scenePos()))){
-        this->setPressed(true);
-        if(this->isSelected()){
-            emit this->plotSelected(false);
-        }else{
-            emit this->plotSelected(true);
-        }
-    }
 }
 
 /*
@@ -426,6 +413,7 @@ void GraphicsScene::mouseMoveEvent(QGraphicsSceneMouseEvent* event) {
         this->is_hover = false;
         this->item_outline->setHover(false);
         if(this->settings.enable_colorbar){this->item_x_colorbar->setHover(false);}
+
     }
 }
 
@@ -439,6 +427,28 @@ void GraphicsScene::mouseReleaseEvent(QGraphicsSceneMouseEvent* event) {
     this->scroll_count = 0;
     emit this->spectrumSelected();
     this->setPressed(false);
+}
+
+/*
+Implements the global mouse release event. Selects the plot
+    :param event: the mouse press event
+*/
+void GraphicsScene::globalMouseReleaseEvent(QGraphicsSceneMouseEvent* event) {
+    if(event->button() != Qt::LeftButton){
+        return;
+    }
+
+    if(this->plot_rect.local().contains(event->buttonDownScenePos(Qt::LeftButton)) || (this->settings.enable_colorbar && this->item_x_colorbar->contains(event->buttonDownScenePos(Qt::LeftButton)))){
+        if(this->plot_rect.local().contains(event->scenePos()) || (this->settings.enable_colorbar && this->item_x_colorbar->contains(event->scenePos()))){
+            if(this->isSelected()){
+                //this->setPressed(false);
+                emit this->plotSelected(false);
+            }else{
+                //this->setPressed(true);
+                emit this->plotSelected(true);
+            }
+        }
+    }
 }
 
 /*
