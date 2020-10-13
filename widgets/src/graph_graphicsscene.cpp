@@ -313,6 +313,8 @@ Synchronizes the detectors of the laserline to the graph
 */
 void GraphicsScene::syncFilters(const std::vector<Data::Filter>& filters){
     this->item_filters->syncFilters(filters);
+    // Force redrawing of the filters
+    this->update(this->item_filters->boundingRect());
 }
 
 /*

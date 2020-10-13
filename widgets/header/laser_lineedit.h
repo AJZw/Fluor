@@ -80,6 +80,9 @@ class AbstractPopup : public QListView {
         QRect max_size;
 
     protected:
+        bool ignore_next_mouse_release = false;
+
+    protected:
         bool eventFilter(QObject* obj, QEvent* event);
         virtual void buildModel() = 0;
         virtual void buildModel(const Data::Instrument& instrument) = 0;
@@ -87,6 +90,7 @@ class AbstractPopup : public QListView {
     signals:
         void dblClicked(const QModelIndex& index);
         void highlighted(const QModelIndex& index);
+        void selected(const QModelIndex& index);
 
     private slots:
         void hidingScrollBar();
@@ -110,9 +114,6 @@ class LaserLinePopup : public AbstractPopup {
         LaserLinePopup(LaserLinePopup&&) = delete;
         LaserLinePopup& operator=(LaserLinePopup&&) = delete;
         ~LaserLinePopup() = default;
-
-    private:
-        bool ignore_next_mouse_release = false;
 
     protected:
         bool eventFilter(QObject* obj, QEvent* event);
@@ -198,6 +199,7 @@ class LineEdit : public QLineEdit {
 
     private slots:
         void reset();
+        void updatePopupSelected(const QModelIndex& index);
         void updatePopupActivated(const QModelIndex& index);
         void updatePopupDblClicked(const QModelIndex& index);
 };
