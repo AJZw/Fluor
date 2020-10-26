@@ -1,8 +1,8 @@
 /**** General **************************************************************
-** Version:    v0.9.1
-** Date:       2018-12-08
+** Version:    v0.9.11
+** Date:       2020-10-27
 ** Author:     AJ Zwijnenburg
-** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
+** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
 ***************************************************************************/
 
@@ -21,7 +21,7 @@ Constructor - Factory that checks path validity upon construction and returns QS
 Factory::Factory() :
     file_settings("data/settings.ini"),
     file_styles("data/styles.ini"),
-    file_instruments("data/instruments.ini"),
+    file_instruments("data/instruments.json"),
     file_fluorophores("data/fluorophores.ini"),
     path_exe(QApplication::instance()->applicationDirPath()),
     valid_settings(false), valid_defaults(false), valid_styles(false),
@@ -98,7 +98,7 @@ Factory::Factory(
         this->error_fatal = true;
     }
     if(!this->valid_styles || !this->valid_instruments || !this->valid_fluorophores){
-        qWarning() << "Data::Factory::Factory(): cannot find styles.ini / cytometers.ini / fluorophores.ini";
+        qWarning() << "Data::Factory::Factory(): cannot find styles.ini / instruments.json / fluorophores.ini";
         this->error_warning = true;
     }
 }
@@ -156,12 +156,12 @@ void Factory::execMessages() const {
             message.append("Styles data could not be found.\n");
         }
         if(!this->valid_instruments){
-            message.append("Cytometers data could not be found.\n");
+            message.append("Instruments data could not be found.\n");
         }
         if(!this->valid_fluorophores){
             message.append("Fluorophores data could not be found.\n");
         }
-        message.append("\nSpectral viewer will now terminate.");
+        message.append("\nFluor will now terminate.");
         Data::Error(message).exec();
     }else if(this->error_warning){
         QString message = "";
@@ -169,12 +169,12 @@ void Factory::execMessages() const {
             message.append("Styles data could not be found.\n");
         }
         if(!this->valid_instruments){
-            message.append("Cytometers data could not be found.\n");
+            message.append("Instruments data could not be found.\n");
         }
         if(!this->valid_fluorophores){
             message.append("Fluorophores data could not be found.\n");
         }
-        message.append("\nSpectral viewer will continue in limited mode.");
+        message.append("\nFluor will continue in limited mode.");
         Data::Warning(message).exec();
     }
 }
@@ -262,14 +262,7 @@ std::unique_ptr<QSettings> Factory::get(const Factory::type type) const {
         break;
     }
     case Factory::Instruments:{
-        if(this->valid_instruments){
-            if(!Factory::exists(this->path_instruments)){
-                qFatal("Data::Factory::get(): instruments data file does not exist anymore");
-            }
-            return std::make_unique<QSettings>(this->path_instruments, QSettings::IniFormat);
-        }else{
-            qFatal("Data::Factory::get(): requested invalid data source");
-        }
+        qFatal("Data::Factory::get(): invalid for instruments data type, use get_json()");
         break;
     }
     case Factory::Fluorophores:{
@@ -286,7 +279,47 @@ std::unique_ptr<QSettings> Factory::get(const Factory::type type) const {
     default:
         qFatal("Data::Factory::get(): unknown settings object, cannot return a QSetting");
     }
-    return(std::make_unique<QSettings>());
+    return std::make_unique<QSettings>();
+}
+
+/*
+Builds the QJSONDocument as specified by the parameter.
+This function (again) checks whether the file exists before opening it. Because in the timespan
+between factory construction and the get call the file could have been removed.
+    :param settings: a enum specifying the settings type
+    :returns: a QJsonDocument object
+*/
+QJsonDocument Factory::get_json(const Factory::type type) const {
+    switch(type){
+    case Factory::Settings:
+    case Factory::Defaults:
+    case Factory::Fluorophores:
+    case Factory::Styles:{
+            qFatal("Data::Factory::get_json(): invalid for settings/defaults/styles data type, use get()");
+        break;
+        }
+    case Factory::Instruments:{
+        if(this->valid_instruments){
+            if(!Factory::exists(this->path_instruments)){
+                qFatal("Data::Factory::get_json(): instruments data file does not exist anymore");
+            }
+
+            QFile file(this->path_instruments);
+            if(!file.open(QIODevice::ReadOnly)){
+                qWarning("Data::Factory::get_json(): couldnt open instruments.json");
+                return QJsonDocument::fromVariant(QVariant());
+            }
+
+            return QJsonDocument::fromJson(file.readAll());
+        }else{
+            qFatal("Data::Factory::get(): requested invalid data source");
+        }
+        break;
+    }
+    default:
+        qFatal("Data::Factory::get(): unknown type requested, cannot return a QSetting");
+    }
+    return QJsonDocument::fromVariant(QVariant());
 }
 
 /*
@@ -302,6 +335,8 @@ bool Factory::exists(const QString& path_file){
 QMessageBox for showing a standard fatal error message
 */
 Error::Error(){
+    // Set minimum size to prevent a setGeometry error
+    this->setMinimumSize(200, 200);
     this->setText("Spectral Viewer encountered a fatal error");
     this->setInformativeText("Spectral Viewer will now close.");
     this->setStandardButtons(QMessageBox::Ok);
@@ -314,6 +349,7 @@ QMessageBox for showing a customized fatal error message
     :param message: information message to show
 */
 Error::Error(const QString& message){
+    this->setMinimumSize(200, 200);
     this->setText("Spectral Viewer encountered a fatal error.");
     this->setInformativeText(message);
     this->setStandardButtons(QMessageBox::Ok);
@@ -325,6 +361,7 @@ Error::Error(const QString& message){
 QMessageBox for showing a standard warning error message
 */
 Warning::Warning(){
+    this->setMinimumSize(200, 200);
     this->setText("Spectral Viewer encountered a problem.");
     this->setInformativeText("Databases are not found. Data may be missing.");
     this->setStandardButtons(QMessageBox::Ok);
@@ -337,6 +374,8 @@ QMessageBox for showing a customized warning error message
     :param message: information message to show
 */
 Warning::Warning(const QString& message){
+    // Set minimum size to prevent a setGeometry error
+    this->setMinimumSize(200, 200);
     this->setText("Spectral Viewer encountered a problem.");
     this->setInformativeText(message);
     this->setStandardButtons(QMessageBox::Ok);

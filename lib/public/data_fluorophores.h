@@ -1,8 +1,8 @@
 /**** General **************************************************************
-** Version:    v0.9.10
-** Date:       2020-10-13
+** Version:    v0.9.11
+** Date:       2020-10-27
 ** Author:     AJ Zwijnenburg
-** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
+** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
 ***************************************************************************/
 
@@ -65,7 +65,7 @@ struct DATALIB_EXPORT FluorophoreID {
     FluorophoreID& operator=(FluorophoreID&&) = default;
     ~FluorophoreID() = default;
 
-    friend QDebug operator<<(QDebug stream, const FluorophoreID& object){return stream << "{" << object.id << ":" << object.name << ":" << object.order << "}";};
+    friend QDebug operator<<(QDebug stream, const FluorophoreID& object){return stream << "{" << object.id << ":" << object.name << "}";};
     bool operator<(const FluorophoreID& other) const {return this->id < other.id;};
     bool operator>(const FluorophoreID& other) const {return this->id > other.id;};
     bool operator<=(const FluorophoreID& other) const {return this->id <= other.id;};

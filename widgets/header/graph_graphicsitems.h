@@ -1,8 +1,8 @@
 /**** General **************************************************************
-** Version:    v0.9.3
-** Date:       2019-04-23
+** Version:    v0.9.11
+** Date:       2020-10-27
 ** Author:     AJ Zwijnenburg
-** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
+** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
 ***************************************************************************/
 
@@ -586,7 +586,7 @@ class Filter : public QGraphicsItem {
         QLineF item_right;
         QPolygonF item_top;
 
-        QRectF detector_space;
+        QRectF filter_space;
 
         BevelShape bevel_left = BevelShape::Square;
         BevelShape bevel_right = BevelShape::Round;

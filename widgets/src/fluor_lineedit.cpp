@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.10
-** Date:       2020-10-13
+** Version:    v0.9.11
+** Date:       2020-10-27
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -802,12 +802,7 @@ void LineEdit::buildOutput() {
     // Before emitting list, check if it contains anything, if not do not emit
     if(output.size() != 0){
         { // Scoping to fire the debug message before the signal gets emitted
-        QDebug message = qDebug();
-        message << "Fluor::LineEdit: emits output:";
-
-        for(Data::FluorophoreID id : output){
-            message << id;
-        }
+        qDebug() << "Fluor::LineEdit: emits output:" << output;
         }
         emit this->output(output);
     }

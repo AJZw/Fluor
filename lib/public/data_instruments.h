@@ -1,8 +1,8 @@
 /**** General **************************************************************
-** Version:    v0.9.10
-** Date:       2020-10-13
+** Version:    v0.9.11
+** Date:       2020-10-27
 ** Author:     AJ Zwijnenburg
-** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
+** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
 ***************************************************************************/
 
@@ -237,9 +237,7 @@ class DATALIB_EXPORT InstrumentReader {
         ~InstrumentReader() = default;
 
     private:
-        bool data_loaded;
-        bool data_valid;
-
+        QJsonDocument instrument_data;
         std::vector<InstrumentID> instrument_ids;
 
     public:
@@ -247,7 +245,7 @@ class DATALIB_EXPORT InstrumentReader {
         void unload();
         bool isValid() const;
 
-        Instrument getInstrument(const Data::Factory& factory, const QString& id) const;
+        Instrument getInstrument(const QString& id) const;
 };
 
 } // Data namespace

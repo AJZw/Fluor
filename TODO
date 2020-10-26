@@ -9,6 +9,7 @@ GENERAL:
     A way to load the view
     A way to export the plots
     Sometimes (exp shift+windows_key) moves the window, this should close all open drop-down menu's.
+    Make the backup style more user-interactable (hover/click borders)
 
 DATA:
     Implement json parser for new fluorophore spectra data structure

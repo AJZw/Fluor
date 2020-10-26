@@ -2,7 +2,7 @@
 ** Version:    v0.9.10
 ** Date:       2020-10-13
 ** Author:     AJ Zwijnenburg
-** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
+** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
 ***************************************************************************/
 
@@ -153,8 +153,7 @@ Getter: returns all style names from the settings file
     :returns: vector of style_id(s)
 */
 std::vector<QString> Builder::getStyleIDs(const Data::Factory& data) const {
-    std::unique_ptr<QSettings> style;
-    style = data.get(Data::Factory::Styles);
+    std::unique_ptr<QSettings> style = data.get(Data::Factory::Styles);
     
     QStringList style_groups;
     style_groups = style->childGroups();
@@ -168,8 +167,7 @@ Loads attributes from settings file
     :param style_id: the id of the style to load
 */
 void Builder::loadStyle(const Data::Factory& data, const QString& style_id){
-    std::unique_ptr<QSettings> style;
-    style = data.get(Data::Factory::Styles);
+    std::unique_ptr<QSettings> style = data.get(Data::Factory::Styles);
 
     QStringList style_groups;
     style_groups = style->childGroups();
@@ -300,7 +298,7 @@ void Builder::loadStyle(const Data::Factory& data, const QString& style_id){
 Combines all individual stylesheet sections into this->styleSheet(). Uses the default font (non DPI scaled)
 */
 void Builder::buildStyleSheet(){
-    QFontMetrics metrics = QFontMetrics(qApp->font());
+    QFontMetrics metrics = QFontMetrics(static_cast<QApplication*>(QCoreApplication::instance())->font());
 
     this->buildStyleSheet(metrics);
 }

@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.10
-** Date:       2020-10-13
+** Version:    v0.9.11
+** Date:       2020-10-27
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -149,7 +149,7 @@ std::size_t GUI::graphCount() const {
 Adds a graph to the graph state. (If the max size allows for it)
 */
 void GUI::addGraph(){
-    if(this->graphs_state.size() + 1 >= this->graph_count_max){
+    if(this->graphs_state.size() >= this->graph_count_max){
         return;
     }
     this->graphs_state.push_back(State::GraphState(this->active_laser, this->active_filter));

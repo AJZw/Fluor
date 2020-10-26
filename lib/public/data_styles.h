@@ -1,6 +1,6 @@
 /**** General **************************************************************
 ** Version:    v0.9.5
-** Date:       2019-07-30
+** Date:       2019-11-05
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3

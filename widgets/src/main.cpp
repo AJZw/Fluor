@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.2
-** Date:       2018-12-08
+** Version:    v0.9.11
+** Date:       2020-10-27
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -33,6 +33,8 @@ int main(int argc, char **argv)
         FACTORY.execMessages();
         APP.quit();
         return 1;
+    }else if(FACTORY.isWarning()){
+        FACTORY.execMessages();
     }
 
     State::Program STATE(FACTORY);

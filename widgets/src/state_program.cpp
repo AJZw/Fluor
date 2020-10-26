@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.10
-** Date:       2020-10-13
+** Version:    v0.9.11
+** Date:       2020-10-27
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -191,7 +191,7 @@ void Program::loadInstrument(const QString& instrument_id){
     if(instrument_id.isEmpty()){
         this->instrument = Data::Instrument();
     }else{
-        this->instrument = this->data_instruments.getInstrument(this->factory, instrument_id);
+        this->instrument = this->data_instruments.getInstrument(instrument_id);
     }
 
     // Synchronize the toolbar buttons to the state of the instrument

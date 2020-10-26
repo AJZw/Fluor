@@ -1,8 +1,8 @@
 /**** General **************************************************************
-** Version:    v0.9.6
-** Date:       2020-01-04
+** Version:    v0.9.11
+** Date:       2020-10-27
 ** Author:     AJ Zwijnenburg
-** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
+** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
 ***************************************************************************/
 
@@ -11,7 +11,8 @@
 #include <QDebug>
 
 #include <memory>
-
+#include <QJsonObject>
+#include <QJsonArray>
 
 namespace Data {
 
@@ -355,8 +356,8 @@ std::pair<const Data::LaserLine*, const Data::Laser*> Instrument::findLaser(doub
 Constructor: Construct the Cytometers data type
 */
 InstrumentReader::InstrumentReader() :
-    data_loaded(false),
-    data_valid(true)
+    instrument_data(),
+    instrument_ids()
 {}
 
 /*
@@ -366,26 +367,23 @@ Note: do not call this if Data::Factory::isValid(Factory::Instruments) is invali
 */
 void InstrumentReader::load(const Data::Factory& factory){
     // Retrieve QSetting
-    std::unique_ptr<QSettings> data = factory.get(Data::Factory::Instruments);
+    this->instrument_data = factory.get_json(Data::Factory::Instruments);
+
+    // Clear ids just in case load is called sequentially without unloading first
+    this->instrument_ids.clear();
+
+    if(!this->isValid()){
+        return;
+    }
 
     // Reserve the necessary vector size
-    std::size_t data_size = static_cast<std::size_t>(data->allKeys().size());
+    QJsonObject data = this->instrument_data.object();
 
+    std::size_t data_size = static_cast<std::size_t>(data.length());
     this->instrument_ids.reserve(data_size);
-
-    for(const QString &group : data->childGroups()){
-        data->beginGroup(group);
-
-        QString group_name = data->value("name", QString()).toString();
-
-        // If instrument name was not defined, use the id as alternative name
-        if(group_name.isNull()){
-            group_name = group;
-        }
-        
-        this->instrument_ids.push_back(InstrumentID(group, group_name));
-
-        data->endGroup();
+    for(const QString &key : data.keys()){
+        InstrumentID id(key, data[key].toObject()["name"].toString(key));
+        this->instrument_ids.push_back(id);
     }
 
     // Sort instruments_ids based on (case insensitive) alphabetical order of the name
@@ -394,114 +392,91 @@ void InstrumentReader::load(const Data::Factory& factory){
         this->instrument_ids.end(), 
         [](const InstrumentID& a, const InstrumentID& b){return a.name.toLower() < b.name.toLower();}
     );
-
-    // Sets the loaded flag
-    data_loaded = true;
 }
 
 /*
 Retreives the specified instrument from the data file
     :param data: the DataFactory which builds a QSettings object containing the instrument data
 */
-Instrument InstrumentReader::getInstrument(const Data::Factory& factory, const QString& id) const {
-    // Retrieve QSetting
-    std::unique_ptr<QSettings> data = factory.get(Data::Factory::Instruments);
+Instrument InstrumentReader::getInstrument(const QString& id) const {
+    // Retrieve data
+    QJsonValueRef data_ref = this->instrument_data.object()[id];
 
-    // Loads the requested group
-    data->beginGroup(id);
+    if(data_ref.type() == QJsonValue::Type::Null || data_ref.type() == QJsonValue::Type::Undefined){
+        qWarning() << "InstrumentReader::getInstrument: Data::Instrument object of id" << id << "could not be found.";
+        return Instrument();
+    }
 
-    // Retreive data for Instrument construction
-    std::size_t size = static_cast<std::size_t>(data->value("laserline_count", 0).toInt());
-    QString name = data->value("name","").toString();
-    Instrument machine(id, name, size);
-  
-    // Construct a QString to hold all keys
-    // Reserve enough memory to fit all expected text within instruments.ini
-    QString key = QString();
-    key.reserve(35);
+    QJsonObject data = data_ref.toObject();
+    QString name = data["name"].toString(id);
+    QJsonArray laserlines = data["laserlines"].toArray();
 
-    // Retreive the optics layout
-    std::vector<LaserLine>& optics = machine.setOptics();
+    // Construct instrument and receive reference to internal laserline storage
+    Instrument instrument(id, name, static_cast<std::size_t>(laserlines.size()));
+    std::vector<LaserLine>& optics = instrument.setOptics();
 
-    // Load each laserline
-    for(std::size_t laserline=0; laserline<optics.capacity(); ++laserline){
-        QString laserline_string = QString::number(laserline);
+    for(int i=0; i<laserlines.size(); ++i){
+        QJsonObject data_laserline = laserlines[i].toObject();
+        QJsonArray data_lasers = data_laserline["lasers"].toArray();
+        QJsonArray data_filters = data_laserline["filters"].toArray();
 
-        // Acquire the lasers_count
-        key.clear();
-        key.append("laserline_").append(laserline_string).append("_laser_count");
+        optics.push_back(LaserLine(
+            static_cast<std::size_t>(data_lasers.size()),
+            static_cast<std::size_t>(data_filters.size())
+        ));
 
-        std::size_t size_lasers = static_cast<std::size_t>(data->value(key, 0).toInt());
-
-        // Acquire the filter_count
-        key.clear();
-        key.append("laserline_").append(laserline_string).append("_filter_count");
-
-        std::size_t size_filters = static_cast<std::size_t>(data->value(key, 0).toInt());
-
-        optics.push_back(LaserLine(size_lasers, size_filters));
-
-        // Now acquire the laser data
-        for(std::size_t laser=0; laser<size_lasers; ++laser){
-            QString laser_string = QString::number(laser);
-            key.clear();
-            key.append("laserline_").append(laserline_string).append("_laser_").append(laser_string).append("_name");
-            QString name = data->value(key, "").toString();
-
-            key.clear();
-            key.append("laserline_").append(laserline_string).append("_laser_").append(laser_string).append("_wavelength");
-            double wavelength = data->value(key, 0.0).toDouble();
-
-            optics[laserline].lasers().push_back(Laser(wavelength, name));
+        for(int j=0; j<data_lasers.size(); ++j){
+            QJsonObject data_laser = data_lasers[j].toObject();
+            optics[static_cast<std::size_t>(i)].lasers().push_back(
+                Laser(data_laser["wavelength"].toDouble(0.0), data_laser["name"].toString(""))
+            );
         }
-        
-        // Now acquire the filter data
-        for(std::size_t filter=0; filter<size_filters; ++filter){
-            QString filter_string = QString::number(filter);
-            key.clear();
-            key.append("laserline_").append(laserline_string).append("_filter_").append(filter_string).append("_name");
-            QString name = data->value(key, "").toString();
+        for(int j=0; j<data_filters.size(); ++j){
+            QJsonObject data_filter = data_filters[j].toObject();
 
-            key.clear();
-            key.append("laserline_").append(laserline_string).append("_filter_").append(filter_string).append("_type");
-            QString type = data->value(key, "SP").toString();
-
-            key.clear();
-            key.append("laserline_").append(laserline_string).append("_filter_").append(filter_string).append("_wavelength");
-            double wavelength = data->value(key, 0.0).toDouble();
+            QString type = data_filter["type"].toString();
 
             if(type == "BP"){
-                key.clear();
-                key.append("laserline_").append(laserline_string).append("_filter_").append(filter_string).append("_fwhm");
-                double fwhm = data->value(key, 0.0).toDouble();
-
-                optics[laserline].filters().push_back(Filter(Filter::BandPass, wavelength, fwhm, name));
+                optics[static_cast<std::size_t>(i)].filters().push_back(Filter(
+                    Filter::BandPass,
+                    data_filter["wavelength"].toDouble(0.0),
+                    data_filter["fwhm"].toDouble(0.0),
+                    data_filter["name"].toString(""))
+                );
             }else if(type == "LP"){
-                optics[laserline].filters().push_back(Filter(Filter::LongPass, wavelength, 0.0, name));
+                optics[static_cast<std::size_t>(i)].filters().push_back(Filter(
+                    Filter::LongPass,
+                    data_filter["wavelength"].toDouble(0.0),
+                    0.0,
+                    data_filter["name"].toString(""))
+                );
             }else if(type == "SP"){
-                optics[laserline].filters().push_back(Filter(Filter::ShortPass, wavelength, 0.0, name));
+                optics[static_cast<std::size_t>(i)].filters().push_back(Filter(
+                    Filter::ShortPass,
+                    data_filter["wavelength"].toDouble(0.0),
+                    0.0,
+                    data_filter["name"].toString(""))
+                );
             }
         }
     }
- 
-    data->endGroup();
 
     // Check if the instrument is valid, if not, generate warning
-    if(machine.isValid()){
-        machine.sort();
+    if(instrument.isValid()){
+        instrument.sort();
     }else{
-        qWarning() << "InstrumentReader::getInstrument: Data::Instrument object of id " << id << "is invalid. Is instrument.ini complete?";
+        qWarning() << "InstrumentReader::getInstrument: Data::Instrument object of id" << id << "is invalid.";
+        return Instrument();
     }
 
-    return machine;
+    return instrument;
 }
 
 /*
 Unallocates memory of all loaded data
 */
 void InstrumentReader::unload(){
-    std::vector<InstrumentID>().swap(this->instrument_ids);
-    data_loaded = false;
+    this->instrument_data = QJsonDocument();
 }
 
 /*
@@ -509,7 +484,7 @@ Returns whether Data::InstrumentReader is valid (has loaded cytometer data)
     :returns: validity
 */
 bool InstrumentReader::isValid() const {
-    return this->data_loaded;
+    return this->instrument_data.isNull();
 }
 
 } // Data namespace

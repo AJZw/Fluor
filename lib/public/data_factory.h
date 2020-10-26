@@ -1,8 +1,8 @@
 /**** General **************************************************************
-** Version:    v0.9.1
-** Date:       2018-12-08
+** Version:    v0.9.11
+** Date:       2020-10-27
 ** Author:     AJ Zwijnenburg
-** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
+** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
 ***************************************************************************/
 
@@ -48,6 +48,7 @@
 #include <QString>
 #include <QSettings>
 #include <QMessageBox>
+#include <QJsonDocument>
 
 namespace Data {
 
@@ -75,6 +76,7 @@ class DATALIB_EXPORT Factory {
         QString getPathInstruments() const;
         QString getPathFluorophores() const;
         std::unique_ptr<QSettings> get(const Factory::type type) const;
+        QJsonDocument get_json(const Factory::type type) const;
 
     private:
         const QString file_settings;
