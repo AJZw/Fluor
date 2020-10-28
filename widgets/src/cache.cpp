@@ -1,8 +1,8 @@
 /**** General **************************************************************
-** Version:    v0.9.2
-** Date:       2019-05-21
+** Version:    v0.9.12
+** Date:       2020-10-28
 ** Author:     AJ Zwijnenburg
-** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
+** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
 ***************************************************************************/
 
@@ -258,7 +258,7 @@ Data::CacheSpectrum* Cache::getData(const QString& id, const unsigned int counte
     
     if(spectrum == this->data.end()){
         // Hash-miss so request spectrum data from HDD
-        auto insert = this->data.insert(std::pair<QString, Data::CacheSpectrum>(id, this->source_data.getCacheSpectrum(this->source_factory, id, counter)));
+        auto insert = this->data.insert(std::pair<QString, Data::CacheSpectrum>(id, this->source_data.getCacheSpectrum(id, counter)));
 
         // Set visibility to default
         insert.first->second.setVisibleExcitation(this->cache_settings.visible_excitation);

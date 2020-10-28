@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.8
-** Date:       2020-08-05
+** Version:    v0.9.12
+** Date:       2020-10-28
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -22,7 +22,7 @@ Constructor: Construct a Meta object
     :param excitation_max: excitation max wavelength 
     :param emission_max: emission max wavelength 
 */
-Meta::Meta(int excitation_max, int emission_max) :
+Meta::Meta(double excitation_max, double emission_max) :
     excitation_max(excitation_max), emission_max(emission_max)
 {}
 

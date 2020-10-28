@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.8
-** Date:       2020-08-05
+** Version:    v0.9.12
+** Date:       2020-10-28
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -10,6 +10,9 @@
 
 #include <QPolygonF>
 #include <QDebug>
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QJsonValueRef>
 
 namespace Data {
 
@@ -17,62 +20,72 @@ namespace Data {
 Constructor: Construct the fluorophore data types
 */
 FluorophoreReader::FluorophoreReader() :
-    data_loaded(false),
+    fluor_data(),
     fluor_name(),
     fluor_id(),
     fluor_names()
 {}
 
 /*
-Loads the fluorophores QSettings
-Note: do not call this if DataFactory 'fluorophores' is invalid, that causes the factory to qFatal()
-    :param data: the DataFactory to request the source data from
+Loads the fluorophores QJsonDocument
+Note: do not call this if Data::Factory::type::Fluorophores is invalid, that causes the factory to qFatal()
+    :param data: the Data::Factory to request the source data from
 */
-void FluorophoreReader::load(Data::Factory& data){
+void FluorophoreReader::load(Data::Factory& factory){
     // Retrieve QSetting
-    std::unique_ptr<QSettings> fluorophores = data.get(Data::Factory::Fluorophores);
+    this->fluor_data = factory.get_json(Data::Factory::Fluorophores);
 
-    // Get default parameters
-    bool default_enable = fluorophores->value("DEFAULT/enable", true).toBool();
+    // Clear ids just in case load is called sequentially without unloading first
+    this->fluor_id.clear();
+    this->fluor_name.clear();
+    this->fluor_names.clear();
+
+    if(!this->isValid()){
+        return;
+    }
+
+    // Reserve the necessary vector size
+    QJsonObject data = this->fluor_data.object();
 
     // Reserving memory to prevent unnessary growing
-    std::size_t data_size = static_cast<std::size_t>(fluorophores->allKeys().size());   // No sign conversion, size is always =<0 
-    std::size_t multi_size = 5; // A guess, depends on amount of alternative names, if vector/unordered_map is too small, will auto grow anyway
+    std::size_t data_size = static_cast<std::size_t>(data.length());
+    std::size_t multi_size = data_size /4; // A guess, depends on amount of alternative names, if vector/unordered_map is too small, will auto grow anyway
     
     this->fluor_id.reserve(data_size + multi_size);
     this->fluor_name.reserve(data_size + multi_size);
     this->fluor_names.reserve(multi_size);
 
     // Iterate over data file to load all data objects
-    for(const QString &group : fluorophores->childGroups()){
-        if(group == "DEFAULT"){
-            continue;
-        }
+    for(const QString &group : data.keys()){
+        QJsonObject fluorophore = data[group].toObject();
 
-        fluorophores->beginGroup(group);
-
-        if(!fluorophores->value("enable", default_enable).toBool()){
-            fluorophores->endGroup();
+        // Skip disabled fluorophores
+        if(!fluorophore["enable"].toBool(true)){
             continue;
         }
 
         // Builds list of names for menu's etc.
-        QStringList group_names{fluorophores->value("names", group).toStringList()};
-        this->fluor_name.insert(std::end(this->fluor_name), std::begin(group_names), std::end(group_names));          
-
-        // Build fluorophore name to fluorophore ID lookup map
-        for(const QString &name : group_names){
-            // Add fluorophore name corresponding fluorophore ID for lookup
-            this->fluor_id[name] = group;
-        }
-
+        QJsonArray fluorophore_names = fluorophore["names"].toArray();
+        
         // Build fluorophore names map
-        for(const QString &name : group_names){
-            // Add fluorophore name corresponding fluorophore ID for lookup
-            this->fluor_names[name] = group_names;
-        }
+        QStringList names_stringlist = QStringList();
+        names_stringlist.reserve(fluorophore_names.size());
+        
+        // Fill vectors and maps
+        for(const QJsonValueRef name_ref: fluorophore_names){
+            QString name = name_ref.toString();
+            // Add to name list
+            this->fluor_name.push_back(name);
+            // Add to id lookup
+            this->fluor_id[name] = group;
+            // Add name to alternative name lookup
+            names_stringlist.append(name);
+        }      
 
-        fluorophores->endGroup();
+        // Finally add the alternative name stringlist to the storage vector
+        for(const QJsonValueRef name : fluorophore_names){
+            this->fluor_names[name.toString()] = names_stringlist;
+        }
     }
 
     // Sort case-insensitive alphabetical order
@@ -81,19 +94,16 @@ void FluorophoreReader::load(Data::Factory& data){
         this->fluor_name.end(),
         [](const QString& left, const QString& right){return left.toLower() < right.toLower();}
     );
-    
-    // Sets the loaded flag
-    data_loaded = true;
 }
 
 /*
 Unallocates memory of all loaded data
 */
 void FluorophoreReader::unload(){
+    this->fluor_data = QJsonDocument();
     std::vector<QString>().swap(this->fluor_name);
     std::unordered_map<QString, QString>().swap(this->fluor_id);
     std::unordered_map<QString, QStringList>().swap(this->fluor_names);
-    data_loaded = false;
 }
 
 /*
@@ -101,38 +111,39 @@ Returns whether Fluorophores is valid (has loaded fluorophore data)
     :returns: validity
 */
 bool FluorophoreReader::isValid() const {
-    return this->data_loaded;
+    return !this->fluor_data.isNull();
 }
 
 /*
 Fluorophore spectrum accessor
-    :param data: the DataFactory which builds a QSettings object containing the fluorophore data
     :param id: the fluorophore id, if id is not in source data, returns valid but otherwise useless data
 */
-Data::Spectrum FluorophoreReader::getSpectrum(const Data::Factory& data, const QString& id) const {
-    // Retrieve QSetting
-    std::unique_ptr<QSettings> fluorophores = data.get(Data::Factory::Fluorophores);
+Data::Spectrum FluorophoreReader::getSpectrum(const QString& id) const {
+    // Retrieve data
+    QJsonValueRef data_ref = this->fluor_data.object()[id];
 
-    fluorophores->beginGroup(id);
+    if(data_ref.type() == QJsonValue::Type::Null || data_ref.type() == QJsonValue::Type::Undefined){
+        qWarning() << "InstrumentReader::getSpectrum: Data::Spectrum object of id" << id << "could not be found.";
+    }
+
+    QJsonObject data = data_ref.toObject();
 
     // Load data and transform to Data::Polygon's
     bool is_absorption = false;
-    QStringList excitation_wavelength = fluorophores->value("excitation_wavelength", QVariant()).toStringList();
-    QStringList excitation_intensity = fluorophores->value("excitation_intensity", QVariant()).toStringList();
+    QJsonArray excitation_wavelength = data["excitation_wavelength"].toArray();
+    QJsonArray excitation_intensity = data["excitation_intensity"].toArray();
 
     // If no excitation is available fallback to absorption
     if(excitation_wavelength.empty() || excitation_intensity.empty()){
         is_absorption = true;
-        excitation_wavelength = fluorophores->value("absorption_wavelength", "0.0,0.0").toStringList();
-        excitation_intensity = fluorophores->value("absorption_intensity", "0.0,0.0").toStringList();
+        excitation_wavelength = data["absorption_wavelength"].toArray();
+        excitation_intensity = data["absorption_intensity"].toArray();
     }
     Data::Polygon excitation = this->toPolygon(excitation_wavelength, excitation_intensity);
 
-    QStringList emission_wavelength = fluorophores->value("emission_wavelength", "0.0,0.0").toStringList();
-    QStringList emission_intensity = fluorophores->value("emission_intensity", "0.0,0.0").toStringList();
+    QJsonArray emission_wavelength = data["emission_wavelength"].toArray();
+    QJsonArray emission_intensity = data["emission_intensity"].toArray();
     Data::Polygon emission = this->toPolygon(emission_wavelength, emission_intensity);
-
-    fluorophores->endGroup();
 
     // Set linecolor, cannot use the meta-data shortcut as spectrum doesnt request this info
     emission.setColor();
@@ -143,7 +154,7 @@ Data::Spectrum FluorophoreReader::getSpectrum(const Data::Factory& data, const Q
     spectrum.setAbsorptionFlag(is_absorption);
     
     if(!spectrum.isValid()){      
-        qWarning() << "Data::FluorophoreReader::getSpectrum: Data::Spectrum object of id " << id << " is invalid. Is the Data complete?";
+        qWarning() << "Data::FluorophoreReader::getSpectrum: Data::Spectrum object of id " << id << " is invalid. Is the data file complete?";
     }
 
     return spectrum;
@@ -151,44 +162,44 @@ Data::Spectrum FluorophoreReader::getSpectrum(const Data::Factory& data, const Q
 
 /*
 Fluorophore CacheSpectrum accessor
-    :param data: the DataFactory which builds a QSettings object containing the fluorophore data
     :param id: the fluorophore id, if id is not in source data, returns valid but otherwise useless data
     :param index: the creation index
     :returns: CacheSpectrum object
 */
-Data::CacheSpectrum FluorophoreReader::getCacheSpectrum(const Data::Factory& data, const QString& id, unsigned int index) const {
-    // Retrieve QSetting
-    std::unique_ptr<QSettings> fluorophores = data.get(Data::Factory::Fluorophores);
+Data::CacheSpectrum FluorophoreReader::getCacheSpectrum(const QString& id, unsigned int index) const {
+    // Retrieve data
+    QJsonValueRef data_ref = this->fluor_data.object()[id];
 
-    fluorophores->beginGroup(id);
+    if(data_ref.type() == QJsonValue::Type::Null || data_ref.type() == QJsonValue::Type::Undefined){
+        qWarning() << "InstrumentReader::getSpectrum: Data::Spectrum object of id" << id << "could not be found.";
+    }
+
+    QJsonObject data = data_ref.toObject();
 
     // Load data and transform to Data::Polygon's
-    // Needs to do proper selection and flag setting for absorption / excitation curves - for now ignore two_photon
     bool is_absorption = false;
-    int excitation_max = fluorophores->value("excitation_max", -1).toInt();
-    QStringList excitation_wavelength = fluorophores->value("excitation_wavelength", QVariant()).toStringList();
-    QStringList excitation_intensity = fluorophores->value("excitation_intensity", QVariant()).toStringList();
+    double excitation_max = data["excitation_max"].toDouble(-1);
+    QJsonArray excitation_wavelength = data["excitation_wavelength"].toArray();
+    QJsonArray excitation_intensity = data["excitation_intensity"].toArray();
 
     // If no excitation is available fallback to absorption
     if(excitation_wavelength.empty() || excitation_intensity.empty()){
         is_absorption = true;
-        excitation_max = fluorophores->value("absorption_max", -1).toInt();
-        excitation_wavelength = fluorophores->value("absorption_wavelength", "0.0,0.0").toStringList();
-        excitation_intensity = fluorophores->value("absorption_intensity", "0.0,0.0").toStringList();
+        excitation_max = data["absorption_max"].toDouble(-1);
+        excitation_wavelength = data["absorption_wavelength"].toArray();
+        excitation_intensity = data["absorption_intensity"].toArray();
     }
     Data::Polygon excitation = this->toPolygon(excitation_wavelength, excitation_intensity);
 
-    int emission_max = fluorophores->value("emission_max", -1).toInt();
-    QStringList emission_wavelength = fluorophores->value("emission_wavelength", "0.0,0.0").toStringList();
-    QStringList emission_intensity = fluorophores->value("emission_intensity", "0.0,0.0").toStringList();
+    double emission_max = data["emission_max"].toDouble(-1);
+    QJsonArray emission_wavelength = data["emission_wavelength"].toArray();
+    QJsonArray emission_intensity = data["emission_intensity"].toArray();
     Data::Polygon emission = this->toPolygon(emission_wavelength, emission_intensity);
 
     // Get meta data
     Data::Meta meta;
     meta.excitation_max = excitation_max;
     meta.emission_max = emission_max;
-
-    fluorophores->endGroup();
 
     // Set linecolor
     if(meta.emission_max != -1){
@@ -203,7 +214,7 @@ Data::CacheSpectrum FluorophoreReader::getCacheSpectrum(const Data::Factory& dat
     spectrum.setAbsorptionFlag(is_absorption);
     
     if(!spectrum.isValid()){      
-        qWarning() << "Data::FluorophoreReader::getCacheSpectrum: DataSpectrum object of id " << id << " is invalid. Is the fluorophores.ini complete?";
+        qWarning() << "Data::FluorophoreReader::getCacheSpectrum: DataSpectrum object of id " << id << " is invalid. Is the data file complete?";
     }
     
     // Wrap in cache
@@ -257,6 +268,48 @@ Data::Polygon FluorophoreReader::toPolygon(const QStringList& list_x, const QStr
     temp_polygon.resize(list_x.size());
 
     // Get calculation temporaries
+    double x_min = list_x[0].toDouble();
+    double x_max = list_x[list_x.size() - 1].toDouble();
+
+    double y_min = 0.0;
+    double y_max = 100.0;
+
+    // Fill temp QPolygonF
+    for(int i=0; i < list_x.size(); ++i){
+        double x = list_x[i].toDouble();
+        double y = list_y[i].toDouble();
+
+        // Set QPointF values        
+        temp_polygon[i].setX(x);
+        temp_polygon[i].setY(y);
+    }
+    Data::Polygon polygon(x_min, x_max, y_min, y_max, std::move(temp_polygon));
+
+    return polygon;
+}
+
+/*
+(Static) Convers a QJsonArray into a Data::Polygon object.
+    :param list_x: the array containing the values for the x-axis
+    :param list_y: the array containing the values for the y-axis
+    :returns: a Data::Polygon object containing the curve
+*/
+Data::Polygon FluorophoreReader::toPolygon(const QJsonArray& list_x, const QJsonArray& list_y){
+    if(list_x.size() != list_y.size()){
+        qWarning() << "Fluorophores::toPolygon: x and y QJsonArray's are of unequal size, cannot be parsed, returns default Data::Polygon";
+        return Data::Polygon();
+    }
+    if(list_x.empty() || list_y.empty()){
+        qWarning() << "Fluorophores::toPolygon x and/or y QJsonArray is empty. Default Data::Polygon is returned";
+        return Data::Polygon();
+    }
+
+    // Reserve enough space, with two additional entrees, which can be used to make a properly closed polygon
+    QPolygonF temp_polygon = QPolygonF();
+    temp_polygon.reserve(list_x.size() + 2);
+    temp_polygon.resize(list_x.size());
+
+    // Get polygon range
     double x_min = list_x[0].toDouble();
     double x_max = list_x[list_x.size() - 1].toDouble();
 

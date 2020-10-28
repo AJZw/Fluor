@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.8
-** Date:       2020-08-05
+** Version:    v0.9.12
+** Date:       2020-10-28
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -60,9 +60,9 @@ namespace Data {
 class DATALIB_EXPORT Meta {
     public:
         Meta();
-        Meta(int excitation_max, int emission_max);
-        int excitation_max;
-        int emission_max;
+        Meta(double excitation_max, double emission_max);
+        double excitation_max;
+        double emission_max;
 };
 
 class DATALIB_EXPORT Polygon {

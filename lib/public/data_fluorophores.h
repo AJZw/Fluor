@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.11
-** Date:       2020-10-27
+** Version:    v0.9.12
+** Date:       2020-10-28
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -50,6 +50,7 @@
 #include <QDebug>
 #include <QString>
 #include <QStringList>
+#include <QJsonArray>
 
 namespace Data {
 
@@ -88,13 +89,13 @@ class DATALIB_EXPORT FluorophoreReader {
         ~FluorophoreReader() = default;
 
     private:
-        bool data_loaded;
+        QJsonDocument fluor_data;
         std::vector<QString> fluor_name;                        // ordered vector of fluorophore names (for input list)
         std::unordered_map<QString, QString> fluor_id;          // unordered map, each fluorophore's name corresponding fluorophore ID (for ID/spectrum lookup)
         std::unordered_map<QString, QStringList> fluor_names;   // unordered map, each fluorophore's name corresponding to all name variants (for lineedit item en/disabling) 
 
     public:
-        void load(Data::Factory& data);
+        void load(Data::Factory& factory);
         void unload();
         bool isValid() const;
 
@@ -102,11 +103,12 @@ class DATALIB_EXPORT FluorophoreReader {
         const std::unordered_map<QString, QString>& getFluorID() const;
         const std::unordered_map<QString, QStringList>& getFluorNames() const;
 
-        Data::Spectrum getSpectrum(const Data::Factory& data, const QString& id) const;
-        Data::CacheSpectrum getCacheSpectrum(const Data::Factory& data, const QString& id, unsigned int index) const;
+        Data::Spectrum getSpectrum(const QString& id) const;
+        Data::CacheSpectrum getCacheSpectrum(const QString& id, unsigned int index) const;
 
     private:
         static Data::Polygon toPolygon(const QStringList& list_x, const QStringList& list_y);
+        static Data::Polygon toPolygon(const QJsonArray& list_x, const QJsonArray& list_y);
 
         static void qDebugMap(const std::unordered_map<QString, QString>& map);
         static void qDebugMap(const std::unordered_map<QString, QStringList>& map);

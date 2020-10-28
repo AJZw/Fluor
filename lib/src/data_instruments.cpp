@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.11
-** Date:       2020-10-27
+** Version:    v0.9.12
+** Date:       2020-10-28
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -361,7 +361,7 @@ InstrumentReader::InstrumentReader() :
 {}
 
 /*
-Loads the cytometers QSettings
+Loads the cytometers QJsonDocument
 Note: do not call this if Data::Factory::isValid(Factory::Instruments) is invalid, that causes the factory to qFatal()
     :param data: the Data::Factory to request the source data from
 */
@@ -396,7 +396,7 @@ void InstrumentReader::load(const Data::Factory& factory){
 
 /*
 Retreives the specified instrument from the data file
-    :param data: the DataFactory which builds a QSettings object containing the instrument data
+    :param id: the id of the instrument whose data to retreive
 */
 Instrument InstrumentReader::getInstrument(const QString& id) const {
     // Retrieve data
@@ -484,7 +484,7 @@ Returns whether Data::InstrumentReader is valid (has loaded cytometer data)
     :returns: validity
 */
 bool InstrumentReader::isValid() const {
-    return this->instrument_data.isNull();
+    return !this->instrument_data.isNull();
 }
 
 } // Data namespace

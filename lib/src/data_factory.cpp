@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.11
-** Date:       2020-10-27
+** Version:    v0.9.12
+** Date:       2020-10-28
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -13,6 +13,8 @@
 #include <QDir>
 #include <QDebug>
 
+#include <QJsonParseError>
+
 namespace Data {
 
 /*
@@ -22,7 +24,7 @@ Factory::Factory() :
     file_settings("data/settings.ini"),
     file_styles("data/styles.ini"),
     file_instruments("data/instruments.json"),
-    file_fluorophores("data/fluorophores.ini"),
+    file_fluorophores("data/fluorophores.json"),
     path_exe(QApplication::instance()->applicationDirPath()),
     valid_settings(false), valid_defaults(false), valid_styles(false),
     valid_instruments(false), valid_fluorophores(false),
@@ -50,7 +52,7 @@ Factory::Factory() :
         this->error_fatal = true;
     }
     if(!this->valid_styles || !this->valid_instruments || !this->valid_fluorophores){
-        qWarning() << "Data::Factory::Factory(): cannot find styles.ini/cytometers.ini/fluorophores.ini";
+        qWarning() << "Data::Factory::Factory(): cannot find styles.ini/instruments.json/fluorophores.json";
         this->error_warning = true;
     }
 }
@@ -98,7 +100,7 @@ Factory::Factory(
         this->error_fatal = true;
     }
     if(!this->valid_styles || !this->valid_instruments || !this->valid_fluorophores){
-        qWarning() << "Data::Factory::Factory(): cannot find styles.ini / instruments.json / fluorophores.ini";
+        qWarning() << "Data::Factory::Factory(): cannot find styles.ini / instruments.json / fluorophores.json";
         this->error_warning = true;
     }
 }
@@ -262,22 +264,15 @@ std::unique_ptr<QSettings> Factory::get(const Factory::type type) const {
         break;
     }
     case Factory::Instruments:{
-        qFatal("Data::Factory::get(): invalid for instruments data type, use get_json()");
+        qFatal("Data::Factory::get(): invalid for instruments Factory::type, use get_json()");
         break;
     }
     case Factory::Fluorophores:{
-        if(this->valid_fluorophores){
-            if(!Factory::exists(this->path_fluorophores)){
-                qFatal("Data::Factory::get(): fluorophores data file does not exist anymore");
-            }
-            return std::make_unique<QSettings>(this->path_fluorophores, QSettings::IniFormat);
-        }else{
-            qFatal("Data::Factory::get(): requested invalid data source");
-        }
+        qFatal("Data::Factory::get(): invalid for fluorophores Factory::type, use get_json()");
         break;
     }
     default:
-        qFatal("Data::Factory::get(): unknown settings object, cannot return a QSetting");
+        qFatal("Data::Factory::get(): unknown settings object, cannot return QSetting");
     }
     return std::make_unique<QSettings>();
 }
@@ -293,11 +288,34 @@ QJsonDocument Factory::get_json(const Factory::type type) const {
     switch(type){
     case Factory::Settings:
     case Factory::Defaults:
-    case Factory::Fluorophores:
     case Factory::Styles:{
             qFatal("Data::Factory::get_json(): invalid for settings/defaults/styles data type, use get()");
         break;
         }
+    case Factory::Fluorophores:{
+        if(this->valid_fluorophores){
+            if(!Factory::exists(this->path_fluorophores)){
+                qFatal("Data::Factory::get_json(): fluorophores data file does not exist anymore");
+            }
+
+            QFile file(this->path_fluorophores);
+            if(!file.open(QIODevice::ReadOnly)){
+                qWarning("Data::Factory::get_json(): couldnt open fluorophores.json");
+                return QJsonDocument::fromVariant(QVariant());
+            }
+
+            QJsonParseError error;
+            QJsonDocument document = QJsonDocument::fromJson(file.readAll(), &error);
+            if(error.error != QJsonParseError::NoError){
+                qWarning() << "Data::Factory::get_json: invalid fluorophore.json:" << error.errorString();
+            }
+
+            return document;
+        }else{
+            qFatal("Data::Factory::get_json(): requested invalid data source");
+        }
+        break;
+    }
     case Factory::Instruments:{
         if(this->valid_instruments){
             if(!Factory::exists(this->path_instruments)){
@@ -310,21 +328,27 @@ QJsonDocument Factory::get_json(const Factory::type type) const {
                 return QJsonDocument::fromVariant(QVariant());
             }
 
-            return QJsonDocument::fromJson(file.readAll());
+            QJsonParseError error;
+            QJsonDocument document = QJsonDocument::fromJson(file.readAll(), &error);
+            if(error.error != QJsonParseError::NoError){
+                qWarning() << "Data::Factory::get_json: invalid instrument.json:" << error.errorString();
+            }
+
+            return document;
         }else{
-            qFatal("Data::Factory::get(): requested invalid data source");
+            qFatal("Data::Factory::get_json(): requested invalid data source");
         }
         break;
     }
     default:
-        qFatal("Data::Factory::get(): unknown type requested, cannot return a QSetting");
+        qFatal("Data::Factory::get_json(): unknown type requested, cannot return a valid QJsonDocument");
     }
     return QJsonDocument::fromVariant(QVariant());
 }
 
 /*
 (Static) Convenience function: checks whether file exists
-    :returns [bool]: whether file exists or not
+    :returns [bool]: whether file exists
 */
 bool Factory::exists(const QString& path_file){
     bool file_exists = QDir().exists(path_file);
