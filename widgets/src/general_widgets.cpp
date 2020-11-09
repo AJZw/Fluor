@@ -240,8 +240,8 @@ AboutWindow::AboutWindow(QWidget* parent):
     // Set text elements
     QLabel* label_title = new QLabel("Fluor - Spectral Viewer", this);
     label_title->setObjectName("h1");
-    QLabel* label_version = new QLabel(" " + q_app->applicationVersion(), this);
-    QLabel* label_date = new QLabel("2020-11-08", this);
+    QLabel* label_version = new QLabel(" " + q_app->applicationVersion() + " - Beta", this);
+    QLabel* label_date = new QLabel("2020-11-09", this);
     QLabel* label_copyright = new QLabel(" Copyright 2020 - AJ Zwijnenburg - all rights reserved", this);
     QLabel* label_qt = new QLabel(" This program uses the Qt library under the GNU Lesser General\n Public Library version 3. You can find a copy of this license at\n https://www.gnu.org/licenses/lgpl-3.0.en.html", this);
     label_qt->setObjectName("h4");
