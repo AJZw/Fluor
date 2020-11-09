@@ -1,8 +1,8 @@
 /**** General **************************************************************
-** Version:    v0.9.8
-** Date:       2020-08-05
+** Version:    v0.9.13
+** Date:       2020-11-09
 ** Author:     AJ Zwijnenburg
-** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
+** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
 ***************************************************************************/
 
@@ -61,7 +61,7 @@ Controller::Controller(QWidget* parent) :
 
     // Forwards the events to/from LineEdit
     QObject::connect(this, &Fluor::Controller::sendGlobalEvent, widget_lineedit, &Fluor::LineEdit::unfocus);
-    QObject::connect(this, &Fluor::Controller::sendData, widget_lineedit, &Fluor::LineEdit::reloadData);
+    QObject::connect(this, &Fluor::Controller::sendFluorophores, widget_lineedit, &Fluor::LineEdit::reloadData);
     QObject::connect(this, &Fluor::Controller::sendGlobalSize, widget_lineedit, &Fluor::LineEdit::reloadSize);
     QObject::connect(widget_lineedit, &Fluor::LineEdit::output, this, &Fluor::Controller::receiveCacheAdd);
     
@@ -109,8 +109,8 @@ void Controller::receiveGlobalEvent(QEvent* event){
 /*
 Slot: reload the data of the widget
 */
-void Controller::receiveData(const Data::FluorophoreReader& data){
-    emit this->sendData(data);
+void Controller::receiveFluorophores(const Data::FluorophoreReader& fluorophores){
+    emit this->sendFluorophores(fluorophores);
 }
 
 /*

@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.10
-** Date:       2020-10-13
+** Version:    v0.9.13
+** Date:       2020-11-09
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -50,9 +50,12 @@
 #define GENERAL_WIDGETS_H
 
 #include <QScrollBar>
+#include <QLabel>
 #include <QStandarditem>
 #include <QStyledItemDelegate>
 #include <QPainter>
+#include <QScreen>
+#include <QWindow>
 #include "global.h"
 
 namespace General {
@@ -69,12 +72,79 @@ class ScrollBar : public QScrollBar {
         virtual ~ScrollBar() = default;
     
     protected:
-        void hideEvent(QHideEvent* );
-        void showEvent(QShowEvent* );
+        void hideEvent(QHideEvent* event);
+        void showEvent(QShowEvent* event);
 
     signals:
         void hiding();
         void showing();
+};
+
+class StyledWidget : public QWidget {
+    Q_OBJECT
+    Q_PROPERTY(QString layout_margins READ layoutMargins WRITE setLayoutMargins)
+    Q_PROPERTY(QString layout_spacing READ layoutSpacing WRITE setLayoutSpacing)
+
+    public:
+        explicit StyledWidget(QWidget* parent=nullptr);
+        StyledWidget(const StyledWidget &obj) = delete;
+        StyledWidget& operator=(const StyledWidget &obj) = delete;
+        StyledWidget(StyledWidget&&) = delete;
+        StyledWidget& operator=(StyledWidget&&) = delete;
+        virtual ~StyledWidget() = default;
+
+    private:
+        QScreen* window_screen;
+
+    public:
+        void paintEvent(QPaintEvent* event);
+        QString layoutMargins() const;
+        void setLayoutMargins(QString layout_spacing);
+        QString layoutSpacing() const;
+        void setLayoutSpacing(QString layout_spacing);
+
+    public slots:
+        virtual void show();
+        virtual void hide();
+
+        void receiveScreenChanged(QScreen* screen);
+        void receiveDPIChanged(qreal dpi);
+
+    signals:
+        void screenChanged(QWidget* widget);
+        void screenDPIChanged(QWidget* widget);
+};
+
+class AboutIcon : public QLabel {
+    Q_OBJECT
+    Q_PROPERTY(QString scale READ iconScale WRITE setIconScale)
+
+    public:
+        explicit AboutIcon(QWidget* parent=nullptr);
+        AboutIcon(const AboutIcon &obj) = delete;
+        AboutIcon& operator=(const AboutIcon &obj) = delete;
+        AboutIcon(AboutIcon&&) = delete;
+        AboutIcon& operator=(AboutIcon&&) = delete;
+        virtual ~AboutIcon() = default;
+
+    private:
+        QSize sizeHint() const;
+        QSize minimumSizeHint() const;
+
+        QString iconScale() const;
+        void setIconScale(QString scale);
+};
+
+class AboutWindow : public StyledWidget {
+    Q_OBJECT
+
+    public:
+        explicit AboutWindow(QWidget* parent=nullptr);
+        AboutWindow(const AboutWindow &obj) = delete;
+        AboutWindow& operator=(const AboutWindow &obj) = delete;
+        AboutWindow(AboutWindow&&) = delete;
+        AboutWindow& operator=(AboutWindow&&) = delete;
+        virtual ~AboutWindow() = default;
 };
 
 extern const int CustomItemTypeRole;

@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.10
-** Date:       2020-10-13
+** Version:    v0.9.13
+** Date:       2020-11-09
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -16,12 +16,12 @@
 
 namespace Data {
 
-namespace Style {
-
 /* 
 (Constructor) Builds a CSS stylesheet (from QSettings)
 */
-Builder::Builder() :
+StyleBuilder::StyleBuilder() :
+    style_id(QString()),
+
     stylesheet(""),
     
     icons("light"),
@@ -35,11 +35,8 @@ Builder::Builder() :
     label_background("#FFFFFF"),
     label_text("#000000"),
     label_text_weight("bold"),
-    label_border("#000000"),
-    label_border_width("1px"),
     label_disabled_background(this->label_background),
     label_disabled_text(this->label_text),
-    label_disabled_border(this->label_border),
 
     pushbutton_background("#FFFFFF"),
     pushbutton_text("#000000"),
@@ -140,10 +137,17 @@ Builder::Builder() :
 }
 
 /*
+Get the currently loaded style identifier. If no style is loaded, returns an empty QString
+*/
+QString StyleBuilder::id() const{
+    return this->style_id;
+}
+
+/*
 Getter: returns the QSS stylesheet
     :returns: stylesheet
 */
-QString Builder::getStyleSheet() const {
+QString StyleBuilder::getStyleSheet() const {
     return(this->stylesheet);
 }
 
@@ -152,13 +156,20 @@ Getter: returns all style names from the settings file
     :param data: a data factory
     :returns: vector of style_id(s)
 */
-std::vector<QString> Builder::getStyleIDs(const Data::Factory& data) const {
-    std::unique_ptr<QSettings> style = data.get(Data::Factory::Styles);
+std::vector<StyleID> StyleBuilder::getStyleIDs(const Data::Factory& data) const {
+    std::unique_ptr<QSettings> styles = data.get(Data::Factory::Styles);
+
+    std::vector<StyleID> style_ids{};
     
-    QStringList style_groups;
-    style_groups = style->childGroups();
+    QStringList style_groups = styles->childGroups();
+    for(const auto& style_id : style_groups){
+        styles->beginGroup(style_id);
+        QString style_name = styles->value("name", style_id).toString();
+        style_ids.push_back(StyleID(style_id, style_name));
+        styles->endGroup();
+    }
     
-    return style_groups.toVector().toStdVector();
+    return style_ids;
 }
 
 /*
@@ -166,15 +177,17 @@ Loads attributes from settings file
     :param data: a data factory
     :param style_id: the id of the style to load
 */
-void Builder::loadStyle(const Data::Factory& data, const QString& style_id){
+void StyleBuilder::loadStyle(const Data::Factory& data, const QString& style_id){
     std::unique_ptr<QSettings> style = data.get(Data::Factory::Styles);
 
     QStringList style_groups;
     style_groups = style->childGroups();
     if(!style_groups.contains(style_id)){
         qWarning() << "StyleBuilder::loadStyle: " << style_id << " group is not found within the styles data object";
+        this->style_id = QString();
         return;
     }else{
+        this->style_id = style_id;
         style->beginGroup(style_id);
     };
 
@@ -186,14 +199,11 @@ void Builder::loadStyle(const Data::Factory& data, const QString& style_id){
 
     this->background = style->value("main_background", "#FFFFFF").toString();
 
-    this->label_background = style->value("widget", "#FFFFFF").toString();
+    this->label_background = style->value("main_background", "#FFFFFF").toString();
     this->label_text = style->value("text_color", "#000000").toString();
     this->label_text_weight = style->value("text_weight", "bold").toString();
-    this->label_border = style->value("border_color", "#000000").toString();
-    this->label_border_width = style->value("border_width", "1px").toString();
-    this->label_disabled_background = style->value("widget_disabled", this->label_background).toString();
+    this->label_disabled_background = style->value("main_background", this->label_background).toString();
     this->label_disabled_text = style->value("text_color_disabled", this->label_text).toString();
-    this->label_disabled_border = style->value("border_color_disabled", this->label_border).toString();
 
     this->pushbutton_background = style->value("widget", "#FFFFFF").toString();
     this->pushbutton_text = style->value("text_color", "#000000").toString();
@@ -297,7 +307,7 @@ void Builder::loadStyle(const Data::Factory& data, const QString& style_id){
 /*
 Combines all individual stylesheet sections into this->styleSheet(). Uses the default font (non DPI scaled)
 */
-void Builder::buildStyleSheet(){
+void StyleBuilder::buildStyleSheet(){
     QFontMetrics metrics = QFontMetrics(static_cast<QApplication*>(QCoreApplication::instance())->font());
 
     this->buildStyleSheet(metrics);
@@ -308,10 +318,10 @@ Combines all individual stylesheet sections into the this->styleSheet(). Uses fo
 text-relative inputs (when necessary) into pixels
     :param metrics: dpi scaled font metrics (build a QFontMetrics using the widgets QFont, and QPaintDevice)
 */
-void Builder::buildStyleSheet(const QFontMetrics& metrics){
+void StyleBuilder::buildStyleSheet(const QFontMetrics& metrics){
     QString stylesheet = "";
     stylesheet.append(this->buildLayout(metrics));
-    stylesheet.append(this->buildLabel());
+    stylesheet.append(this->buildLabel(metrics));
     stylesheet.append(this->buildPushButton());
     stylesheet.append(this->buildLineEdit());
     stylesheet.append(this->buildListView());
@@ -322,6 +332,7 @@ void Builder::buildStyleSheet(const QFontMetrics& metrics){
     stylesheet.append(this->buildLaserMenu(metrics));
     stylesheet.append(this->buildFluorMenu(metrics));
     stylesheet.append(this->buildGraph(metrics));
+    stylesheet.append(this->buildAboutWindow(metrics));
 
     this->stylesheet = stylesheet;
 }
@@ -329,17 +340,19 @@ void Builder::buildStyleSheet(const QFontMetrics& metrics){
 /*
 Builds the stylesheet for the main/central layouts
 */
-QString Builder::buildLayout(const QFontMetrics& metrics) const {
+QString StyleBuilder::buildLayout(const QFontMetrics& metrics) const {
     QString style;
-    style = "Main--Controller {"
+    style = "Central--Controller {"
             " qproperty-layout_margins: %1;"
+            " qproperty-layout_spacing: %2;"
             "} "
-            "Central--Controller {"
+            "General--StyledWindow {"
+            " qproperty-layout_margins: %1;"
             " qproperty-layout_spacing: %2;"
             "} ";
     style = style.arg(
-        Builder::toPixels(metrics, this->layout_margins),
-        Builder::toPixels(metrics, this->layout_spacing)
+        StyleBuilder::toPixels(metrics, this->layout_margins),
+        StyleBuilder::toPixels(metrics, this->layout_spacing)
     );
     return style;
 }
@@ -348,31 +361,45 @@ QString Builder::buildLayout(const QFontMetrics& metrics) const {
 Builds the stylesheet for QLabel
     :returns: stylesheet
 */
-QString Builder::buildLabel() const {
+QString StyleBuilder::buildLabel(const QFontMetrics& metrics) const {
     QString style;
     style = "QLabel {"
-            " background-color: %1;"
-            " border-style: solid;"
-            " border-width: %2;"
-            " border-color: %3;"
-            " color: %4;"
-            " font: %5;"
+            " border-style: none;"
+            " color: %1;"
+            " font: %2;"
             " padding: 6px;"
             "} "
             "QLabel[enabled=false] {"
-            " background-color: %6;"
-            " border-color: %7;"
-            " color: %8;"
+            " color: %3;"
+            "} "
+            "QLabel#h1 {"
+            " font-size: %4px;"
+            " margin-top: %5px;"
+            " margin-bottom: %5px;"
+            " margin-left: 0;"
+            " margin-right: 0;"
+            "} "
+            "QLabel#h2 {"
+            " font-size: %6px;"
+            " margin-top: %7px;"
+            " margin-bottom: %7px;"
+            " margin-left: 0;"
+            " margin-right: 0;"
+            "} "
+            "QLabel#h3 {"
+            "} "
+            "QLabel#h4 {"
+            " font-weight: normal;"
             "} ";
     style = style.arg(
-        this->label_background,
-        this->label_border_width,
-        this->label_border, 
         this->label_text,
         this->label_text_weight,
-        this->label_disabled_background,
-        this->label_disabled_border,
-        this->label_disabled_text);
+        this->label_disabled_text,
+        StyleBuilder::toPixels(metrics, "2em"),
+        StyleBuilder::toPixels(metrics, "0.67em"),
+        StyleBuilder::toPixels(metrics, "1.5em"),
+        StyleBuilder::toPixels(metrics, "0.83em")
+    );
     return style;
 }
 
@@ -380,7 +407,7 @@ QString Builder::buildLabel() const {
 Builds the stylesheet for QPushButton
     :returns: stylesheet
 */
-QString Builder::buildPushButton() const {
+QString StyleBuilder::buildPushButton() const {
     QString style;
     style = "QPushButton {"
             " background-color: %1;"
@@ -474,7 +501,7 @@ QString Builder::buildPushButton() const {
 Builds the stylesheet for QLineEdit
     :returns: stylesheet
 */
-QString Builder::buildLineEdit() const {
+QString StyleBuilder::buildLineEdit() const {
     QString style;
     style = "QLineEdit {"
             " background-color: %1;"
@@ -552,7 +579,7 @@ QString Builder::buildLineEdit() const {
 Builds the stylesheet for QListView
     :returns: stylesheet
 */
-QString Builder::buildListView() const {
+QString StyleBuilder::buildListView() const {
     QString style;
     style = "QListView {"
             " background-color: %1;"
@@ -658,7 +685,7 @@ QString Builder::buildListView() const {
 Builds the stylesheet for QTabWidget
     :returns: stylesheet
 */
-QString Builder::buildTabWidget() const {
+QString StyleBuilder::buildTabWidget() const {
     QString style;
     style = "QTabWidget::pane {"
             " padding: 0px;"
@@ -709,7 +736,7 @@ QString Builder::buildTabWidget() const {
 Builds the stylesheet for QScrollBar
     :returns: stylesheet
 */
-QString Builder::buildScrollBar() const {
+QString StyleBuilder::buildScrollBar() const {
     QString style;
     style = "QScrollBar::vertical {"
             " background: none #000000;"
@@ -753,7 +780,7 @@ QString Builder::buildScrollBar() const {
 Builds the stylesheet for central_window
     :returns: stylesheet
 */
-QString Builder::buildCentralWindow() const {
+QString StyleBuilder::buildCentralWindow() const {
     QString style;
     style = "QMainWindow {"
             " background: %1;"
@@ -766,7 +793,7 @@ QString Builder::buildCentralWindow() const {
 Builds the stylesheet for the toolbar
     :returns: stylesheet
 */
-QString Builder::buildToolBar(const QFontMetrics& metrics) const {
+QString StyleBuilder::buildToolBar(const QFontMetrics& metrics) const {
     QString style;
     style = "Bar--Controller {"
             " qproperty-layout_spacing: %1;"
@@ -837,8 +864,8 @@ QString Builder::buildToolBar(const QFontMetrics& metrics) const {
             " min-width: 10em;"
             "} ";
     style = style.arg(
-        Builder::toPixels(metrics, this->layout_spacing),
-        Builder::toPixels(metrics, "1eh+8px"),
+        StyleBuilder::toPixels(metrics, this->layout_spacing),
+        StyleBuilder::toPixels(metrics, "1eh+8px"),
         this->icons
     );
     return(style);
@@ -848,7 +875,7 @@ QString Builder::buildToolBar(const QFontMetrics& metrics) const {
 Builds the stylesheet for laser_menu
     :returns: stylesheet
 */
-QString Builder::buildLaserMenu(const QFontMetrics& metrics) const {
+QString StyleBuilder::buildLaserMenu(const QFontMetrics& metrics) const {
     QString style;
     style = "Laser--PushButton {"
             " width: %1px;"
@@ -874,12 +901,12 @@ QString Builder::buildLaserMenu(const QFontMetrics& metrics) const {
             "} ";
     
     style = style.arg(
-        Builder::toPixels(metrics, "15em"),
-        Builder::toPixels(metrics, "1eh"),
-        Builder::toPixels(metrics, this->layout_sub_spacing),
+        StyleBuilder::toPixels(metrics, "15em"),
+        StyleBuilder::toPixels(metrics, "1eh"),
+        StyleBuilder::toPixels(metrics, this->layout_sub_spacing),
         this->lasermenu_popup,
-        Builder::toPixels(metrics, "0.5em"),
-        Builder::toPixels(metrics, this->layout_spacing),
+        StyleBuilder::toPixels(metrics, "0.5em"),
+        StyleBuilder::toPixels(metrics, this->layout_spacing),
         this->listview_border,
         this->listview_border_width
     );
@@ -891,7 +918,7 @@ QString Builder::buildLaserMenu(const QFontMetrics& metrics) const {
 Builds the stylesheet for the fluor_menu
     :returns: stylesheet
 */
-QString Builder::buildFluorMenu(const QFontMetrics& metrics) const {
+QString StyleBuilder::buildFluorMenu(const QFontMetrics& metrics) const {
     QString style;
     style = "Fluor--Controller {"
             " qproperty-layout_spacing: %1;"
@@ -977,9 +1004,9 @@ QString Builder::buildFluorMenu(const QFontMetrics& metrics) const {
             "} ";
 
     style = style.arg(
-        Builder::toPixels(metrics, this->layout_spacing),
-        Builder::toPixels(metrics, this->layout_sub_spacing),
-        Builder::toPixels(metrics, "23em"),
+        StyleBuilder::toPixels(metrics, this->layout_spacing),
+        StyleBuilder::toPixels(metrics, this->layout_sub_spacing),
+        StyleBuilder::toPixels(metrics, "23em"),
         this->pushbutton_hover_background,
         this->pushbutton_hover_border,
         this->pushbutton_hover_text,
@@ -999,10 +1026,10 @@ QString Builder::buildFluorMenu(const QFontMetrics& metrics) const {
         this->fluormenu_remove_press
     );
     style = style.arg(
-        Builder::toPixels(metrics, "1eh"),
+        StyleBuilder::toPixels(metrics, "1eh"),
         this->fluormenu_popup,
         this->fluormenu_background,
-        Builder::toPixels(metrics, "0.5em")
+        StyleBuilder::toPixels(metrics, "0.5em")
     );
     return(style);
 }
@@ -1011,7 +1038,7 @@ QString Builder::buildFluorMenu(const QFontMetrics& metrics) const {
 Builds the stylesheet for graph
     :returns: stylesheet
 */
-QString Builder::buildGraph(const QFontMetrics& metrics) const {
+QString StyleBuilder::buildGraph(const QFontMetrics& metrics) const {
     QString style;
     style = "Graph--ScrollController {"
             " qproperty-layout_spacing: %1;"
@@ -1048,10 +1075,10 @@ QString Builder::buildGraph(const QFontMetrics& metrics) const {
             " qproperty-colorbar_height: %24;"
             "} ";
     style = style.arg(
-        Builder::toPixels(metrics, this->layout_spacing),
-        Builder::toPixels(metrics, this->layout_sub_spacing),
+        StyleBuilder::toPixels(metrics, this->layout_spacing),
+        StyleBuilder::toPixels(metrics, this->layout_sub_spacing),
         this->background,
-        Builder::toPixels(metrics, "0.5em"),
+        StyleBuilder::toPixels(metrics, "0.5em"),
         this->graph_scene,
         this->graph_background,
         this->graph_background_hover,
@@ -1065,17 +1092,37 @@ QString Builder::buildGraph(const QFontMetrics& metrics) const {
         this->graph_axis,
         this->graph_axis_hover,
         this->graph_axis_press,
-        Builder::toPixels(metrics, this->graph_absorption_width),
+        StyleBuilder::toPixels(metrics, this->graph_absorption_width),
         this->graph_absorption_style,
-        Builder::toPixels(metrics, this->graph_excitation_width)
+        StyleBuilder::toPixels(metrics, this->graph_excitation_width)
     );
     style = style.arg(
         this->graph_excitation_style,
-        Builder::toPixels(metrics, this->graph_emission_width),
+        StyleBuilder::toPixels(metrics, this->graph_emission_width),
         this->graph_emission_style,
-        Builder::toPixels(metrics, "1.5em")
+        StyleBuilder::toPixels(metrics, "1.5em")
     );
     return(style);
+}
+
+/*
+Builds the stylesheet for the about window
+*/
+QString StyleBuilder::buildAboutWindow(const QFontMetrics& metrics) const {
+    QString style;
+    style = "General--AboutWindow {"
+            " background: %1;"
+            "} "
+            "General--AboutIcon {"
+            " qproperty-pixmap: url(:/icons/%2_fluor.png);"
+            " qproperty-scale: %3;"
+            "} ";
+    style = style.arg(
+        this->background,
+        this->icons,
+        StyleBuilder::toPixels(metrics, "12eh")
+    );
+    return style;
 }
 
 /*
@@ -1086,7 +1133,7 @@ If unconvertable returns the fallback value
     :param fallback: if text is unconvertable, returns this value in pixels
     :returns: the value in pixels as string without 'px' unit
 */
-QString Builder::toPixels(const QFontMetrics& metrics, const QString& text, QString fallback) {
+QString StyleBuilder::toPixels(const QFontMetrics& metrics, const QString& text, QString fallback) {
     int em_pixels = metrics.width('M');
     int ex_pixels = metrics.xHeight();
     int eh_pixels = metrics.height();
@@ -1198,7 +1245,5 @@ QString Builder::toPixels(const QFontMetrics& metrics, const QString& text, QStr
 
     return QString::number(number_px, 'f', 0);
 }
-
-} // Style namespace
 
 } // Data namespace

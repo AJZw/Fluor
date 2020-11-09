@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.11
-** Date:       2020-10-27
+** Version:    v0.9.13
+** Date:       2020-11-09
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -182,7 +182,7 @@ void GUI::removeGraph(){
 }
 
 /*
-Resets the graph state to default by removing all graphs but one, and deselecting all
+Resets the graph state to default by removing all graphs
 */
 void GUI::clearGraphs(){
     this->graphs_state.clear();

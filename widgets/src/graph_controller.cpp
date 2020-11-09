@@ -1,8 +1,8 @@
 /**** General **************************************************************
-** Version:    v0.9.10
-** Date:       2020-10-13
+** Version:    v0.9.13
+** Date:       2020-11-09
 ** Author:     AJ Zwijnenburg
-** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
+** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
 ***************************************************************************/
 
@@ -333,6 +333,8 @@ void ScrollController::receiveGraphSelect(const Controller* graph, bool state){
     // Find index
     for(std::size_t i=0; i<this->graph_widgets.size(); ++i){
         if(graph == this->graph_widgets[i]){
+            qDebug() << "Graph::ScrollController: emits select:" << i << state;
+
             emit this->sendGraphSelect(i, state);
             return;
         }

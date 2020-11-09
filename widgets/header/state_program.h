@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.10
-** Date:       2020-10-13
+** Version:    v0.9.13
+** Date:       2020-11-09
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -62,29 +62,40 @@ class Program : public QObject {
         Data::Factory& factory;
         Data::FluorophoreReader data_fluorophores;
         Data::InstrumentReader data_instruments;
-        Data::Style::Builder style;
+        Data::StyleBuilder style;
         Data::Instrument instrument;
 
         Cache::Cache cache;
         State::GUI state_gui;
         Main::Controller gui;
 
-        void retreiveStateGUI();
+        void retreiveGUIState();
+        void retreiveGUIPosition();
         void retreiveInstrument();
+
+        void storeStateGUI();
     
         void syncToolbar();
         void syncGraphs();
         void syncCache();
-        void syncInstrument();
         void syncFluorophores();
+        void syncInstrument();
+        void syncInstruments();
+        void syncStyle();
+        void syncStyles();
+        void syncOptions();
 
-        void loadInstrument(const QString& instrument_name);
+        void loadInstrument(const QString& instrument_id);
+        void loadStyle(const QString& style_id);
         void refreshToolbar();
 
     signals:
-        void sendData(const Data::FluorophoreReader& data);
+        void sendFluorophores(const Data::FluorophoreReader& fluorophores);
         void sendInstrument(const Data::Instrument& instrument);
+        void sendInstruments(const Data::InstrumentReader& instruments);
+        void sendStyles(const std::vector<Data::StyleID>& styles);
 
+        void sendMenuBarState(Main::MenuBarAction action, const QVariant& id);
         void sendToolbarState(Bar::ButtonType type, bool active, bool enable);
         
         void sendCacheState(const std::vector<Cache::ID>& cache_state);
@@ -93,6 +104,7 @@ class Program : public QObject {
         void sendGraphState(std::vector<State::GraphState>& state);
 
     public slots:
+        void receiveMenuBarState(Main::MenuBarAction action, const QVariant& id);
         void receiveToolbarState(Bar::ButtonType type, bool active, bool enable);
 
         void receiveLasers(std::vector<Data::LaserID>& lasers);
@@ -105,6 +117,7 @@ class Program : public QObject {
         void receiveGraphSelect(std::size_t index, bool state);
 
     private slots:
+        void closedWindow(const QWidget* source);
         void reloadStyle(QWidget* source);
 
 };

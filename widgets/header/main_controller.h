@@ -1,13 +1,13 @@
 /**** General **************************************************************
-** Version:    v0.9.10
-** Date:       2020-10-13
+** Version:    v0.9.13
+** Date:       2020-11-09
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
 ***************************************************************************/
 
 /**** LGPLv3 License *******************************************************
-** maun_controller.h is part of Fluor
+** main_controller.h is part of Fluor
 **        
 ** Fluor is free software: you can redistribute it and/or
 ** modify it under the terms of the Lesser GNU General Public License as
@@ -38,6 +38,7 @@
 #include "global.h"
 #include "data_fluorophores.h"
 #include "data_instruments.h"
+#include "data_styles.h"
 #include "cache.h"
 #include "state_gui.h"
 #include <vector>
@@ -50,7 +51,6 @@ namespace Main {
 
 class Controller : public QMainWindow {
     Q_OBJECT
-    Q_PROPERTY(QString layout_margins READ layoutMargins WRITE setLayoutMargins)
 
     public:
         explicit Controller(QWidget *parent = nullptr);
@@ -59,9 +59,6 @@ class Controller : public QMainWindow {
         Controller(Controller&&) = delete;
         Controller& operator=(Controller&&) = delete;
         ~Controller() = default;
-
-        QString layoutMargins() const;
-        void setLayoutMargins(QString layout_spacing);
 
     private:
         QString window_title;
@@ -79,8 +76,10 @@ class Controller : public QMainWindow {
         void receiveDPIChanged(qreal dpi);
 
         void receiveGlobalEvent(QEvent* event);
-        void receiveData(const Data::FluorophoreReader& data);
+        void receiveFluorophores(const Data::FluorophoreReader& fluorophores);
         void receiveInstrument(const Data::Instrument& instrument);
+        void receiveInstruments(const Data::InstrumentReader& instruments);
+        void receiveStyles(const std::vector<Data::StyleID>& styles);
 
         void receiveCacheRequestUpdate();
         void receiveCacheAdd(std::vector<Data::FluorophoreID>& fluorophores);
@@ -89,6 +88,9 @@ class Controller : public QMainWindow {
         void receiveCacheUpdate();
 
         void receiveLasers(std::vector<Data::LaserID>& lasers);
+
+        void receiveMenuBarStateChange(Main::MenuBarAction action, const QVariant& id=QString());
+        void receiveMenuBarStateUpdate(Main::MenuBarAction action, const QVariant& id=QString());
 
         void receiveToolbarStateChange(Bar::ButtonType type, bool active, bool enable);
         void receiveToolbarStateUpdate(Bar::ButtonType type, bool active, bool enable);
@@ -99,12 +101,15 @@ class Controller : public QMainWindow {
     signals:
         void resized(const QWidget* widget);
         void moved(const QWidget* widget);
+        void closed(const QWidget* widget);
         void screenChanged(QWidget* widget);
         void screenDPIChanged(QWidget* widget);
 
         void sendGlobalEvent(QEvent* event);
-        void sendData(const Data::FluorophoreReader& data);
+        void sendFluorophores(const Data::FluorophoreReader& fluorophores);
         void sendInstrument(const Data::Instrument& instrument);
+        void sendInstruments(const Data::InstrumentReader& instruments);
+        void sendStyles(const std::vector<Data::StyleID>& styles);
 
         void sendCacheRequestUpdate();
         void sendCacheAdd(std::vector<Data::FluorophoreID>& fluorophores);
@@ -113,6 +118,9 @@ class Controller : public QMainWindow {
         void sendCacheUpdate();
 
         void sendLasers(std::vector<Data::LaserID>& lasers);
+
+        void sendMenuBarStateChange(Main::MenuBarAction action, const QVariant& id=QVariant());
+        void sendMenuBarStateUpdate(Main::MenuBarAction action, const QVariant& id=QVariant());
 
         void sendToolbarStateChange(Bar::ButtonType type, bool active, bool enable=true);
         void sendToolbarStateUpdate(Bar::ButtonType type, bool active, bool enable=true);

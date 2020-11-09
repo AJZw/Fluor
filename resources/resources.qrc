@@ -1,9 +1,12 @@
 <!DOCTYPE RCC><RCC version="1.0">
 <qresource>
-    <file>icons/viewer_black.icns</file>
-    <file>icons/viewer_white.icns</file>
-    <file>icons/viewer_black.ico</file>
-    <file>icons/viewer_white.ico</file>
+    <file>icons/fluor_light.icns</file>
+    <file>icons/fluor_dark.icns</file>
+    <file>icons/fluor_light.ico</file>
+    <file>icons/fluor_dark.ico</file>
+
+    <file>icons/light_fluor.png</file>
+    <file>icons/dark_fluor.png</file>
 
     <file>icons/default.png</file>
 

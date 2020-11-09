@@ -1,6 +1,6 @@
 /**** General **************************************************************
 ** Version:    v0.9.12
-** Date:       2020-10-28
+** Date:       2020-11-09
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -470,6 +470,13 @@ Instrument InstrumentReader::getInstrument(const QString& id) const {
     }
 
     return instrument;
+}
+
+/*
+Getter for the list of instrument id's
+*/
+const std::vector<InstrumentID>& InstrumentReader::getInstruments() const {
+    return this->instrument_ids;
 }
 
 /*

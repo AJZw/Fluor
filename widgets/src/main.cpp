@@ -1,8 +1,8 @@
 /**** General **************************************************************
-** Version:    v0.9.11
-** Date:       2020-10-27
+** Version:    v0.9.13
+** Date:       2020-11-09
 ** Author:     AJ Zwijnenburg
-** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
+** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
 ***************************************************************************/
 
@@ -25,7 +25,7 @@ int main(int argc, char **argv)
     Data::Factory FACTORY;
 
     // Load Default stylesheet (to make the warnings look pretty)
-    Data::Style::Builder STYLE;
+    Data::StyleBuilder STYLE;
     APP.setStyleSheet(STYLE.getStyleSheet());
 
     // Run error/warning messages and quits when invalid Data::Factory

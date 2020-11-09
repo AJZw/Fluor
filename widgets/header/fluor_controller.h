@@ -1,8 +1,8 @@
 /**** General **************************************************************
-** Version:    v0.9.2
-** Date:       2019-03-03
+** Version:    v0.9.13
+** Date:       2020-11-09
 ** Author:     AJ Zwijnenburg
-** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
+** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
 ***************************************************************************/
 
@@ -76,7 +76,7 @@ class Controller : public QWidget{
     public slots:
         void receiveGlobalEvent(QEvent* event);
         void receiveGlobalSize(const QWidget* widget=nullptr);
-        void receiveData(const Data::FluorophoreReader& data);
+        void receiveFluorophores(const Data::FluorophoreReader& fluorophores);
 
         void receiveCacheRequestUpdate();
         void receiveCacheAdd(std::vector<Data::FluorophoreID>& fluorophores);
@@ -91,7 +91,7 @@ class Controller : public QWidget{
     signals:
         void sendGlobalEvent(QEvent* event);
         void sendGlobalSize(const QWidget* widget=nullptr);
-        void sendData(const Data::FluorophoreReader& data);
+        void sendFluorophores(const Data::FluorophoreReader& fluorophores);
 
         void showPushButton();
         void hidePushButton();

@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.11
-** Date:       2020-10-27
+** Version:    v0.9.13
+** Date:       2020-11-09
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -246,6 +246,7 @@ class DATALIB_EXPORT InstrumentReader {
         bool isValid() const;
 
         Instrument getInstrument(const QString& id) const;
+        const std::vector<InstrumentID>& getInstruments() const;
 };
 
 } // Data namespace

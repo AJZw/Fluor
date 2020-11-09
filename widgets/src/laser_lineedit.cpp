@@ -1,8 +1,8 @@
 /**** General **************************************************************
-** Version:    v0.9.10
-** Date:       2020-10-13
+** Version:    v0.9.13
+** Date:       2020-11-09
 ** Author:     AJ Zwijnenburg
-** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
+** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
 ***************************************************************************/
 
@@ -418,7 +418,7 @@ void LaserLinePopup::buildModel(){
 Builds and sets the QListView model
     :param wavelengths: list of laser wavelengths
 */
-void LaserLinePopup::buildModel(const Data::Instrument& instrument){
+void LaserLinePopup::buildModel(const Data::Instrument& instrument){   
     // Get original model as the original has to be deleted manually
     QAbstractItemModel* model_old = this->model();
     QStandardItemModel* model_new = new QStandardItemModel(this);
@@ -1802,6 +1802,11 @@ void LineEdit::receiveGraphState(std::vector<State::GraphState>& state){
 Slot: reloads the this->popup() model
 */
 void LineEdit::reloadModel(const Data::Instrument& instrument){
+    // upon reloading of the model the popup state is rebuild, so close the popup to allow for proper updating
+    this->hidePopup();
+    emit this->finished();
+    QLineEdit::clearFocus();
+
     this->popup()->reloadModel(instrument);
 }
 

@@ -1,8 +1,8 @@
 /**** General **************************************************************
-** Version:    v0.9.5
-** Date:       2019-11-05
+** Version:    v0.9.13
+** Date:       2020-11-09
 ** Author:     AJ Zwijnenburg
-** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
+** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
 ***************************************************************************/
 
@@ -43,25 +43,43 @@
 
 namespace Data {
 
-namespace Style {
+struct DATALIB_EXPORT StyleID {
+    StyleID(QString id, QString name) : 
+        id(id), 
+        name(name)
+    {};
+    StyleID(const StyleID&) = default;
+    StyleID& operator=(const StyleID&) = default;
+    StyleID(StyleID&&) = default;
+    StyleID& operator=(StyleID&&) = default;
+    ~StyleID() = default;
 
-class DATALIB_EXPORT Builder {
+    friend QDebug operator<<(QDebug stream, const StyleID& object){return stream << "{" << object.id << ":" << object.name << "}";};
+
+    const QString id;
+    QString name;
+};
+
+class DATALIB_EXPORT StyleBuilder {
     public:
-        Builder();
-        Builder(const Builder&) = default;
-        Builder& operator=(const Builder&) = default;
-        Builder(Builder&&) = default;
-        Builder& operator=(Builder&&) = default;
-        ~Builder() = default;
+        StyleBuilder();
+        StyleBuilder(const StyleBuilder&) = default;
+        StyleBuilder& operator=(const StyleBuilder&) = default;
+        StyleBuilder(StyleBuilder&&) = default;
+        StyleBuilder& operator=(StyleBuilder&&) = default;
+        ~StyleBuilder() = default;
 
+        QString id() const;
         QString getStyleSheet() const;
-        std::vector<QString> getStyleIDs(const Data::Factory& data) const;
+        std::vector<StyleID> getStyleIDs(const Data::Factory& data) const;
 
         void loadStyle(const Data::Factory& data, const QString& style_id);
         void buildStyleSheet();
         void buildStyleSheet(const QFontMetrics& metrics);
 
     private:  
+        QString style_id;
+
         QString stylesheet;
 
         QString icons;
@@ -75,11 +93,8 @@ class DATALIB_EXPORT Builder {
         QString label_background;
         QString label_text;
         QString label_text_weight;
-        QString label_border;
-        QString label_border_width;
         QString label_disabled_background;
         QString label_disabled_text;
-        QString label_disabled_border;
 
         QString pushbutton_background;
         QString pushbutton_text;
@@ -177,7 +192,7 @@ class DATALIB_EXPORT Builder {
         QString graph_emission_style;
 
         QString buildLayout(const QFontMetrics& metrics) const;
-        QString buildLabel() const;
+        QString buildLabel(const QFontMetrics& metrics) const;
         QString buildPushButton() const;
         QString buildLineEdit() const;
         QString buildListView() const;
@@ -188,11 +203,10 @@ class DATALIB_EXPORT Builder {
         QString buildLaserMenu(const QFontMetrics& metrics) const;
         QString buildFluorMenu(const QFontMetrics& metrics) const;
         QString buildGraph(const QFontMetrics& metrics) const;
+        QString buildAboutWindow(const QFontMetrics& metrics) const;
 
         static QString toPixels(const QFontMetrics& metrics, const QString& text, QString fallback="0");
 };
-
-} // Style namespace
 
 } // Data namespace
 

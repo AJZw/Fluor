@@ -1,8 +1,8 @@
 /**** General **************************************************************
-** Version:    v0.9.11
-** Date:       2020-10-27
+** Version:    v0.9.13
+** Date:       2020-11-09
 ** Author:     AJ Zwijnenburg
-** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
+** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
 ***************************************************************************/
 
@@ -738,6 +738,11 @@ void LineEdit::reloadSize(const QWidget* widget){
 Slot: reloads the this->completer() model
 */
 void LineEdit::reloadData(const Data::FluorophoreReader& data){
+    // upon reloading of the model the popup state is rebuild, so close the popup to allow for proper updating
+    this->completer()->popup()->hide();
+    emit this->finished();
+    QLineEdit::clearFocus();
+    
     // Make hard copies, that way data can be invalidated without issues here / race conditions
     this->lookup_id = data.getFluorID();
     this->lookup_names = data.getFluorNames();

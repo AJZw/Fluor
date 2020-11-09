@@ -1,8 +1,8 @@
 /**** General **************************************************************
-** Version:    v0.9.10
-** Date:       2020-10-13
+** Version:    v0.9.13
+** Date:       2020-11-09
 ** Author:     AJ Zwijnenburg
-** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
+** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
 ***************************************************************************/
 
@@ -29,7 +29,7 @@ Controller::Controller(QWidget* parent) :
     QWidget(parent)
 {
     // Set base properties
-    this->setContentsMargins(0, 0, 0, 0);
+    this->setContentsMargins(8, 8, 8, 8);
 
     // Build layout
     QGridLayout* controller_layout = new QGridLayout(this);
@@ -61,7 +61,7 @@ Controller::Controller(QWidget* parent) :
     
     QObject::connect(this, &Central::Controller::sendGlobalEvent, controller_fluor, &Fluor::Controller::receiveGlobalEvent);
     QObject::connect(this, &Central::Controller::sendGlobalSize, controller_fluor, &Fluor::Controller::receiveGlobalSize);
-    QObject::connect(this, &Central::Controller::sendData, controller_fluor, &Fluor::Controller::receiveData);
+    QObject::connect(this, &Central::Controller::sendFluorophores, controller_fluor, &Fluor::Controller::receiveFluorophores);
     QObject::connect(this, &Central::Controller::sendCacheState, controller_fluor, &Fluor::Controller::receiveCacheState);
     QObject::connect(this, &Central::Controller::sendCacheUpdate, controller_fluor, &Fluor::Controller::receiveCacheUpdate);
 
@@ -99,6 +99,21 @@ void Controller::paintEvent(QPaintEvent* event) {
 /*
 Getter for layout spacing property, as it has to return a QString it returns the value in pixels
 */
+QString Controller::layoutMargins() const {
+    return QString::number(this->contentsMargins().left(), 'f', 0);
+}
+
+/*
+Receives layout scaling properties from the stylesheet
+*/
+void Controller::setLayoutMargins(QString layout_margins){
+    int layout_margin_px = layout_margins.toInt();
+    this->setContentsMargins(layout_margin_px, layout_margin_px, layout_margin_px, layout_margin_px);
+}
+
+/*
+Getter for layout spacing property, as it has to return a QString it returns the value in pixels
+*/
 QString Controller::layoutSpacing() const {
     return QString::number(this->layout()->spacing(), 'f', 0);
 }
@@ -121,8 +136,8 @@ void Controller::receiveGlobalEvent(QEvent* event){
 /*
 Slot: reloads the fluorophore data
 */
-void Controller::receiveData(const Data::FluorophoreReader& data){
-    emit this->sendData(data);
+void Controller::receiveFluorophores(const Data::FluorophoreReader& fluorophores){
+    emit this->sendFluorophores(fluorophores);
 }
 
 /*

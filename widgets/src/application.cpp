@@ -1,8 +1,8 @@
 /**** General **************************************************************
-** Version:    v0.9.12
-** Date:       2020-10-28
+** Version:    v0.9.13
+** Date:       2020-11-09
 ** Author:     AJ Zwijnenburg
-** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
+** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
 ***************************************************************************/
 
@@ -19,13 +19,13 @@ Application::Application(int &argc, char **argv) :
 {
     this->setOrganizationName("AJZw");
     this->setApplicationName("Fluor");
-    this->setApplicationVersion("v0.9.12");
+    this->setApplicationVersion("0.9.13");
 
     this->installEventFilter(this);
 
     // Set icon
     if(QSysInfo().productType() == "osx"){
-        this->setWindowIcon(QIcon(":/icons/viewer_black.icns"));
+        this->setWindowIcon(QIcon(":/icons/fluor_light.icns"));
     }else if(QSysInfo().productType() == "windows"){
         QSettings registry("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\DWM", QSettings::NativeFormat);
         unsigned int windows_accent = registry.value("AccentColor", 0xffffffff).toUInt();
@@ -35,13 +35,13 @@ Application::Application(int &argc, char **argv) :
         int windows_blue = windows_accent & 0xff;
 
         if(5 * windows_green + 2 * windows_red + windows_blue >= 1024){
-            this->setWindowIcon(QIcon(":/icons/viewer_black.ico"));
+            this->setWindowIcon(QIcon(":/icons/fluor_light.ico"));
         }else{
-            this->setWindowIcon(QIcon(":/icons/viewer_white.ico"));
+            this->setWindowIcon(QIcon(":/icons/fluor_dark.ico"));
         }
 
     }else{
-        // linux etc for now ignored -> no windowicon
+        this->setWindowIcon(QIcon(":/icons/fluor_light.icns"));
     }
 
 }

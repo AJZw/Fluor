@@ -1,14 +1,18 @@
 /**** General **************************************************************
-** Version:    v0.9.11
-** Date:       2020-10-27
+** Version:    v0.9.13
+** Date:       2020-11-09
 ** Author:     AJ Zwijnenburg
-** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
+** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
 ***************************************************************************/
 
 #include "state_program.h"
+#include "general_widgets.h"
 
 #include <QApplication>
+#include <QWindow>
+#include <QScreen>
+#include <QDesktopWidget>
 #include <QFont>
 #include <QFontMetrics>
 #include <QDebug>
@@ -43,23 +47,29 @@ Program::Program(Data::Factory& factory) :
     }
     this->retreiveInstrument();
 
-    // Retreive the settings data, needs to happen early to load the proper style information
-    this->retreiveStateGUI();
-
-    // If the style can be loaded, (try to) load the default style
-    if(this->factory.isValid(Data::Factory::Styles)){
-        this->style.loadStyle(this->factory, this->state_gui.style);
-    }
-    this->gui.setStyleSheet(this->style.getStyleSheet());
+    // Set global font size (for proper dpi scaling) (relevant if the primary screen is scaled)
+    qreal dpi_scale = qApp->screens()[qApp->desktop()->primaryScreen()]->logicalDotsPerInch() / 96.0;
+    QFont font = qApp->font();
+    font.setPointSizeF(font.pointSizeF() * dpi_scale);
+    qApp->setFont(font);
 
     // Connect the interface to the other components
     // DPI/Screen scaling
     QObject::connect(&this->gui, &Main::Controller::screenChanged, this, &State::Program::reloadStyle);
     QObject::connect(&this->gui, &Main::Controller::screenDPIChanged, this, &State::Program::reloadStyle);
 
+    // Program exiting
+    QObject::connect(&this->gui, &Main::Controller::closed, this, &State::Program::closedWindow);
+
     // Data loading
-    QObject::connect(this, &State::Program::sendData, &this->gui, &Main::Controller::receiveData);
+    QObject::connect(this, &State::Program::sendFluorophores, &this->gui, &Main::Controller::receiveFluorophores);
     QObject::connect(this, &State::Program::sendInstrument, &this->gui, &Main::Controller::receiveInstrument);
+    QObject::connect(this, &State::Program::sendInstruments, &this->gui, &Main::Controller::receiveInstruments);
+    QObject::connect(this, &State::Program::sendStyles, &this->gui, &Main::Controller::receiveStyles);
+
+    // MenuBar
+    QObject::connect(this, &State::Program::sendMenuBarState, &this->gui, &Main::Controller::receiveMenuBarStateUpdate);
+    QObject::connect(&this->gui, &Main::Controller::sendMenuBarStateChange, this, &State::Program::receiveMenuBarState);
 
     // Cache
     QObject::connect(&this->gui, &Main::Controller::sendCacheAdd, this, &State::Program::receiveCacheAdd);
@@ -80,21 +90,34 @@ Program::Program(Data::Factory& factory) :
     // Laser selection
     QObject::connect(&this->gui, &Main::Controller::sendLasers, this, &State::Program::receiveLasers);
 
+    // Retreive the GUI State data
+    this->retreiveGUIState();
+
+    // (Try to) load the default style
+    this->loadStyle(this->state_gui.style);
+
     // Start GUI
     this->gui.show();
 
+    // Retreive the GUI position data
+    this->retreiveGUIPosition();
+
     // Synchronize the program state to the GUI
     this->syncFluorophores();
+    this->syncInstruments();
+    this->syncStyles();
     this->syncInstrument();
+    this->syncStyle();
+    this->syncOptions();
     this->syncCache();
     this->syncToolbar();
     this->syncGraphs();
 }
 
 /*
-Retreives the GUI state from the stored settings data
+Retreives the GUI state from the stored settings data. Load this data before setting a stylesheet.
 */
-void Program::retreiveStateGUI() {
+void Program::retreiveGUIState() {
     std::unique_ptr<QSettings> data = this->factory.get(Data::Factory::Settings);
 
     // Get style
@@ -123,7 +146,68 @@ void Program::retreiveStateGUI() {
         this->state_gui.sort_fluorophores = SortMode::EmissionReversed;
     }
     // If QString isNull() it keeps the hardcoded default
+}
 
+/*
+Retreives the screen, size, and position of the GUI. Load this data after showing the GUI.
+*/
+void Program::retreiveGUIPosition() {
+    std::unique_ptr<QSettings> data = this->factory.get(Data::Factory::Settings);
+    
+    // Get dimensions of the gui window and screen
+    bool screen_reset = false;
+    int index = data->value("USER/screen_i", 0).toInt();
+    int screen_x = data->value("USER/screen_x", 0).toInt();
+    int screen_y = data->value("USER/screen_y", 0).toInt();
+    int screen_width = data->value("USER/screen_width", 0).toInt();
+    int screen_height = data->value("USER/screen_height", 0).toInt();
+    
+    int window_x = data->value("USER/window_x", QApplication::style()->pixelMetric(QStyle::PM_DefaultFrameWidth)).toInt();
+    int window_y = data->value("USER/window_y", QApplication::style()->pixelMetric(QStyle::PM_TitleBarHeight)).toInt();
+    int window_width = data->value("USER/window_width", data->value("DEFAULT/window_width", 0)).toInt();
+    int window_height = data->value("USER/window_height", data->value("DEFAULT/window_height", 0)).toInt();
+    bool maximized = data->value("USER/window_maximized", false).toBool();
+
+    // Make sure the stored window exists (this to prevent accidental placement of the window outside the visible area)
+    QList<QScreen*> screens = static_cast<QApplication*>(QApplication::instance())->screens();
+    QScreen* screen = nullptr;
+    if(index < 0 || index >= screens.length()){
+        screen_reset = true;
+    }else{
+        screen = screens[index];
+        if(screen->availableGeometry().x() != screen_x){
+            screen_reset = true;
+        }else if(screen->availableGeometry().y() != screen_y){
+            screen_reset = true;
+        }else if(screen->availableGeometry().width() != screen_width){
+            screen_reset = true;
+        }else if(screen->availableGeometry().height() != screen_height){
+            screen_reset = true;
+        }
+    }
+
+    if(screen_reset){
+        index = static_cast<QApplication*>(QApplication::instance())->desktop()->primaryScreen();
+        screen = screens[index];
+        window_x = QApplication::style()->pixelMetric(QStyle::PM_DefaultFrameWidth);
+        window_y = QApplication::style()->pixelMetric(QStyle::PM_TitleBarHeight);
+        window_width = data->value("DEFAULT/window_width", 0).toInt();
+        window_height = data->value("DEFAULT/window_height", 0).toInt();
+        maximized = false;
+    }
+
+    this->gui.windowHandle()->setScreen(screen);
+    // Move between two screens of different DPI causes geometry move/resize. Therefor move first, then set proper geometry.
+    // This will cause a geometry error. But setGeometry after move will atleast work as expected.
+    this->gui.move(
+        window_x + QApplication::style()->pixelMetric(QStyle::PM_DefaultFrameWidth),
+        window_y + QApplication::style()->pixelMetric(QStyle::PM_TitleBarHeight)
+    );
+    this->gui.setGeometry(window_x, window_y, window_width, window_height);
+
+    if(maximized){
+        this->gui.setWindowState(this->gui.windowState() ^ Qt::WindowState::WindowMaximized);
+    }
 }
 
 /*
@@ -135,6 +219,79 @@ void Program::retreiveInstrument() {
     QString instrument_id = data->value("USER/instrument", QString()).toString();
 
     this->loadInstrument(instrument_id);
+}
+
+/*
+Stores the gui state to the settings.ini file.
+*/
+void Program::storeStateGUI() {
+    std::unique_ptr<QSettings> data = this->factory.get(Data::Factory::Settings);
+
+    data->beginGroup("USER");
+
+    // Store screen properties to make sure the window size settings work for the current screen
+    QScreen* screen = this->gui.windowHandle()->screen();
+    // Find screen index to properly manage multi-screen systems
+    QList<QScreen*> screens = static_cast<QApplication*>(QApplication::instance())->screens();
+    int index;
+    for(index=0; index < screens.length(); ++index){
+        if(screens[index] == screen){
+            break;
+        }
+    }
+
+    data->setValue("screen_i", index);
+    data->setValue("screen_x", screen->availableGeometry().x());
+    data->setValue("screen_y", screen->availableGeometry().y());
+    data->setValue("screen_width", screen->availableGeometry().width());
+    data->setValue("screen_height", screen->availableGeometry().height());
+    data->setValue("window_x", this->gui.geometry().x());
+    data->setValue("window_y", this->gui.geometry().y());
+    data->setValue("window_width", this->gui.geometry().width());
+    data->setValue("window_height", this->gui.geometry().height());
+    data->setValue("window_maximized", this->gui.isMaximized());
+
+    data->setValue("style", this->state_gui.style);
+    data->setValue("instrument", this->instrument.id());
+
+    switch(this->state_gui.sort_fluorophores){
+        case SortMode::Additive:{
+            data->setValue("sort_mode", "Additive");
+            break;
+        }
+        case SortMode::AdditiveReversed:{
+            data->setValue("sort_mode", "AdditiveReversed");
+            break;
+        }
+        case SortMode::Alphabetical:{
+            data->setValue("sort_mode", "Alphabetical");
+            break;
+        }
+        case SortMode::AlphabeticalReversed:{
+            data->setValue("sort_mode", "AlphabeticalReversed");
+            break;
+        }
+        case SortMode::Excitation:{
+            data->setValue("sort_mode", "Excitation");
+            break;
+        }
+        case SortMode::ExcitationReversed:{
+            data->setValue("sort_mode", "ExcitationReversed");
+            break;
+        }
+        case SortMode::Emission:{
+            data->setValue("sort_mode", "Emission");
+            break;
+        }
+        case SortMode::EmissionReversed:{
+            data->setValue("sort_mode", "EmissionReversed");
+            break;
+        }
+        default:
+            break;
+    }
+
+    data->endGroup();
 }
 
 /*
@@ -173,15 +330,55 @@ void Program::syncCache() {
 Synchronizes the fluorophore to the GUI (needed by the fluor lineedit)
 */
 void Program::syncFluorophores() {
-    emit this->sendData(this->data_fluorophores);
+    emit this->sendFluorophores(this->data_fluorophores);
 }
 
 /*
-Synchronizes the instrument to the GUI (needed by the laser lineedit)
+Synchronizes the instrument to the GUI (needed by the laser lineedit & instrument menu)
 */
 void Program::syncInstrument() {
     emit this->sendInstrument(this->instrument);
+    emit this->sendMenuBarState(Main::MenuBarAction::InstrumentID, this->instrument.id());
 }
+
+/*
+Synchronizes the list of instruments to the GUI (needed for the instrument menu)
+*/
+void Program::syncInstruments() {
+    emit this->sendInstruments(this->data_instruments);
+}
+
+/*
+Synchronizes the style to the GUI (needed for options->styles menu)
+*/
+void Program::syncStyle() {
+    emit this->sendMenuBarState(Main::MenuBarAction::StyleID, this->style.id());
+}
+
+/*
+Synchronizes the list of styles to the GUI (needed for the options->styles menu)
+*/
+void Program::syncStyles() {
+    emit this->sendStyles(this->style.getStyleIDs(this->factory));
+}
+
+/*
+Synchronizes the options to the GUI (needed for options menu)
+*/
+void Program::syncOptions() {
+    emit this->sendMenuBarState(Main::MenuBarAction::SortOrder, static_cast<int>(this->state_gui.sort_fluorophores));
+}
+
+/*
+Loads the style of the specified id into the program (if possible)
+*/
+void Program::loadStyle(const QString& style_id){
+    this->state_gui.style = style_id;
+    if(this->factory.isValid(Data::Factory::Styles)){
+        this->style.loadStyle(this->factory, this->state_gui.style);
+    }
+    this->gui.setStyleSheet(this->style.getStyleSheet());
+}   
 
 /*
 Loads the instrument of the specified id into the program
@@ -205,13 +402,19 @@ void Program::loadInstrument(const QString& instrument_id){
         this->state_gui.enabled_filter = true;
         this->state_gui.active_filter = true;
 
-        this->state_gui.enabled_laserlines = true;
-        this->state_gui.active_laserlines = true;
+        if(!this->state_gui.enabled_laserlines){
+            this->state_gui.enabled_laserlines = true;
+            this->state_gui.active_laserlines = true;
+        }
     }
 
-    // Reset the amount of graphs to default
+    // Reset the amount of graphs to 1 or if laserlines button is inactive fill graphs
     this->state_gui.clearGraphs();
-    this->state_gui.addGraph();
+    if(!this->state_gui.active_laserlines){
+        this->state_gui.fillGraphs(this->instrument);
+    }else{
+        this->state_gui.addGraph();
+    }
     this->refreshToolbar();
 }
 
@@ -313,6 +516,70 @@ void Program::receiveToolbarState(Bar::ButtonType type, bool active, bool enable
 }
 
 /*
+Slot: receives MenuBar state changes
+    :param action: the menubar action that emit the state
+    :param id: (optional) the selected identifier
+*/
+void Program::receiveMenuBarState(Main::MenuBarAction action, const QVariant& id){
+    switch(action){
+        case Main::MenuBarAction::Exit:{
+            qDebug() << "Program::receiveMenuBar: exit";
+            this->storeStateGUI();
+            static_cast<QApplication*>(QApplication::instance())->quit();
+            break;
+        }
+        case Main::MenuBarAction::InstrumentID:{
+            qDebug() << "Program::receiveMenuBar: select instrument:" << id.toString();
+            // Check if instrument is already loaded
+            QString instrument_id = id.toString();
+            if(this->instrument.id() == instrument_id){
+                return;
+            }
+            this->loadInstrument(instrument_id);
+            this->syncInstrument();
+            this->syncToolbar();
+            this->syncGraphs();
+            break;
+        }
+        case Main::MenuBarAction::SortOrder:{
+            qDebug() << "Program::receiveMenuBar: set sort order" << id.toInt();
+            // Check if sorting mode is already applied
+            State::SortMode mode = static_cast<State::SortMode>(id.toInt());
+            if(this->state_gui.sort_fluorophores == mode){
+                return;
+            }
+            this->state_gui.sort_fluorophores = mode;
+            this->syncCache();
+            break;
+        }
+        case Main::MenuBarAction::StyleID:{
+            qDebug() << "Program::receiveMenuBar: select style:" << id.toString();
+            // Check if style is already loaded
+            QString style_id = id.toString();
+            if(this->state_gui.style == style_id){
+                return;
+            }
+            this->loadStyle(style_id);
+            this->syncStyle();
+            break;
+        }
+        case Main::MenuBarAction::About:{
+            General::AboutWindow* about = new General::AboutWindow();
+            about->setStyleSheet(this->style.getStyleSheet());
+            QObject::connect(about, &General::AboutWindow::screenChanged, this, &State::Program::reloadStyle);
+            QObject::connect(about, &General::AboutWindow::screenDPIChanged, this, &State::Program::reloadStyle);
+            about->show();
+            break;
+        }
+        case Main::MenuBarAction::SaveAs:
+        case Main::MenuBarAction::Open:
+        case Main::MenuBarAction::Print:
+        default:
+            break;
+    }
+}
+
+/*
 Slot: receives a Laser signal and forwards it to the state_gui
     :param wavelength: the laser wavelength (zero value means no selection, negative value means removal of laser)
 */
@@ -373,17 +640,21 @@ Slot: receives dpi/screen changes and reloads the style
     :param source: widget that needs to reload the style
 */
 void Program::reloadStyle(QWidget* source){
-    if(source){
+    if(source){       
         QFontMetrics metrics = QFontMetrics(source->font(), source);
         this->style.buildStyleSheet(metrics);
 
         source->setStyleSheet(this->style.getStyleSheet());
-    }else{
-        QFontMetrics metrics = QFontMetrics(qApp->font());
-        this->style.buildStyleSheet(metrics);
-
-        source->setStyleSheet(this->style.getStyleSheet());
     }
+}
+
+/*
+Slot: receives the QMainWindow::close event of window and makes sure the data is stored for further use
+*/
+void Program::closedWindow(const QWidget* source){
+    Q_UNUSED(source);
+    this->storeStateGUI();
+    static_cast<QApplication*>(QApplication::instance())->exit();
 }
 
 } // State namespace

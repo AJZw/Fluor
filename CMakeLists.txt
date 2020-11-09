@@ -30,6 +30,8 @@ add_executable(fluor
 
     widgets/header/main_controller.h
     widgets/src/main_controller.cpp
+    widgets/header/main_menu_bar.h
+    widgets/src/main_menu_bar.cpp
 
     widgets/header/general_widgets.h
     widgets/src/general_widgets.cpp

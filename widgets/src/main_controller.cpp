@@ -1,14 +1,15 @@
 /**** General **************************************************************
-** Version:    v0.9.10
-** Date:       2020-10-13
+** Version:    v0.9.13
+** Date:       2020-11-09
 ** Author:     AJ Zwijnenburg
-** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
+** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
 ***************************************************************************/
 
 #include "main_controller.h"
 #include "central_controller.h"
 #include "application.h"
+#include "main_menu_bar.h"
 #include <QApplication>
 #include <QWindow>
 #include <QEvent>
@@ -29,8 +30,21 @@ Controller::Controller(QWidget* parent) :
     this->setWindowTitle("Fluor");
     this->setGeometry(0, 0, this->window_width, this->window_height);
     this->setMinimumSize(this->window_width, this->window_height);
-    this->setContentsMargins(8, 8, 8, 8);
+    this->setContentsMargins(0, 0, 0, 0);
 
+    // Add menu
+    Main::MenuBar* menu_bar = nullptr;
+    if(QSysInfo().productType() == "osx"){
+        // For macOS an application has only one menubar application wide, 
+        // this is simulated by not adding a parent to the menubar.
+        // As this mainwindow is only made once this only dangles when the entire application is closed, so irrelevant
+        menu_bar = new Main::MenuBar(nullptr);
+    }else{
+        menu_bar = new Main::MenuBar(this);
+        this->setMenuBar(menu_bar);
+    }
+
+    // Add widgets
     Central::Controller* controller_widget = new Central::Controller(this);
     this->setCentralWidget(controller_widget);
 
@@ -40,11 +54,17 @@ Controller::Controller(QWidget* parent) :
     QObject::connect(static_cast<Application*>(QApplication::instance()), &Application::globalEvent, this, &Main::Controller::receiveGlobalEvent);
     
     // Connect signals and slots
+    QObject::connect(this, &Main::Controller::sendInstruments, menu_bar, &Main::MenuBar::receiveInstruments);
+    QObject::connect(this, &Main::Controller::sendStyles, menu_bar, &Main::MenuBar::receiveStyles);
+    QObject::connect(this, &Main::Controller::sendMenuBarStateUpdate, menu_bar, &Main::MenuBar::receiveMenuBarStateUpdate);
+    QObject::connect(menu_bar, &Main::MenuBar::sendMenuBarStateChange, this, &Main::Controller::receiveMenuBarStateChange);
+
     QObject::connect(this, &Main::Controller::sendGlobalEvent, controller_widget, &Central::Controller::receiveGlobalEvent);
     QObject::connect(this, &Main::Controller::resized, controller_widget, &Central::Controller::receiveGlobalSize);
     QObject::connect(this, &Main::Controller::moved, controller_widget, &Central::Controller::receiveGlobalSize);
-    QObject::connect(this, &Main::Controller::sendData, controller_widget, &Central::Controller::receiveData);
+
     QObject::connect(this, &Main::Controller::sendInstrument, controller_widget, &Central::Controller::receiveInstrument);
+    QObject::connect(this, &Main::Controller::sendFluorophores, controller_widget, &Central::Controller::receiveFluorophores);
 
     QObject::connect(controller_widget, &Central::Controller::sendCacheRequestUpdate, this, &Main::Controller::receiveCacheRequestUpdate);
     QObject::connect(controller_widget, &Central::Controller::sendCacheAdd, this, &Main::Controller::receiveCacheAdd);
@@ -61,21 +81,6 @@ Controller::Controller(QWidget* parent) :
 }
 
 /*
-Getter for layout spacing property, as it has to return a QString it returns the value in pixels
-*/
-QString Controller::layoutMargins() const {
-    return QString::number(this->contentsMargins().left(), 'f', 0);
-}
-
-/*
-Receives layout scaling properties from the stylesheet
-*/
-void Controller::setLayoutMargins(QString layout_margins){
-    int layout_margin_px = layout_margins.toInt();
-    this->setContentsMargins(layout_margin_px, layout_margin_px, layout_margin_px, layout_margin_px);
-}
-
-/*
 eventFilter - captures resize, move, and close event
     :param obj: source object
     :param event: the event
@@ -89,9 +94,9 @@ bool Controller::eventFilter(QObject *obj, QEvent *event){
     case QEvent::Move:
         emit this->moved(this);
         return false;
-    //case QEvent::Close:
-    //    // write settings
-    //    return false;
+    case QEvent::Close:
+        emit this->closed(this);
+        return false;
     default:
         break;
     }
@@ -153,8 +158,8 @@ void Controller::receiveGlobalEvent(QEvent* event){
 /*
 Slot: forwards the new data signal
 */
-void Controller::receiveData(const Data::FluorophoreReader& data){
-    emit this->sendData(data);
+void Controller::receiveFluorophores(const Data::FluorophoreReader& fluorophores){
+    emit this->sendFluorophores(fluorophores);
 }
 
 /*
@@ -162,6 +167,34 @@ Slot: forwards the new instrument signal
 */
 void Controller::receiveInstrument(const Data::Instrument& instrument){
     emit this->sendInstrument(instrument);
+}
+
+/*
+Slot: forwards the instrument identifier list signal
+*/
+void Controller::receiveInstruments(const Data::InstrumentReader& instruments){
+    emit this->sendInstruments(instruments);
+}
+
+/*
+Slot: forward the style identifiers signal
+*/
+void Controller::receiveStyles(const std::vector<Data::StyleID>& styles){
+    emit this->sendStyles(styles);
+}
+
+/*
+Slot: receives menubar state updates (signals from the State::Program)
+*/
+void Controller::receiveMenuBarStateUpdate(Main::MenuBarAction action, const QVariant& id){
+    emit this->sendMenuBarStateUpdate(action, id);
+}
+
+/*
+Slot: receives menubar state changes (signals from the Main::MenuBar)
+*/
+void Controller::receiveMenuBarStateChange(Main::MenuBarAction action, const QVariant& id){
+    emit this->sendMenuBarStateChange(action, id);
 }
 
 /*

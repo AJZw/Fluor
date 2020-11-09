@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.10
-** Date:       2020-10-13
+** Version:    v0.9.13
+** Date:       2020-11-09
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -48,6 +48,7 @@ namespace Central {
 
 class Controller : public QWidget {
     Q_OBJECT
+    Q_PROPERTY(QString layout_margins READ layoutMargins WRITE setLayoutMargins)
     Q_PROPERTY(QString layout_spacing READ layoutSpacing WRITE setLayoutSpacing)
 
     public:
@@ -59,12 +60,14 @@ class Controller : public QWidget {
         ~Controller() = default;
 
         void paintEvent(QPaintEvent* event);
+        QString layoutMargins() const;
+        void setLayoutMargins(QString layout_spacing);
         QString layoutSpacing() const;
         void setLayoutSpacing(QString layout_spacing);
 
     public slots:
         void receiveGlobalEvent(QEvent* event);
-        void receiveData(const Data::FluorophoreReader& data);
+        void receiveFluorophores(const Data::FluorophoreReader& fluorophores);
         void receiveInstrument(const Data::Instrument& instrument);
         void receiveGlobalSize(const QWidget* widget=nullptr);
 
@@ -86,7 +89,7 @@ class Controller : public QWidget {
     signals:
         void sendGlobalEvent(QEvent* event); 
         void sendGlobalSize(const QWidget* widget=nullptr);
-        void sendData(const Data::FluorophoreReader& data);
+        void sendFluorophores(const Data::FluorophoreReader& fluorophores);
         void sendInstrument(const Data::Instrument& instrument);
 
         void sendCacheRequestUpdate();

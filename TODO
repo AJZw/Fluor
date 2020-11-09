@@ -1,7 +1,6 @@
 TO DO:
 
 GENERAL:
-    >> Make about window (with licensing info)
     Add a way to intercept all Errors and parse those to a popup window / possible?
     Implement logging as a better alternative! -> capture QDebug() messages and output to window
     Including logging window! which is openable independently and is updated on every log event
@@ -10,9 +9,9 @@ GENERAL:
     A way to export the plots
     Sometimes (exp shift+windows_key) moves the window, this should close all open drop-down menu's.
     Make the backup style more user-interactable (hover/click borders)
+    Upon moving to screen with different DPI settings, a setGeometry error is fired. Preventable?
 
 DATA:
-    Implement json parser for new fluorophore spectra data structure
     Implement two_photon excitation
 
 CACHE:
@@ -23,10 +22,12 @@ LASER & FLUOR:
     Maybe by manually reapplying the delegate on the item (see source QStandardItem::sizeHint / paint)
 
 GRAPH:
-    Save graph properties and reload upon opening -> for now disabled cause it breaks the BarLayout
+    Scaling intensity axis when more then 1 laser is enabled
+    Properly set amount of graph columns, so no clipping happens in lower widths
     'black' axes face_color option allow for white out of visible spectrum plotting
 
 MAC:
     TEST QSettings settings on macintosh, does it follow the QApp defined names
     Check stylesheet
+    Check menubar
     Add code signing on MacOS
