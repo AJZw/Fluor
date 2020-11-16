@@ -18,8 +18,8 @@ Application::Application(int &argc, char **argv) :
     QApplication(argc, argv)
 {
     this->setOrganizationName("AJZw");
-    this->setApplicationName("Fluor");
-    this->setApplicationVersion("0.10.0");
+    this->setApplicationName("2020-11-16"); // used as release data storage
+    this->setApplicationVersion("0.10.1");
 
     this->installEventFilter(this);
 

@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.13
-** Date:       2020-11-09
+** Version:    v0.10.1
+** Date:       2020-11-16
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -35,13 +35,14 @@ Program::Program(Data::Factory& factory) :
 {
     // Load fluorophore data
     if(!this->factory.isValid(Data::Factory::Fluorophores)){
-        qFatal("State::State: invalid Factory::Fluorophores");
+        qWarning() << "State::State: invalid Factory::Fluorophores";
+    }else{
+        this->data_fluorophores.load(this->factory);
     }
-    this->data_fluorophores.load(this->factory);
 
     // Load instrument data
     if(!this->factory.isValid(Data::Factory::Instruments)){
-        qWarning() << "State::State: invalid Factory::Instruments. Uses default";
+        qWarning() << "State::State: invalid Factory::Instruments";
     }else{
         this->data_instruments.load(this->factory);
     }
@@ -118,6 +119,12 @@ Program::Program(Data::Factory& factory) :
 Retreives the GUI state from the stored settings data. Load this data before setting a stylesheet.
 */
 void Program::retreiveGUIState() {
+    if(!this->factory.isValid(Data::Factory::Settings)){
+        qWarning() << "Program::retreiveGUIState: invalid Data::Factory::Settings - cannot load GUI state";
+        // Load default style
+        this->loadStyle(this->state_gui.style);
+        return;
+    }
     std::unique_ptr<QSettings> data = this->factory.get(Data::Factory::Settings);
 
     // Get style
@@ -152,6 +159,10 @@ void Program::retreiveGUIState() {
 Retreives the screen, size, and position of the GUI. Load this data after showing the GUI.
 */
 void Program::retreiveGUIPosition() {
+    if(!this->factory.isValid(Data::Factory::Settings)){
+        qWarning() << "Program::retreiveGUIPosition: invalid Data::Factory::Settings - cannot load position";
+        return;
+    }
     std::unique_ptr<QSettings> data = this->factory.get(Data::Factory::Settings);
     
     // Get dimensions of the gui window and screen
@@ -214,6 +225,12 @@ void Program::retreiveGUIPosition() {
 Retreive the instrument properties from data files and load into the state
 */
 void Program::retreiveInstrument() {
+    if(!this->factory.isValid(Data::Factory::Settings)){
+        qWarning() << "Program::retreiveInstrument: invalid Data::Factory::Settings - cannot load instrument";
+        // Load backup - empty Instrument
+        this->loadInstrument(QString());
+        return;
+    }
     std::unique_ptr<QSettings> data = this->factory.get(Data::Factory::Settings);
 
     QString instrument_id = data->value("USER/instrument", QString()).toString();
@@ -225,6 +242,10 @@ void Program::retreiveInstrument() {
 Stores the gui state to the settings.ini file.
 */
 void Program::storeStateGUI() {
+    if(!this->factory.isValid(Data::Factory::Settings)){
+        qWarning() << "Program::storeStateGUI: invalid Data::Factory::Settings - cannot save settings";
+        return;
+    }
     std::unique_ptr<QSettings> data = this->factory.get(Data::Factory::Settings);
 
     data->beginGroup("USER");
@@ -359,7 +380,11 @@ void Program::syncStyle() {
 Synchronizes the list of styles to the GUI (needed for the options->styles menu)
 */
 void Program::syncStyles() {
-    emit this->sendStyles(this->style.getStyleIDs(this->factory));
+    if(this->factory.isValid(Data::Factory::Styles)){
+        emit this->sendStyles(this->style.getStyleIDs(this->factory));
+    }else{
+        qWarning() << "Program::loadStyle: invalid Data::Factory::Styles - cannot load styles";
+    }
 }
 
 /*
@@ -374,9 +399,13 @@ Loads the style of the specified id into the program (if possible)
 */
 void Program::loadStyle(const QString& style_id){
     this->state_gui.style = style_id;
+
     if(this->factory.isValid(Data::Factory::Styles)){
         this->style.loadStyle(this->factory, this->state_gui.style);
+    }else{
+        qWarning() << "Program::loadStyle: invalid Data::Factory::Styles - cannot load style" << style_id;
     }
+
     this->gui.setStyleSheet(this->style.getStyleSheet());
 }   
 
@@ -535,10 +564,15 @@ void Program::receiveMenuBarState(Main::MenuBarAction action, const QVariant& id
             if(this->instrument.id() == instrument_id){
                 return;
             }
+            // Synchronized the instrument
             this->loadInstrument(instrument_id);
             this->syncInstrument();
+            // Update toolbar to adhere to the new laserlines 
             this->syncToolbar();
+            // Make sure the necessary graphs exist
             this->syncGraphs();
+            // Make sure to update the fluorophores in all (potentially new) graphs
+            this->sendCacheState(this->cache.state());
             break;
         }
         case Main::MenuBarAction::SortOrder:{

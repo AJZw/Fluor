@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.11
-** Date:       2020-10-27
+** Version:    v0.10.1
+** Date:       2020-11-16
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -196,7 +196,7 @@ Constructor: a simple line graphicsitem
     :param location: location in 'real' value (x: nanometers/y: percentage)
     :param parent: parent
 */
-GridLine::GridLine(int location, QGraphicsItem* parent) :
+GridLine::GridLine(double location, QGraphicsItem* parent) :
     QGraphicsLineItem(parent),
     line_location(location)
 {}
@@ -205,7 +205,7 @@ GridLine::GridLine(int location, QGraphicsItem* parent) :
 Set location attribute
     :param location: value to update location to
 */
-void GridLine::setLocation(int location){
+void GridLine::setLocation(double location){
     this->line_location = location;
 }
 
@@ -213,7 +213,7 @@ void GridLine::setLocation(int location){
 Get line location
     :returns: location
 */
-int GridLine::location() const {
+double GridLine::location() const {
     return this->line_location;
 }
 
@@ -222,7 +222,7 @@ Updates the pen used by the painter to the brush as build by the style
     :param style: brush factory
 */
 void GridLine::updatePainter(const Graph::Format::Style* style){
-    this->setPen(style->penAxis());
+    this->setPen(style->penGrid());
 }
 
 /* ############################################################################################################## */
@@ -236,6 +236,7 @@ Make sure to call calculateMinimumSize() after any size changes.
 AbstractGridLines::AbstractGridLines(QGraphicsItem* parent) :
     QGraphicsItem(parent),
     items(),
+    style(nullptr),
     item_margins(0, 0, 0, 0),
     line_length(0),
     minimum_width(0),
@@ -306,6 +307,13 @@ Forwards the brush update to its contained GridLabels items
     :param style: brush factory
 */
 void AbstractGridLines::updatePainter(const Graph::Format::Style* style){
+    this->style = style;
+
+    // style can be nullptr
+    if(!this->style){
+        return;
+    }
+    
     for(Graph::Axis::GridLine* label : this->items){
         label->updatePainter(style);
     }
@@ -402,7 +410,9 @@ void TicksX::setLines(const Graph::Format::Settings& settings) {
         }else{
             // Item is unavailable, add new GridLine QGraphicsLineItem, and take ownership
             GridLine* item = new GridLine(settings.x_ticks.ticks[i].location, this);
-
+            if(this->style){
+                item->updatePainter(this->style);
+            }
             // Add pointer to vector
             this->items.push_back(item);
         }
@@ -506,7 +516,9 @@ void TicksY::setLines(const Graph::Format::Settings& settings) {
         }else{
             // Item is unavailable, add new TickLine QGraphicsLineItem and take ownership
             GridLine* item = new GridLine(settings.y_ticks.ticks[i].location, this);
-
+            if(this->style){
+                item->updatePainter(this->style);
+            }
             // Add pointer to vector
             this->items.push_back(item);
         }
@@ -604,7 +616,9 @@ void GridLinesX::setLines(const Graph::Format::Settings& settings) {
         }else{
             // Item is unavailable, add new GridLine QGraphicsLineItem, and take ownership
             GridLine* item = new GridLine(settings.x_ticks.ticks[i].location, this);
-
+            if(this->style){
+                item->updatePainter(this->style);
+            }
             // Add pointer to vector
             this->items.push_back(item);
         }
@@ -700,7 +714,9 @@ void GridLinesY::setLines(const Graph::Format::Settings& settings) {
         }else{
             // Item is unavailable, add new TickLine QGraphicsLineItem and take ownership
             GridLine* item = new GridLine(settings.y_ticks.ticks[i].location, this);
-
+            if(this->style){
+                item->updatePainter(this->style);
+            }
             // Add pointer to vector
             this->items.push_back(item);
         }
@@ -725,7 +741,7 @@ Constructor: construct a label for a specific axis grid/tick location
     :param location: location in 'real' value (x: nanometers/y: percentage)
     :param parent: parent
 */
-GridLabel::GridLabel(int location, QString label, QGraphicsItem* parent) :
+GridLabel::GridLabel(double location, QString label, QGraphicsItem* parent) :
     QGraphicsSimpleTextItem(parent),
     label_location(location)
 {
@@ -736,7 +752,7 @@ GridLabel::GridLabel(int location, QString label, QGraphicsItem* parent) :
 Set location attribute
     :param location: value to update location to
 */
-void GridLabel::setLocation(int location){
+void GridLabel::setLocation(double location){
     this->label_location = location;
 }
 
@@ -744,7 +760,7 @@ void GridLabel::setLocation(int location){
 Get location
     :returns: location
 */
-int GridLabel::location() const {
+double GridLabel::location() const {
     return this->label_location;
 }
 
@@ -767,6 +783,7 @@ Make sure to call calculateMinimumSize() after any size changes.
 AbstractGridLabels::AbstractGridLabels(QGraphicsItem* parent) : 
     QGraphicsItem(parent),
     items(),
+    style(nullptr),
     item_margins(0, 0, 0, 0),
     space_offset(0),
     minimum_width(0),
@@ -847,6 +864,13 @@ Forwards the brush update to its contained GridLabels items
     :param style: brush factory
 */
 void AbstractGridLabels::updatePainter(const Graph::Format::Style* style){
+    this->style = style;
+
+    // style can be nullptr
+    if(!this->style){
+        return;
+    }
+    
     for(Graph::Axis::GridLabel* label : this->items){
         label->updatePainter(style);
     }
@@ -966,7 +990,9 @@ void GridLabelsX::setLabels(const Graph::Format::Settings& settings) {
         }else{
             // Item is unavailable, add new TickLine QGraphicsLineItem and give ownership to self
             Axis::GridLabel* item = new Axis::GridLabel(settings.x_ticks.ticks[i].location, settings.x_ticks.ticks[i].label, this);
-
+            if(this->style){
+                item->updatePainter(this->style);
+            }
             // Add pointer to vector
             this->items.push_back(item);
         }
@@ -1011,7 +1037,7 @@ void GridLabelsY::calculateMinimumSize() {
         return;
     }
 
-    Axis::GridLabel* label = this->items[this->items.size() - 1];
+    Axis::GridLabel* label = this->items[0];
 
     QFontMetrics font_metric = QFontMetrics(label->font());
 
@@ -1099,7 +1125,9 @@ void GridLabelsY::setLabels(const Graph::Format::Settings& settings) {
         }else{
             // Item is unavailable, add new GridLabel QGraphicsLineItem, and take ownership
             GridLabel* item = new GridLabel(settings.y_ticks.ticks[i].location, settings.y_ticks.ticks[i].label, this);
-
+            if(this->style){
+                item->updatePainter(this->style);
+            }
             // Add pointer to vector
             this->items.push_back(item);
         }
@@ -1554,6 +1582,13 @@ Spectrum::Spectrum(Data::CacheSpectrum& data, QGraphicsItem* parent) :
     intensity_coefficient(1.0)
 {
     this->setPos(0.0, 0.0);
+}
+
+/*
+Returns the intensity coefficient
+*/
+double Spectrum::intensity() const {
+    return this->intensity_coefficient;
 }
 
 /*
@@ -2275,6 +2310,14 @@ std::vector<ITEM*> AbstractCollection<ITEM>::containsItems(const QPointF& point)
 }
 
 /*
+Const getter for the internal item vector
+*/
+template<typename ITEM>
+const std::vector<ITEM*> AbstractCollection<ITEM>::internal_items() const{
+    return this->items;
+}
+
+/*
 Container class, the container object itself does not contain anything paintable. Therefore painting does nothing.
 */
 template<typename ITEM>
@@ -2379,10 +2422,9 @@ void SpectrumCollection::setSelect(bool select) {
 
 /*
 Synchronizes all the spectra to the Cache state. Handles adding, order and removing of spectrum graphicsitems.
-    :param input: a (ordered) vector of the cache state. Ordering is not required for proper functioning of the graph plotting
-    :param settings: the graph settings, necessary for correct positioning of the new items
+    :param cache_state: the cache state to synchronize the spectrum items to
 */
-void SpectrumCollection::syncSpectra(const std::vector<Cache::ID>& cache_state, const std::vector<Data::Laser>& lasers){
+void SpectrumCollection::syncSpectra(const std::vector<Cache::ID>& cache_state){
     // Special case: cache is empty -> remove all
     if(cache_state.empty()){
         for(Graph::Spectrum* item : this->items){
@@ -2407,10 +2449,6 @@ void SpectrumCollection::syncSpectra(const std::vector<Cache::ID>& cache_state, 
             if(this->style){    // Can be nullptr
                 item_new->updatePainter(this->style);
             }
-
-            // all items are repositioned after synchronizing
-            item_new->updateIntensity(lasers);
-            item_new->setPosition(this->items_space);
 
             this->items.insert(
                 std::next(this->items.begin(), static_cast<int>(index_current)), 
@@ -2443,9 +2481,6 @@ void SpectrumCollection::syncSpectra(const std::vector<Cache::ID>& cache_state, 
             this->items.cend()
         );
     }
-
-    // Now we have the correct spectra -> sync internal state (line visibility)
-    this->updateSpectra();
 }
 
 /*
@@ -2535,49 +2570,6 @@ const std::vector<Data::Laser> LaserCollection::lasers() const {
     }
 
     return laser_wavelengths;
-}
-
-/*
-Synchronizes the collection to contain zero or one Graph::Laser.
-    :param wavelength: the wavelength (in nm) the Graph::Laser should show. A negative value will result in removal of the item
-    :param visible: the visibility state of the laser
-*/
-void LaserCollection::syncLaser(double wavelength){
-    // If wavelength is below zero, all items will be removed
-    if(wavelength < 0){
-        for(Graph::Laser* item : this->items){
-            delete item;
-        }
-        this->items.clear();
-        return;
-    }
-
-    if(this->items.empty()){
-        Laser* item = new Laser(wavelength, this);
-        this->items.push_back(item);
-
-        if(this->style){    // Can be nullptr
-            item->updatePainter(this->style);
-        }
-        item->setPosition(this->items_space);
-
-        return;
-    }
-
-    // Not empty so atleast one item exists
-    this->items[0]->setWavelength(wavelength);
-    this->items[0]->setPosition(this->items_space);
-
-    // Make sure only 1 laser is constructed
-    if(this->items.size() > 1){
-        for(std::size_t i=1; i > this->items.size(); ++i){
-            delete this->items[i];
-        }
-        this->items.erase(
-            std::next(this->items.begin(), 1), 
-            this->items.cend()
-        );
-    }
 }
 
 /*

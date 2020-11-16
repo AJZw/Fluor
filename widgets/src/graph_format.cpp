@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.8
-** Date:       2020-08-05
+** Version:    v0.10.1
+** Date:       2020-11-16
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -22,7 +22,7 @@ Constructor for Axis object
     :param min: absolute minimum value
     :param max: absolute maximum value, expected to be larger then min
 */
-Axis::Axis(int min, int max, QString label) :
+Axis::Axis(double min, double max, QString label) :
     min(min),
     max(max),
     label(label)
@@ -33,7 +33,7 @@ Constructor for AxisRange object
     :param begin: the axis visible begin value, expected to be equal or bigger then the equivalent Axis.min value, and smaller then Axis.max value
     :param end: the axis visible end value, expected to be equal or smaller then the equivalent Axis.max value, and bigger then Axis.min value
 */
-AxisRange::AxisRange(int begin, int end) :
+AxisRange::AxisRange(double begin, double end) :
     begin(begin),
     end(end),
     default_begin(begin),
@@ -44,7 +44,7 @@ AxisRange::AxisRange(int begin, int end) :
 Constructor for Tick object, will not add a label for this Tick
     :param location: the tick mark location
 */
-Tick::Tick(int location) :
+Tick::Tick(double location) :
     location(location),
     label()
 {}
@@ -54,7 +54,7 @@ Constructor for Tick object, will add a label for this Tick
     :param location: tick mark location
     :param label: tick label
 */
-Tick::Tick(int location, QString label) :
+Tick::Tick(double location, QString label) :
     location(location),
     label(label)
 {}
@@ -65,51 +65,79 @@ Find the indexes which fit in between the begin and end value (if any)
     :param end: highest boundary
 */
 template<std::size_t TICK_COUNT>
-void Ticks<TICK_COUNT>::findIndexes(int begin, int end){
+void Ticks<TICK_COUNT>::findIndexes(double begin, double end){
     if(TICK_COUNT <= 0){
         return;
     }
     
-    // Check is begin and end are reversed (for Y-axis)
-    if(begin > end){
-        // Reversed order, so swap begin and end values
-        std::swap(begin, end);
-    }
-
-    // Check if the value are within bounds of the array
-    if(end < this->ticks[0].location || begin > this->ticks[this->ticks.size() -1].location){
-        this->valid = false;
-        return;
-    }
-
-    // Valid region so get indexes
+    // depending on order, different search strategy has to be employed
     std::size_t index_begin = 0;
-    for(std::size_t i=0; i<this->ticks.size(); ++i){
-        if(this->ticks[i].location >= begin){
-            index_begin = i;
-            break;
-        }
-    }
-
-    // std::size_t can be unsigned, so cannot be smaller then 0, so use index + 1 for iteration
     std::size_t index_end = 0;
-    for(std::size_t i=this->ticks.size(); i>0; --i){
-        if(this->ticks[i-1].location <= end){
-            index_end = i;
-            break;
+    if(begin <= end){
+        // Check if the value are within bounds of the array
+        if(end < this->ticks[0].location || begin > this->ticks[this->ticks.size() -1].location){
+            this->valid = false;
+            return;
+        }
+
+        // Valid region so get indexes
+        for(std::size_t i=0; i<this->ticks.size(); ++i){
+            if(this->ticks[i].location >= begin){
+                index_begin = i;
+                break;
+            }
+        }
+
+        // std::size_t can be unsigned, so cannot be smaller then 0, so use i-1 for iteration
+        for(std::size_t i=this->ticks.size(); i>0; --i){
+            if(this->ticks[i-1].location <= end){
+                index_end = i;
+                break;
+            }
+        }
+    }else{
+        // Check if the value are within bounds of the array
+        if(end > this->ticks[0].location || begin < this->ticks[this->ticks.size() -1].location){
+            this->valid = false;
+            return;
+        }
+
+        // Valid region so get indexes
+        for(std::size_t i=0; i<this->ticks.size(); ++i){
+            if(this->ticks[i].location <= begin){
+                index_begin = i;
+                break;
+            }
+        }
+
+        // std::size_t can be unsigned, so cannot be smaller then 0, so use i-1 for iteration
+        for(std::size_t i=this->ticks.size(); i>0; --i){
+            if(this->ticks[i-1].location >= end){
+                index_end = i;
+                break;
+            }
         }
     }
 
     this->valid = true;
     this->index_begin = index_begin;
     this->index_end = index_end;
-
 }
+
+// ################################################################################## //
 
 /*
 Constructor: attributes are taken care of in header file, just to set correct state ticks
 */
 Settings::Settings(){
+    this->x_ticks.findIndexes(this->x_range.begin, this->x_range.end);
+    this->y_ticks.findIndexes(this->y_range.begin, this->y_range.end);
+}
+
+/*
+Updates the internal state of settings to apply any settings data change
+*/
+void Settings::update() {
     this->x_ticks.findIndexes(this->x_range.begin, this->x_range.end);
     this->y_ticks.findIndexes(this->y_range.begin, this->y_range.end);
 }
@@ -122,17 +150,20 @@ Constructor
 */
 Style::Style(QWidget* parent) :
     QWidget(parent),
-    style_scene("#FFFFFF"),
-    style_background("#FFFFFF"),
-    style_background_hover("#FFFFFF"),
-    style_background_press("#FFFFFF"),
-    style_label("#FFFFFF"),
+    style_scene("#ffffff"),
+    style_background("#ffffff"),
+    style_background_hover("#ffffff"),
+    style_background_press("#ffffff"),
+    style_axis("#ffffff"),
+    style_axis_hover("#ffffff"),
+    style_axis_press("#ffffff"),
+    style_label("#ffffff"),
     style_label_weight(QFont::Normal),
-    style_grid_label("#FFFFFF"),
+    style_grid("#ffffff"),
+    style_grid_label("#ffffff"),
     style_grid_label_weight(QFont::Normal),
-    style_axis("#FFFFFF"),
-    style_axis_hover("#FFFFFF"),
-    style_axis_press("#FFFFFF"),
+    filter_width(2),
+    style_filter("#000000"),
     absorption_width(1),
     absorption_style(Qt::DashDotLine),
     excitation_width(1),
@@ -190,34 +221,6 @@ void Style::setBackgroundPress(QString background_press){
     this->style_background_press = QColor(background_press);
 }
 
-QString Style::label() const {
-    return this->style_label.name(QColor::HexRgb);
-}
-void Style::setLabel(QString label) {
-    this->style_label = QColor(label);
-}
-
-QString Style::labelWeight() const {
-    return Style::fontWeightToText(this->style_label_weight);
-}
-void Style::setLabelWeight(QString label_weight){
-    this->style_label_weight = Style::textToFontWeight(label_weight, QFont::Normal);
-}
-
-QString Style::gridLabel() const {
-    return this->style_grid_label.name(QColor::HexRgb);
-}
-void Style::setGridLabel(QString grid_label){
-    this->style_grid_label = QColor(grid_label);
-}
-
-QString Style::gridLabelWeight() const {
-    return Style::fontWeightToText(this->style_grid_label_weight);
-}
-void Style::setGridLabelWeight(QString grid_label_weight){
-    this->style_grid_label_weight = Style::textToFontWeight(grid_label_weight, QFont::Normal);
-}
-
 QString Style::axis() const {
     return this->style_axis.name(QColor::HexRgb);
 }
@@ -237,6 +240,55 @@ QString Style::axisPress() const {
 }
 void Style::setAxisPress(QString axis_press){
     this->style_axis_press = QColor(axis_press);
+}
+
+QString Style::label() const {
+    return this->style_label.name(QColor::HexRgb);
+}
+void Style::setLabel(QString label) {
+    this->style_label = QColor(label);
+}
+
+QString Style::labelWeight() const {
+    return Style::fontWeightToText(this->style_label_weight);
+}
+void Style::setLabelWeight(QString label_weight){
+    this->style_label_weight = Style::textToFontWeight(label_weight, QFont::Normal);
+}
+
+QString Style::grid() const {
+    return this->style_grid.name(QColor::HexRgb);
+}
+void Style::setGrid(QString grid){
+    this->style_grid = QColor(grid);
+}
+
+QString Style::gridLabel() const {
+    return this->style_grid_label.name(QColor::HexRgb);
+}
+void Style::setGridLabel(QString grid_label){
+    this->style_grid_label = QColor(grid_label);
+}
+
+QString Style::gridLabelWeight() const {
+    return Style::fontWeightToText(this->style_grid_label_weight);
+}
+void Style::setGridLabelWeight(QString grid_label_weight){
+    this->style_grid_label_weight = Style::textToFontWeight(grid_label_weight, QFont::Normal);
+}
+
+QString Style::filter() const {
+    return this->style_filter.name(QColor::HexRgb);
+}
+void Style::setFilter(QString filter){
+    this->style_filter = QColor(filter);
+}
+
+QString Style::filterWidth() const{
+    return QString::number(this->filter_width, 'f', 0);
+}
+void Style::setFilterWidth(QString filter_width){
+    this->filter_width = filter_width.toInt();
 }
 
 QString Style::absorptionWidth() const{
@@ -469,7 +521,7 @@ QFont Style::fontGridLabel() const {
 }
 
 /*
-Constructs and returns a pen for the Graph::GridLines, Graph::TickLines, Graph::Outline, or Graph::Colorbar
+Constructs and returns a pen for the Graph::TickLines, Graph::Outline, or Graph::Colorbar
 */
 QPen Style::penAxis() const {
     QPen pen(Qt::SolidLine);
@@ -501,6 +553,18 @@ QPen Style::penAxisPress() const {
     pen.setCapStyle(Qt::SquareCap);
     pen.setJoinStyle(Qt::MiterJoin);
     pen.setColor(this->style_axis_press);
+    return pen;
+}
+
+/*
+Constructs and returns a pen for the Graph::GridLines
+*/
+QPen Style::penGrid() const {
+    QPen pen(Qt::SolidLine);
+    pen.setWidth(1);
+    pen.setCapStyle(Qt::SquareCap);
+    pen.setJoinStyle(Qt::MiterJoin);
+    pen.setColor(this->style_grid);
     return pen;
 }
 
@@ -607,10 +671,10 @@ Constructs and returns a pen for a Graph::Detector object
 */
 QPen Style::penFilter(Qt::PenStyle line_style) const {
     QPen pen(line_style);
-    pen.setWidth(2);
+    pen.setWidth(this->filter_width);
     pen.setCapStyle(Qt::FlatCap);       // A SquareCap will cause line overlaps in the Graph::Filter painting
     pen.setJoinStyle(Qt::MiterJoin);
-    pen.setColor(QColor("#CCCCCC"));
+    pen.setColor(this->style_filter);
     return pen;
 }
 
@@ -816,17 +880,21 @@ std::function<double(double, double)> PlotRectF::toGlobalYFunction() const {
 Calculates the linear transformation equations and stores the slope
 */
 void PlotRectF::calculate(){
+    // Keep in mind that a QRect 0x0 coordinate is positioned in the topleft!
+
+    // Calculate X-axis parameters
     this->x_slope_global_to_local = (this->rect_local.width() - this->margins_settings.left() - this->margins_settings.right()) / this->rect_settings.width();
-    this->x_slope_local_to_global = this->rect_settings.width() / (this->rect_local.width() - this->margins_settings.left() - this->margins_settings.right());
+    this->x_slope_local_to_global = 1 / this->x_slope_global_to_local; //this->x_slope_local_to_global = this->rect_settings.width() / (this->rect_local.width() - this->margins_settings.left() - this->margins_settings.right());
 
     double global_left = this->rect_settings.left() - (this->x_slope_local_to_global * this->margins_settings.left());
     double global_right = this->rect_settings.right() + (this->x_slope_local_to_global * this->margins_settings.right());
 
     this->x_intercept = this->rect_local.left() - (global_left * this->x_slope_global_to_local);
 
+    // Calculate Y-axis parameters.
     this->y_slope_global_to_local = (this->rect_local.height() - this->margins_settings.top() - this->margins_settings.bottom()) / this->rect_settings.height();
-    this->y_slope_local_to_global = this->rect_settings.height() / (this->rect_local.height() - this->margins_settings.top() - this->margins_settings.bottom());
-
+    this->y_slope_local_to_global = 1 / this->y_slope_global_to_local; //this->y_slope_local_to_global = this->rect_settings.height() / (this->rect_local.height() - this->margins_settings.top() - this->margins_settings.bottom());
+    
     double global_top = this->rect_settings.top() - (this->y_slope_local_to_global * this->margins_settings.top());
     double global_bottom = this->rect_settings.bottom() + (this->y_slope_local_to_global * this->margins_settings.bottom());
 

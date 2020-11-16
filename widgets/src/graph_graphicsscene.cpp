@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.10
-** Date:       2020-10-13
+** Version:    v0.10.1
+** Date:       2020-11-16
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -14,6 +14,8 @@
 #include <QGraphicsItem>
 #include <QPointF>
 #include <QMouseEvent>
+
+#include <cmath>
 
 namespace Graph {
 
@@ -46,7 +48,7 @@ GraphicsScene::GraphicsScene(Format::Settings settings, QWidget* parent) :
     is_selected(false)
 {
     this->plot_rect.setSettings(QRectF(QPointF(this->settings.x_range.begin, this->settings.y_range.begin), QPointF(this->settings.x_range.end, this->settings.y_range.end)));
-    
+
     // Add items to heap, make sure to add to scene for proper memory management
     this->item_background = new Graph::Background();
     
@@ -94,8 +96,6 @@ GraphicsScene::GraphicsScene(Format::Settings settings, QWidget* parent) :
     if(this->settings.enable_gridlabels){this->item_y_axis_gridlabels->setLabels(this->settings);}
     if(this->settings.enable_ticks){this->item_y_axis_ticks->setLines(this->settings);}
     if(this->settings.enable_gridlines){this->item_y_axis_gridlines->setLines(this->settings);}
-
-    //this->item_lasers->syncLasers({300, 350, 400, 450, 500, 550, 600, 650, 700, 750});
 
     this->installEventFilter(this);
 }
@@ -244,9 +244,25 @@ Slot: receives synchronisation requests forwards it to the spectra object
     :param cache_state: the state of the cache
 */
 void GraphicsScene::syncSpectra(const std::vector<Cache::ID>& cache_state){
-    this->item_spectra->syncSpectra(cache_state, this->item_lasers->lasers());
-    // Schedule a redraw
-    QGraphicsScene::update(this->sceneRect());
+    this->item_spectra->syncSpectra(cache_state);
+    this->item_spectra->updateSpectra();
+    this->item_spectra->updateIntensity(this->item_lasers->lasers());
+
+    // If multiple lasers are drawn this can cause >100% relative intensity. Rescale the PlotRect to allow for the additional space
+    bool plot_rect_updated = this->updatePlotRect();
+
+    if(plot_rect_updated){
+        // Recalculate the y-axis
+        this->syncAxisY();
+
+        // Recalculated the entire plot
+        this->calculateSizes(this->size_current);
+        // Schedule full redraw
+        QGraphicsScene::update(this->sceneRect());
+    }else{
+        // Recalculate only the spectra
+        this->item_spectra->setPosition();
+    }
 }
 
 /*
@@ -281,10 +297,64 @@ void GraphicsScene::syncGraphState(const State::GraphState& state){
 }
 
 /*
-Synchronizes the laser to the graph
+Updates the plotrect to fit the intensity range of the spectra. 
+When multiple lasers are drawn, this can cause >1.0 relative intensity.
+Make sure to rerun setPosition afterwards to apply the new coordinate system
+    :returns: whether the PlotRectF has been changed
 */
-void GraphicsScene::syncLaser(double wavelength){
-    this->item_lasers->syncLaser(wavelength);
+bool GraphicsScene::updatePlotRect(){
+    double intensity_max = 1.0;
+
+    // Only need to iterate when more then 1 lasers is applied
+    if(this->item_lasers->lasers().size() > 1){
+        for(const auto spectrum : this->item_spectra->internal_items()){
+            if(intensity_max < spectrum->intensity()){
+                intensity_max = spectrum->intensity();
+            }
+        }
+
+        intensity_max *=100;
+        double intensity_remainder = fmod(intensity_max, 20.0);
+        if(intensity_remainder != 0.0){
+            intensity_max = intensity_max + (20.0 - intensity_remainder);
+        }
+    }else{
+        intensity_max = 100.0;
+    }
+
+    // Make sure the value wont be outside the maximum range
+    if(intensity_max > this->settings.y_axis.min){
+        intensity_max = this->settings.y_axis.min;
+    }
+
+    // Check if current plot_rect fits with the intensity max and change when so
+    if(this->plot_rect.settings().top() != intensity_max){
+        QRectF plotrect_settings = this->plot_rect.settings();
+        plotrect_settings.setTop(intensity_max);
+        this->plot_rect.setSettings(plotrect_settings);
+
+        this->settings.y_range.begin = intensity_max;
+        this->settings.update();
+
+        return true;
+    }
+    return false;
+}
+
+/*
+Updates the X-axis to the (new?) graph::settings
+*/
+void GraphicsScene::syncAxisX(){
+    if(this->settings.enable_gridlabels){this->item_x_axis_gridlabels->setLabels(this->settings);}
+    if(this->settings.enable_gridlines){this->item_x_axis_gridlines->setLines(this->settings);};
+}
+
+/*
+Updates the Y-axis to the (new?) graph::settings
+*/
+void GraphicsScene::syncAxisY(){
+    if(this->settings.enable_gridlabels){this->item_y_axis_gridlabels->setLabels(this->settings);}
+    if(this->settings.enable_gridlines){this->item_y_axis_gridlines->setLines(this->settings);};
 }
 
 /*
@@ -292,11 +362,6 @@ Synchronizes the lasers to the graph
 */
 void GraphicsScene::syncLasers(const std::vector<Data::Laser>& lasers){
     this->item_lasers->syncLasers(lasers);
-
-    // Updates spectra to adhere to excitation intensity
-    this->item_spectra->updateIntensity(lasers);
-    // Need to recalculate the Y coordinate of the spectrum and this forces repainting
-    this->item_spectra->setPosition();
 }
 
 /*

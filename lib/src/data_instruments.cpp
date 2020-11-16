@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.12
-** Date:       2020-11-09
+** Version:    v0.10.1
+** Date:       2020-11-16
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -382,7 +382,8 @@ void InstrumentReader::load(const Data::Factory& factory){
     std::size_t data_size = static_cast<std::size_t>(data.length());
     this->instrument_ids.reserve(data_size);
     for(const QString &key : data.keys()){
-        InstrumentID id(key, data[key].toObject()["name"].toString(key));
+        QJsonObject data_object = data[key].toObject();
+        InstrumentID id(key, data_object["name"].toString(key));
         this->instrument_ids.push_back(id);
     }
 
@@ -400,7 +401,8 @@ Retreives the specified instrument from the data file
 */
 Instrument InstrumentReader::getInstrument(const QString& id) const {
     // Retrieve data
-    QJsonValueRef data_ref = this->instrument_data.object()[id];
+    QJsonObject data_object = this->instrument_data.object();
+    QJsonValueRef data_ref = data_object[id];
 
     if(data_ref.type() == QJsonValue::Type::Null || data_ref.type() == QJsonValue::Type::Undefined){
         qWarning() << "InstrumentReader::getInstrument: Data::Instrument object of id" << id << "could not be found.";

@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.13
-** Date:       2020-11-09
+** Version:    v0.10.1
+** Date:       2020-11-16
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -193,7 +193,7 @@ void AbstractPopup::showPopup(){
     // sizeHintForRow is not updated until the listview has been painted with the new (DPI adjusted) font
     // As the popup listview can contain custom items which are of smaller size, iteratively count row hints
     int height = 14;
-    for(int i; i<this->model()->rowCount(); ++i){
+    for(int i=0; i<this->model()->rowCount(); ++i){
         height += this->sizeHintForRow(i);
     }
 
@@ -948,7 +948,8 @@ Laser::AbstractPopup* LineEdit::popup(){
 Shows the popup (if not visible)
 */
 void LineEdit::showPopup(){
-    if(!this->popup()->isVisible()){
+    // Popup model is empty, no need to show it.
+    if(!this->popup()->isVisible() && this->popup()->model()->rowCount() > 0){
         this->popup()->showPopup();
     }
 }

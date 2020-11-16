@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.12
-** Date:       2020-10-28
+** Version:    v0.10.1
+** Date:       2020-11-16
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -49,10 +49,18 @@ Factory::Factory() :
     // Set error/warning parameters/debug message
     if(!this->valid_settings || !this->valid_defaults){
         qWarning() << "Data::Factory::Factory(): cannot find settings.ini";
-        this->error_fatal = true;
+        this->error_warning = true;
     }
     if(!this->valid_styles || !this->valid_instruments || !this->valid_fluorophores){
-        qWarning() << "Data::Factory::Factory(): cannot find styles.ini/instruments.json/fluorophores.json";
+        if(!this->valid_styles){
+            qWarning() << "Data::Factory::Factory(): cannot find styles.ini";
+        }
+        if(!this->valid_instruments){
+            qWarning() << "Data::Factory::Factory(): cannot find instruments.json";
+        }
+        if(!this->valid_fluorophores){
+            qWarning() << "Data::Factory::Factory(): cannot find fluorophores.json";
+        }
         this->error_warning = true;
     }
 }
@@ -97,10 +105,18 @@ Factory::Factory(
     // Set error/warning parameters/debug message
     if(!this->valid_settings || !this->valid_defaults){
         qWarning() << "Data::Factory::Factory(): cannot find settings.ini";
-        this->error_fatal = true;
+        this->error_warning = true;
     }
     if(!this->valid_styles || !this->valid_instruments || !this->valid_fluorophores){
-        qWarning() << "Data::Factory::Factory(): cannot find styles.ini / instruments.json / fluorophores.json";
+        if(!this->valid_styles){
+            qWarning() << "Data::Factory::Factory(): cannot find styles.ini";
+        }
+        if(!this->valid_instruments){
+            qWarning() << "Data::Factory::Factory(): cannot find instruments.json";
+        }
+        if(!this->valid_fluorophores){
+            qWarning() << "Data::Factory::Factory(): cannot find fluorophores.json";
+        }
         this->error_warning = true;
     }
 }
@@ -120,15 +136,15 @@ Returns the validity for the specified data type
 bool Factory::isValid(Factory::type data) const {
     switch(data){
     case Factory::Settings:
-        return this->valid_settings;
+        return Factory::exists(this->path_settings);
     case Factory::Defaults:
-        return this->valid_defaults;
+        return Factory::exists(this->path_defaults);
     case Factory::Styles:
-        return this->valid_styles;
+        return Factory::exists(this->path_styles);
     case Factory::Instruments:
-        return this->valid_instruments;
+        return Factory::exists(this->path_instruments);
     case Factory::Fluorophores:
-        return this->valid_fluorophores;
+        return Factory::exists(this->path_fluorophores);
     default:
         return false;
     }
@@ -167,6 +183,12 @@ void Factory::execMessages() const {
         Data::Error(message).exec();
     }else if(this->error_warning){
         QString message = "";
+        if(!this->valid_defaults){
+            message.append("Default data could not be found.\n");
+        }
+        if(!this->valid_settings){
+            message.append("Settings data could not be found.\n");
+        }
         if(!this->valid_styles){
             message.append("Styles data could not be found.\n");
         }
@@ -237,7 +259,7 @@ std::unique_ptr<QSettings> Factory::get(const Factory::type type) const {
             }
             return std::make_unique<QSettings>(this->path_settings, QSettings::IniFormat);
         }else{
-            qFatal("Data::Factory::get(): requested invalid data source");
+            qFatal("Data::Factory::get(): requested invalid Factory::Settings data source");
         }
         break;
     }
@@ -248,7 +270,7 @@ std::unique_ptr<QSettings> Factory::get(const Factory::type type) const {
             }
             return std::make_unique<QSettings>(this->path_defaults, QSettings::IniFormat);
         }else{
-            qFatal("Data::Factory::get(): requested invalid data source");
+            qFatal("Data::Factory::get(): requested invalid Factory::Defaults data source");
         }
         break;
     }
@@ -259,7 +281,7 @@ std::unique_ptr<QSettings> Factory::get(const Factory::type type) const {
             }
             return std::make_unique<QSettings>(this->path_styles, QSettings::IniFormat);
         }else{
-            qFatal("Data::Factory::get(): requested invalid data source");
+            qFatal("Data::Factory::get(): requested invalid Factory::Styles data source");
         }
         break;
     }

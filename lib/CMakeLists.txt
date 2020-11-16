@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.13)
 
 # Set project details
-project(data_library VERSION 0.9 DESCRIPTION "Fluor Data Dynamic Library")
+project(data_library VERSION 0.10.0 DESCRIPTION "Fluor Data Dynamic Library")
 
 # C++ version
 set(CMAKE_CXX_STANDARD 14)
@@ -56,7 +56,7 @@ target_compile_options(data_library PRIVATE
 )
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
-  target_compile_definitions(fluor PRIVATE QT_DEBUG_NO_OUTPUT)
+  target_compile_definitions(data_library PRIVATE QT_DEBUG_NO_OUTPUT)
 endif()
 
 set_target_properties(data_library PROPERTIES

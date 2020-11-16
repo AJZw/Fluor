@@ -8,11 +8,13 @@ GENERAL:
     A way to load the view
     A way to export the plots
     Sometimes (exp shift+windows_key) moves the window, this should close all open drop-down menu's.
-    Make the backup style more user-interactable (hover/click borders)
     Upon moving to screen with different DPI settings, a setGeometry error is fired. Preventable?
 
 DATA:
     Implement two_photon excitation
+
+MENU:
+    Menu's in 'title bar' as vscode - aka make a custom bar QHBoxLayout with icon and min/max/close buttons
 
 CACHE:
     In common usage check to what size the unordered_map grow, now just a guess
@@ -20,11 +22,6 @@ CACHE:
 LASER & FLUOR:
     Upon DPI change the rowSizeHint lags behind one paint(), which can cause imperfect popup size. Not sure you can work your way around this one.
     Maybe by manually reapplying the delegate on the item (see source QStandardItem::sizeHint / paint)
-
-GRAPH:
-    Scaling intensity axis when more then 1 laser is enabled
-    Properly set amount of graph columns, so no clipping happens in lower widths
-    'black' axes face_color option allow for white out of visible spectrum plotting
 
 MAC:
     TEST QSettings settings on macintosh, does it follow the QApp defined names

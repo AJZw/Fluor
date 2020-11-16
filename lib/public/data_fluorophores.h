@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.12
-** Date:       2020-10-28
+** Version:    v0.10.1
+** Date:       2020-11-16
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -50,7 +50,7 @@
 #include <QDebug>
 #include <QString>
 #include <QStringList>
-#include <QJsonArray>
+#include <QJsonDocument>
 
 namespace Data {
 
@@ -104,7 +104,7 @@ class DATALIB_EXPORT FluorophoreReader {
         const std::unordered_map<QString, QStringList>& getFluorNames() const;
 
         Data::Spectrum getSpectrum(const QString& id) const;
-        Data::CacheSpectrum getCacheSpectrum(const QString& id, unsigned int index) const;
+        Data::CacheSpectrum getCacheSpectrum(const QString&id, unsigned int index) const;
 
     private:
         static Data::Polygon toPolygon(const QStringList& list_x, const QStringList& list_y);

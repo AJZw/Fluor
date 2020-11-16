@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.13)
 
 # Set project details
-project(fluor VERSION 0.9 DESCRIPTION "Fluor executable")
+project(fluor VERSION 0.10.0 DESCRIPTION "Fluor executable")
 
 # C++ version
 set(CMAKE_CXX_STANDARD 14)
@@ -134,7 +134,6 @@ add_custom_command(
     ${PROJECT_SOURCE_DIR}/data              
     $<TARGET_FILE_DIR:fluor>/data
 )
-
 
 ########################################################
 # cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Debug 

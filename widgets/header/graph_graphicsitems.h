@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.11
-** Date:       2020-10-27
+** Version:    v0.10.1
+** Date:       2020-11-16
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -184,19 +184,19 @@ class LabelY : public Axis::AbstractLabel {
 
 class GridLine : public QGraphicsLineItem {
     public:
-        explicit GridLine(int location, QGraphicsItem* parent=nullptr);
+        explicit GridLine(double location, QGraphicsItem* parent=nullptr);
         GridLine(const GridLine &obj) = delete;
         GridLine& operator=(const GridLine &obj) = delete;
         GridLine(GridLine&&) = delete;
         GridLine& operator=(GridLine&&) = delete;
         ~GridLine() = default;
 
-        void setLocation(int location);
-        int location() const;
+        void setLocation(double location);
+        double location() const;
         void updatePainter(const Graph::Format::Style* style);
 
     private:
-        int line_location;
+        double line_location;
 };
 
 class AbstractGridLines : public QGraphicsItem {
@@ -210,6 +210,7 @@ class AbstractGridLines : public QGraphicsItem {
 
     protected:
         std::vector<Axis::GridLine*> items;         // Have to be in ordered position
+        const Graph::Format::Style* style;
 
         QMargins item_margins;
         int line_length;
@@ -302,19 +303,19 @@ class GridLinesY : public Axis::AbstractGridLines {
 
 class GridLabel : public QGraphicsSimpleTextItem {
     public:
-        explicit GridLabel(int location, QString label, QGraphicsItem* parent=nullptr);
+        explicit GridLabel(double location, QString label, QGraphicsItem* parent=nullptr);
         GridLabel(const GridLabel &obj) = delete;
         GridLabel& operator=(const GridLabel &obj) = delete;
         GridLabel(GridLabel&&) = delete;
         GridLabel& operator=(GridLabel&&) = delete;
         ~GridLabel() = default;
 
-        void setLocation(int location);
-        int location() const;
+        void setLocation(double location);
+        double location() const;
         void updatePainter(const Graph::Format::Style* style);
 
     private:
-        int label_location;
+        double label_location;
 };
 
 class AbstractGridLabels : public QGraphicsItem {
@@ -328,6 +329,7 @@ class AbstractGridLabels : public QGraphicsItem {
 
     protected:
         std::vector<GridLabel*> items;
+        const Graph::Format::Style* style;
 
         QMargins item_margins;
         int space_offset;
@@ -528,6 +530,8 @@ class Spectrum : public QGraphicsItem {
         double intensity_coefficient;
     
     public:
+        double intensity() const;
+
         virtual QRectF boundingRect() const override;
         virtual void paint(QPainter *painter, const QStyleOptionGraphicsItem* option, QWidget* widget) override;
         virtual bool contains(const QPointF& point) const override;
@@ -637,6 +641,7 @@ class AbstractCollection : public QGraphicsItem {
     public:
         virtual QRectF boundingRect() const override;
         std::vector<ITEM*> containsItems(const QPointF& point) const;
+        const std::vector<ITEM*> internal_items() const;
         virtual void paint(QPainter *painter, const QStyleOptionGraphicsItem* option, QWidget* widget) override;
         void updatePainter(const Graph::Format::Style* style);
         
@@ -662,7 +667,7 @@ class SpectrumCollection : public AbstractCollection<Spectrum> {
     public:
         void setSelect(bool select);
 
-        void syncSpectra(const std::vector<Cache::ID>& cache_state, const std::vector<Data::Laser>& lasers);
+        void syncSpectra(const std::vector<Cache::ID>& cache_state);
         void updateSpectra();
         void updateIntensity(const std::vector<Data::Laser>& lasers);
 
@@ -683,7 +688,6 @@ class LaserCollection : public AbstractCollection<Laser> {
 
     public:
         const std::vector<Data::Laser> lasers() const;
-        void syncLaser(double wavelength);
         void syncLasers(const std::vector<Data::Laser>& lasers);
         void updateLasers(bool visible);
 };

@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.13
-** Date:       2020-11-09
+** Version:    v0.10.1
+** Date:       2020-11-16
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -134,7 +134,8 @@ ScrollController::ScrollController(QWidget* parent) :
     graph_widgets(),
     graph_selected(nullptr),
     margin_scrollbar(0),
-    column_max(2)
+    columns_max(2),
+    columns(1)
 {
     // Set Scrollarea properties
     this->setFocusPolicy(Qt::NoFocus);
@@ -197,6 +198,30 @@ void ScrollController::setLayoutSpacing(QString layout_spacing){
 }
 
 /*
+Receives a viewport resize event. Makes sure the widget can fit in the width allocated
+*/
+void ScrollController::resizeEvent(QResizeEvent* event){
+    const int min_width = 300;
+    int width = event->size().width();
+
+    int columns_n = width / min_width;
+    
+    if(columns_n > this->columns_max){
+        columns_n = this->columns_max;
+    }else if(columns_n < 1){
+        columns_n = 1;
+    }
+
+    // Rebuild if necessary
+    if(this->columns != columns_n){
+        this->columns = columns_n;
+        this->rebuildLayout();
+    }
+
+    QScrollArea::resizeEvent(event);
+}
+
+/*
 Receives hiding signal from the vertical scrollbar and removes scrollbar margin
 */
 void ScrollController::hidingScrollBar(){
@@ -215,8 +240,8 @@ Adds a graph to the layout
 */
 void ScrollController::addGraph(){
     // Calculate new position 
-    int row = static_cast<int>(this->graph_widgets.size()) / this->column_max;
-    int col = static_cast<int>(this->graph_widgets.size()) % this->column_max;
+    int row = static_cast<int>(this->graph_widgets.size()) / this->columns;
+    int col = static_cast<int>(this->graph_widgets.size()) % this->columns;
 
     // Construct new graph
     Graph::Controller* graph = new Graph::Controller(this);
@@ -255,8 +280,8 @@ void ScrollController::rebuildLayout(){
     for(std::size_t index = 0; index<this->graph_widgets.size(); ++index){
         layout->removeWidget(this->graph_widgets[index]);
 
-        int row = static_cast<int>(index) / this->column_max;
-        int col = static_cast<int>(index) % this->column_max;
+        int row = static_cast<int>(index) / this->columns;
+        int col = static_cast<int>(index) % this->columns;
 
         layout->addWidget(this->graph_widgets[index], row, col, 1, 1);
     }

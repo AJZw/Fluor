@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.12
-** Date:       2020-10-28
+** Version:    v0.10.1
+** Date:       2020-11-16
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -120,7 +120,8 @@ Fluorophore spectrum accessor
 */
 Data::Spectrum FluorophoreReader::getSpectrum(const QString& id) const {
     // Retrieve data
-    QJsonValueRef data_ref = this->fluor_data.object()[id];
+    QJsonObject data_object = this->fluor_data.object();
+    QJsonValueRef data_ref = data_object[id];
 
     if(data_ref.type() == QJsonValue::Type::Null || data_ref.type() == QJsonValue::Type::Undefined){
         qWarning() << "InstrumentReader::getSpectrum: Data::Spectrum object of id" << id << "could not be found.";
@@ -168,14 +169,14 @@ Fluorophore CacheSpectrum accessor
 */
 Data::CacheSpectrum FluorophoreReader::getCacheSpectrum(const QString& id, unsigned int index) const {
     // Retrieve data
-    QJsonValueRef data_ref = this->fluor_data.object()[id];
+    QJsonObject data_object = this->fluor_data.object();
+    QJsonValueRef data_ref = data_object[id];
 
     if(data_ref.type() == QJsonValue::Type::Null || data_ref.type() == QJsonValue::Type::Undefined){
         qWarning() << "InstrumentReader::getSpectrum: Data::Spectrum object of id" << id << "could not be found.";
     }
 
     QJsonObject data = data_ref.toObject();
-
     // Load data and transform to Data::Polygon's
     bool is_absorption = false;
     double excitation_max = data["excitation_max"].toDouble(-1);
@@ -214,12 +215,11 @@ Data::CacheSpectrum FluorophoreReader::getCacheSpectrum(const QString& id, unsig
     spectrum.setAbsorptionFlag(is_absorption);
     
     if(!spectrum.isValid()){      
-        qWarning() << "Data::FluorophoreReader::getCacheSpectrum: DataSpectrum object of id " << id << " is invalid. Is the data file complete?";
+        qWarning() << "Data::FluorophoreReader::getCacheSpectrum: DataSpectrum object of id" << id << "is invalid. Is the data file complete?";
     }
     
     // Wrap in cache
     Data::CacheSpectrum cache(index, spectrum, meta);
-
     return cache;
 }
 

@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.10
-** Date:       2020-10-13
+** Version:    v0.10.1
+** Date:       2020-11-16
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -46,6 +46,7 @@
 #include <QWidget>
 #include <QScrollArea>
 #include <QPaintEvent>
+#include <QResizeEvent>
 
 namespace Graph {
 
@@ -114,12 +115,14 @@ class ScrollController : public QScrollArea {
         std::vector<Controller*> graph_widgets;
         Controller* graph_selected;
         int margin_scrollbar;
-        int column_max;
+        int columns_max;
+        int columns;
 
     private:
         void addGraph();
         void removeGraph();
         void rebuildLayout();
+        virtual void resizeEvent(QResizeEvent* event) override;
     
     signals:
         void sendGlobalEvent(QEvent* event);

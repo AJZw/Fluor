@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.3
-** Date:       2019-07-24
+** Version:    v0.10.1
+** Date:       2020-11-16
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2019 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -70,42 +70,42 @@ namespace Graph {
 namespace Format {
 
 struct Axis {
-    explicit Axis(int min, int max, QString label);
+    explicit Axis(double min, double max, QString label);
     Axis(const Axis &obj) = default;
     Axis& operator=(const Axis &obj) = default;
     Axis(Axis&&) = default;
     Axis& operator=(Axis&&) = default;
     ~Axis() = default;
 
-    const int min;
-    const int max;
+    const double min;
+    const double max;
     const QString label;
 };
 
 struct AxisRange {
-    explicit AxisRange(int begin, int end);
+    explicit AxisRange(double begin, double end);
     AxisRange(const AxisRange &obj) = default;
     AxisRange& operator=(const AxisRange &obj) = default;
     AxisRange(AxisRange&&) = default;
     AxisRange& operator=(AxisRange&&) = default;
     ~AxisRange() = default;
 
-    int begin;                      // in global values
-    int end;                        // in global values
-    const int default_begin;        // in global values
-    const int default_end;          // in global values
+    double begin;                      // in global values
+    double end;                        // in global values
+    const double default_begin;        // in global values
+    const double default_end;          // in global values
 };
 
 struct Tick {
-    explicit Tick(int location);
-    explicit Tick(int location, QString label);
+    explicit Tick(double location);
+    explicit Tick(double location, QString label);
     Tick(const Tick &obj) = default;
     Tick& operator=(const Tick &obj) = default;
     Tick(Tick&&) = default;
     Tick& operator=(Tick&&) = default;
     ~Tick() = default;
 
-    const int location;
+    const double location;
     const QString label;
 };
 
@@ -126,7 +126,7 @@ struct Ticks {
     std::size_t index_end;      // Technically the index after the last relevant tick index, so can be out-of-bounds
     const std::array<Format::Tick, TICK_COUNT> ticks;
 
-    void findIndexes(int begin, int end);
+    void findIndexes(double begin, double end);
 };
 
 struct Settings {
@@ -164,16 +164,33 @@ struct Settings {
         Format::Tick(1500, "1500")
     }};
 
-    const Axis y_axis = Format::Axis(100, 0, QString("Intensity (%)"));
+    const Axis y_axis = Format::Axis(400, 0, QString("Intensity (%)"));
     AxisRange y_range = Format::AxisRange(100, 0);
-    Ticks<6> y_ticks = {{
-        Format::Tick(0, "0"),
-        Format::Tick(20, "20"),
-        Format::Tick(40, "40"), 
-        Format::Tick(60, "60"), 
+    Ticks<21> y_ticks = {{
+        Format::Tick(400, "400"),
+        Format::Tick(380, "380"),
+        Format::Tick(360, "360"),
+        Format::Tick(340, "340"),
+        Format::Tick(320, "320"),
+        Format::Tick(300, "300"),
+        Format::Tick(280, "280"),
+        Format::Tick(260, "260"),
+        Format::Tick(240, "240"),
+        Format::Tick(220, "220"),
+        Format::Tick(200, "200"),
+        Format::Tick(180, "180"),
+        Format::Tick(160, "160"),
+        Format::Tick(140, "140"),
+        Format::Tick(120, "120"),
+        Format::Tick(100, "100"),
         Format::Tick(80, "80"), 
-        Format::Tick(100, "100")
+        Format::Tick(60, "60"), 
+        Format::Tick(40, "40"), 
+        Format::Tick(20, "20"),
+        Format::Tick(0, "0")
     }};
+
+    void update();
 };
 
 class Style : public QWidget {
@@ -182,13 +199,16 @@ class Style : public QWidget {
     Q_PROPERTY(QString background READ background WRITE setBackground)
     Q_PROPERTY(QString background_hover READ backgroundHover WRITE setBackgroundHover)
     Q_PROPERTY(QString background_press READ backgroundPress WRITE setBackgroundPress)
-    Q_PROPERTY(QString label READ label WRITE setLabel)
-    Q_PROPERTY(QString label_weight READ labelWeight WRITE setLabelWeight)
-    Q_PROPERTY(QString grid_label READ gridLabel WRITE setGridLabel)
-    Q_PROPERTY(QString grid_label_weight READ gridLabelWeight WRITE setGridLabelWeight)
     Q_PROPERTY(QString axis READ axis WRITE setAxis)
     Q_PROPERTY(QString axis_hover READ axisHover WRITE setAxisHover)
     Q_PROPERTY(QString axis_press READ axisPress WRITE setAxisPress)
+    Q_PROPERTY(QString label READ label WRITE setLabel)
+    Q_PROPERTY(QString label_weight READ labelWeight WRITE setLabelWeight)
+    Q_PROPERTY(QString grid READ grid WRITE setGrid)
+    Q_PROPERTY(QString grid_label READ gridLabel WRITE setGridLabel)
+    Q_PROPERTY(QString grid_label_weight READ gridLabelWeight WRITE setGridLabelWeight)
+    Q_PROPERTY(QString filter READ filter WRITE setFilter)
+    Q_PROPERTY(QString filter_width READ filterWidth WRITE setFilterWidth)
     Q_PROPERTY(QString absorption_width READ absorptionWidth WRITE setAbsorptionWidth)
     Q_PROPERTY(QString absorption_style READ absorptionStyle WRITE setAbsorptionStyle)
     Q_PROPERTY(QString excitation_width READ excitationWidth WRITE setExcitationWidth)
@@ -218,20 +238,26 @@ class Style : public QWidget {
         void setBackgroundHover(QString background_hover);
         QString backgroundPress() const;
         void setBackgroundPress(QString background_press);
-        QString label() const;
-        void setLabel(QString label);
-        QString labelWeight() const;
-        void setLabelWeight(QString label_weight);
-        QString gridLabel() const;
-        void setGridLabel(QString grid_label);
-        QString gridLabelWeight() const;
-        void setGridLabelWeight(QString grid_label_weight);
         QString axis() const;
         void setAxis(QString axis);
         QString axisHover() const;
         void setAxisHover(QString axis_hover);
         QString axisPress() const;
         void setAxisPress(QString axis_press);
+        QString label() const;
+        void setLabel(QString label);
+        QString labelWeight() const;
+        void setLabelWeight(QString label_weight);
+        QString grid() const;
+        void setGrid(QString grid);
+        QString gridLabel() const;
+        void setGridLabel(QString grid_label);
+        QString gridLabelWeight() const;
+        void setGridLabelWeight(QString grid_label_weight);
+        QString filter() const;
+        void setFilter(QString filter);
+        QString filterWidth() const;
+        void setFilterWidth(QString filter_width);
         QString absorptionWidth() const;
         void setAbsorptionWidth(QString absorption_width);
         QString absorptionStyle() const;
@@ -252,13 +278,16 @@ class Style : public QWidget {
         QColor style_background;
         QColor style_background_hover;
         QColor style_background_press;
-        QColor style_label;
-        QFont::Weight style_label_weight;
-        QColor style_grid_label;
-        QFont::Weight style_grid_label_weight;
         QColor style_axis;
         QColor style_axis_hover;
         QColor style_axis_press;
+        QColor style_label;
+        QFont::Weight style_label_weight;
+        QColor style_grid;
+        QColor style_grid_label;
+        QFont::Weight style_grid_label_weight;
+        int filter_width;
+        QColor style_filter;
         int absorption_width;
         Qt::PenStyle absorption_style;
         int excitation_width;
@@ -290,6 +319,7 @@ class Style : public QWidget {
         QPen penAxis() const;
         QPen penAxisHover() const;
         QPen penAxisPress() const;
+        QPen penGrid() const;
         QPen penAbsorption(QColor color) const;
         QPen penExcitation(QColor color) const;
         QPen penEmission(QColor color) const;
@@ -308,6 +338,10 @@ class Style : public QWidget {
 
 } // Format namespace
 
+
+/*
+PlotRectF contains an interface between global/settings coordinate space and local coordinate space
+*/
 class PlotRectF {
 	public:
         PlotRectF();

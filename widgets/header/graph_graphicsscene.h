@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.10
-** Date:       2020-10-13
+** Version:    v0.10.1
+** Date:       2020-11-16
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -106,7 +106,9 @@ class GraphicsScene : public QGraphicsScene {
         void syncGraphState(const State::GraphState& state);
 
     private slots:
-        void syncLaser(double wavelength);
+        bool updatePlotRect();
+        void syncAxisX();
+        void syncAxisY();
         void syncLasers(const std::vector<Data::Laser>& lasers);
         void updateLasers(bool visible);
         void syncFilters(const std::vector<Data::Filter>& filters);

@@ -38,9 +38,7 @@ CMakeCache.txt
 build/
 
 # Folders
-.cpp_example/
-.python/
-.snippets/
 .vscode/
+.tools/
 .resources/
-
+.releases/

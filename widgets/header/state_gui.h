@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.13
-** Date:       2020-11-09
+** Version:    v0.10.1
+** Date:       2020-11-16
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -102,7 +102,7 @@ class GUI {
         bool enabled_laserlines = false;
 
         // Global States
-        QString style = QString();
+        QString style = QString("DARKPLUS");
 
         // Fluorophore properties
         SortMode sort_fluorophores = SortMode::Additive;

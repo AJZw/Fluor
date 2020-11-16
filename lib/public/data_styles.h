@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.13
-** Date:       2020-11-09
+** Version:    v0.10.1
+** Date:       2020-11-16
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -90,10 +90,8 @@ class DATALIB_EXPORT StyleBuilder {
 
         QString background;
 
-        QString label_background;
         QString label_text;
         QString label_text_weight;
-        QString label_disabled_background;
         QString label_disabled_text;
 
         QString pushbutton_background;
@@ -151,15 +149,6 @@ class DATALIB_EXPORT StyleBuilder {
         QString listview_item_disable;
         QString listview_item_disable_text;
 
-        QString tabwidget_background;
-        QString tabwidget_unselected;
-        QString tabwidget_unselected_hover;
-
-        QString tabwidget_text;
-        QString tabwidget_text_weight;
-        QString tabwidget_border;
-        QString tabwidget_border_width;
-
         QString scrollbar_border_width;
         QString scrollbar_border;
         QString scrollbar_handle;
@@ -177,13 +166,16 @@ class DATALIB_EXPORT StyleBuilder {
         QString graph_background;
         QString graph_background_hover;
         QString graph_background_press;
-        QString graph_label;
-        QString graph_label_weight;
-        QString graph_grid_label;
-        QString graph_grid_label_weight;
         QString graph_axis;
         QString graph_axis_hover;
         QString graph_axis_press;
+        QString graph_label;
+        QString graph_label_weight;
+        QString graph_grid;
+        QString graph_grid_label;
+        QString graph_grid_label_weight;
+        QString graph_filter;
+        QString graph_filter_width;
         QString graph_absorption_width;
         QString graph_absorption_style;
         QString graph_excitation_width;
@@ -196,7 +188,6 @@ class DATALIB_EXPORT StyleBuilder {
         QString buildPushButton() const;
         QString buildLineEdit() const;
         QString buildListView() const;
-        QString buildTabWidget() const;
         QString buildScrollBar() const;
         QString buildCentralWindow() const;
         QString buildToolBar(const QFontMetrics& metrics) const;

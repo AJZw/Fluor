@@ -1,6 +1,6 @@
 /**** General **************************************************************
-** Version:    v0.9.13
-** Date:       2020-11-09
+** Version:    v0.10.1
+** Date:       2020-11-16
 ** Author:     AJ Zwijnenburg
 ** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
 ** License:    LGPLv3
@@ -30,28 +30,26 @@ StyleBuilder::StyleBuilder() :
     layout_spacing("6px"),
     layout_sub_spacing("3px"),
 
-    background("#FFFFFF"),
+    background("#ffffff"),
 
-    label_background("#FFFFFF"),
     label_text("#000000"),
     label_text_weight("bold"),
-    label_disabled_background(this->label_background),
-    label_disabled_text(this->label_text),
+    label_disabled_text("#707070"),
 
-    pushbutton_background("#FFFFFF"),
-    pushbutton_text("#000000"),
+    pushbutton_background("#f3f3f3"),
+    pushbutton_text(this->label_text),
     pushbutton_text_weight("bold"),
-    pushbutton_border("#000000"),
+    pushbutton_border("#616161"),
     pushbutton_border_width("1px"),
     pushbutton_hover_background(this->pushbutton_background),
-    pushbutton_hover_text(this->pushbutton_text),
-    pushbutton_hover_border(this->pushbutton_border),
+    pushbutton_hover_text("#000000"),
+    pushbutton_hover_border("#2d87ff"),
     pushbutton_press_background(this->pushbutton_background),
     pushbutton_press_text(this->pushbutton_hover_text),
-    pushbutton_press_border(this->pushbutton_border),
-    pushbutton_inactive_background("#CCCCCC"),
-    pushbutton_inactive_text("#A0A0A0"),
-    pushbutton_inactive_border(this->pushbutton_border),
+    pushbutton_press_border("#0060df"),
+    pushbutton_inactive_background("#cccccc"),
+    pushbutton_inactive_text(this->label_text),
+    pushbutton_inactive_border("#404040"),
     pushbutton_inactive_hover_background(this->pushbutton_inactive_background),
     pushbutton_inactive_hover_text(this->pushbutton_inactive_text),
     pushbutton_inactive_hover_border(this->pushbutton_inactive_border),
@@ -62,16 +60,16 @@ StyleBuilder::StyleBuilder() :
     pushbutton_disabled_text(this->pushbutton_inactive_text),
     pushbutton_disabled_border(this->pushbutton_inactive_border),
 
-    lineedit_background("#FFFFFF"),
-    lineedit_text("#000000"),
-    lineedit_text_weight("bold"),
-    lineedit_selection("#808080"),
-    lineedit_selection_text(this->lineedit_text),
-    lineedit_border("#000000"),
-    lineedit_border_width("1px"),
-    lineedit_hover(this->lineedit_background),
-    lineedit_hover_text(this->lineedit_text),
-    lineedit_hover_border(this->lineedit_border),
+    lineedit_background(this->pushbutton_background),
+    lineedit_text(this->pushbutton_text),
+    lineedit_text_weight(this->pushbutton_text_weight),
+    lineedit_selection("#7abdff"),
+    lineedit_selection_text(this->pushbutton_press_text),
+    lineedit_border(this->pushbutton_border),
+    lineedit_border_width(this->pushbutton_border_width),
+    lineedit_hover(this->pushbutton_hover_background),
+    lineedit_hover_text(this->pushbutton_hover_text),
+    lineedit_hover_border(this->pushbutton_hover_border),
     lineedit_popup(this->lineedit_background),
     lineedit_popup_text(this->lineedit_text),
     lineedit_popup_border(this->lineedit_border),
@@ -79,59 +77,53 @@ StyleBuilder::StyleBuilder() :
     lineedit_popup_hover_text(this->lineedit_popup_text),
     lineedit_popup_hover_border(this->lineedit_popup_border),
 
-    listview_background("#FFFFFF"),
-    listview_text("#000000"),
-    listview_text_weight("bold"),
+    listview_background(this->lineedit_background),
+    listview_text(this->lineedit_text),
+    listview_text_weight(this->lineedit_text_weight),
     listview_border(this->lineedit_border),
-    listview_border_width("1px"),
+    listview_border_width(this->lineedit_border_width),
     listview_item(this->listview_background),
     listview_item_text(this->listview_text),
-    listview_item_selection("#808080"),
-    listview_item_selection_text(this->listview_text),
-    listview_item_hover(this->listview_item_selection),
+    listview_item_selection(this->lineedit_selection),
+    listview_item_selection_text(this->lineedit_selection_text),
+    listview_item_hover("#add6ff"),
     listview_item_hover_text(this->listview_item_selection_text),
-    listview_item_disable("#000000"),
-    listview_item_disable_text("#A0A0A0"),
+    listview_item_disable(this->pushbutton_disabled_background),
+    listview_item_disable_text(this->pushbutton_disabled_text),
 
-    tabwidget_background("#FFFFFF"),
-    tabwidget_unselected("#CCCCCC"),
-    tabwidget_unselected_hover(this->tabwidget_unselected),
-    tabwidget_text("#000000"),
-    tabwidget_text_weight("bold"),
-    tabwidget_border("#000000"),
-    tabwidget_border_width("1px"),
-
-    scrollbar_border_width("1px"),
-    scrollbar_border("#000000"),
-    scrollbar_handle("#FFFFFF"),
-    scrollbar_background("#000000"),
+    scrollbar_border_width("0px"),
+    scrollbar_border(this->pushbutton_border),
+    scrollbar_handle("#808080"),
+    scrollbar_background("#cccccc"),
 
     lasermenu_popup(this->lineedit_background),
 
-    fluormenu_remove("#FFFFFF"),
-    fluormenu_remove_hover(this->fluormenu_remove),
-    fluormenu_remove_press(this->fluormenu_remove_hover),
+    fluormenu_remove("#909090"),
+    fluormenu_remove_hover(this->pushbutton_hover_background),
+    fluormenu_remove_press(this->pushbutton_press_background),
     fluormenu_popup(this->listview_background),
-    fluormenu_background("#FFFFFF"),
+    fluormenu_background(this->background),
 
-    graph_scene("#FFFFFF"),
+    graph_scene(this->background),
     graph_background(this->graph_scene),
     graph_background_hover(this->graph_scene),
     graph_background_press(this->graph_scene),
-    graph_label("#000000"),
-    graph_label_weight("bold"),
-    graph_grid_label("#000000"),
-    graph_grid_label_weight("bold"),
-    graph_axis("#000000"),
-    graph_axis_hover("#CCCCCC"),
-    graph_axis_press("#CCCCCC"),
+    graph_axis(this->pushbutton_border),
+    graph_axis_hover(this->pushbutton_hover_border),
+    graph_axis_press(this->pushbutton_press_border),
+    graph_label(this->label_text),
+    graph_label_weight(this->label_text_weight),
+    graph_grid("#cccccc"),
+    graph_grid_label(this->label_text),
+    graph_grid_label_weight(this->label_text_weight),
+    graph_filter("#616161"),
+    graph_filter_width("2px"),
     graph_absorption_width("2px"),
     graph_absorption_style("dot"),
     graph_excitation_width("2px"),
     graph_excitation_style("dash"),
     graph_emission_width("2px"),
     graph_emission_style("solid")
-
 {
     this->buildStyleSheet();
 }
@@ -197,15 +189,13 @@ void StyleBuilder::loadStyle(const Data::Factory& data, const QString& style_id)
     this->layout_spacing = style->value("layout_spacing", "6px").toString();
     this->layout_sub_spacing = style->value("layout_sub_spacing", "3px").toString();
 
-    this->background = style->value("main_background", "#FFFFFF").toString();
+    this->background = style->value("main_background", "#ffffff").toString();
 
-    this->label_background = style->value("main_background", "#FFFFFF").toString();
     this->label_text = style->value("text_color", "#000000").toString();
     this->label_text_weight = style->value("text_weight", "bold").toString();
-    this->label_disabled_background = style->value("main_background", this->label_background).toString();
     this->label_disabled_text = style->value("text_color_disabled", this->label_text).toString();
 
-    this->pushbutton_background = style->value("widget", "#FFFFFF").toString();
+    this->pushbutton_background = style->value("widget", "#ffffff").toString();
     this->pushbutton_text = style->value("text_color", "#000000").toString();
     this->pushbutton_text_weight = style->value("text_weight", "bold").toString();
     this->pushbutton_border = style->value("border_color", "#000000").toString();
@@ -216,8 +206,8 @@ void StyleBuilder::loadStyle(const Data::Factory& data, const QString& style_id)
     this->pushbutton_press_background = style->value("widget_press", this->pushbutton_hover_background).toString();
     this->pushbutton_press_text = style->value("text_color", this->pushbutton_hover_text).toString();
     this->pushbutton_press_border = style->value("border_color_press", this->pushbutton_hover_border).toString();
-    this->pushbutton_inactive_background = style->value("widget_inactive", "#CCCCCC").toString();
-    this->pushbutton_inactive_text = style->value("text_color", "A0A0A0").toString();
+    this->pushbutton_inactive_background = style->value("widget_inactive", "#cccccc").toString();
+    this->pushbutton_inactive_text = style->value("text_color", "a0a0a0").toString();
     this->pushbutton_inactive_border = style->value("border_color", this->pushbutton_border).toString();
     this->pushbutton_inactive_hover_background = style->value("widget_inactive_hover", this->pushbutton_inactive_background).toString();
     this->pushbutton_inactive_hover_text = style->value("text_color", this->pushbutton_inactive_text).toString();
@@ -229,7 +219,7 @@ void StyleBuilder::loadStyle(const Data::Factory& data, const QString& style_id)
     this->pushbutton_disabled_text = style->value("text_color_disabled", this->pushbutton_inactive_text).toString();
     this->pushbutton_disabled_border = style->value("border_color_disabled", this->pushbutton_inactive_border).toString();
 
-    this->lineedit_background = style->value("widget", "#FFFFFF").toString();
+    this->lineedit_background = style->value("widget", "#ffffff").toString();
     this->lineedit_text = style->value("text_color", "#000000").toString();
     this->lineedit_text_weight = style->value("text_weight", "bold").toString();
     this->lineedit_selection = style->value("selection_color", "#808080").toString();
@@ -246,7 +236,7 @@ void StyleBuilder::loadStyle(const Data::Factory& data, const QString& style_id)
     this->lineedit_popup_hover_text = style->value("text_color", this->lineedit_popup_text).toString();
     this->lineedit_popup_hover_border = style->value("border_color", this->lineedit_popup_border).toString();
 
-    this->listview_background = style->value("popup", "#FFFFFF").toString();
+    this->listview_background = style->value("popup", "#ffffff").toString();
     this->listview_text = style->value("text_color", "#000000").toString();
     this->listview_text_weight = style->value("text_weight", "bold").toString();
     this->listview_border = style->value("popup_border_color", this->lineedit_border).toString();
@@ -258,24 +248,16 @@ void StyleBuilder::loadStyle(const Data::Factory& data, const QString& style_id)
     this->listview_item_hover = style->value("selection_color_hover", this->listview_item_selection).toString();
     this->listview_item_hover_text = style->value("selection_text_color", this->listview_item_selection_text).toString();
     this->listview_item_disable = style->value("popup_disabled", "#000000").toString();
-    this->listview_item_disable_text = style->value("text_color_disabled", "#A0A0A0").toString();
-
-    this->tabwidget_background = style->value("widget", "#FFFFFF").toString();
-    this->tabwidget_unselected = style->value("widget_inactive", "#CCCCCC").toString();
-    this->tabwidget_unselected_hover = style->value("widget_hover", this->tabwidget_unselected).toString();
-    this->tabwidget_text = style->value("text_color", "#000000").toString();
-    this->tabwidget_text_weight = style->value("text_weight", "bold").toString();
-    this->tabwidget_border = style->value("border_color", "#000000").toString();
-    this->tabwidget_border_width = style->value("border_width", "1px").toString();
+    this->listview_item_disable_text = style->value("text_color_disabled", "#a0a0a0").toString();
 
     this->scrollbar_border_width = style->value("scrollbar_border_width", "1px").toString();
     this->scrollbar_border = style->value("border_color", "#000000").toString();
-    this->scrollbar_handle = style->value("scrollbar_handle", "#FFFFFF").toString();
+    this->scrollbar_handle = style->value("scrollbar_handle", "#ffffff").toString();
     this->scrollbar_background = style->value("scrollbar_background", "#000000").toString();
 
     this->lasermenu_popup = style->value("lasermenu_popup", this->lineedit_background).toString();
 
-    this->fluormenu_remove = style->value("fluormenu_remove", "#FFFFFF").toString();
+    this->fluormenu_remove = style->value("fluormenu_remove", "#ffffff").toString();
     this->fluormenu_remove_hover = style->value("fluormenu_remove_hover", this->fluormenu_remove).toString();
     this->fluormenu_remove_press = style->value("fluormenu_remove_press", this->fluormenu_remove_hover).toString();
     this->fluormenu_popup = style->value("fluormenu_popup", this->listview_background).toString();
@@ -285,19 +267,22 @@ void StyleBuilder::loadStyle(const Data::Factory& data, const QString& style_id)
     this->graph_background = style->value("graph_background", this->graph_scene).toString();
     this->graph_background_hover = style->value("graph_background_hover", this->graph_background).toString();
     this->graph_background_press = style->value("graph_background_press", this->graph_background_hover).toString();
-    this->graph_label = style->value("graph_label", this->pushbutton_text).toString();
-    this->graph_label_weight = style->value("graph_label_weight", this->pushbutton_text_weight).toString();
-    this->graph_grid_label = style->value("graph_grid_label", this->pushbutton_text).toString();
-    this->graph_grid_label_weight = style->value("graph_grid_label_weight", this->pushbutton_text_weight).toString();
     this->graph_axis = style->value("graph_axis", this->pushbutton_border).toString();
     this->graph_axis_hover = style->value("graph_axis_hover", this->pushbutton_hover_border).toString();
     this->graph_axis_press = style->value("graph_axis_press", this->pushbutton_press_border).toString();
+    this->graph_label = style->value("graph_label", this->pushbutton_text).toString();
+    this->graph_label_weight = style->value("graph_label_weight", this->pushbutton_text_weight).toString();
+    this->graph_grid = style->value("graph_grid", this->pushbutton_border).toString();
+    this->graph_grid_label = style->value("graph_grid_label", this->pushbutton_text).toString();
+    this->graph_grid_label_weight = style->value("graph_grid_label_weight", this->pushbutton_text_weight).toString();
     this->graph_absorption_width = style->value("graph_absorption_width", "2px").toString();
     this->graph_absorption_style = style->value("graph_absorption_style", "dot").toString();
     this->graph_excitation_width = style->value("graph_excitation_width", "2px").toString();
     this->graph_excitation_style = style->value("graph_excitation_style", "dash").toString();
     this->graph_emission_width = style->value("graph_emission_width", "2px").toString();
     this->graph_emission_style = style->value("graph_emission_style", "solid").toString();
+    this->graph_filter = style->value("graph_filter", this->pushbutton_border).toString(),
+    this->graph_filter_width = style->value("graph_filter_width", "2px").toString();
 
     style->endGroup();
 
@@ -325,7 +310,6 @@ void StyleBuilder::buildStyleSheet(const QFontMetrics& metrics){
     stylesheet.append(this->buildPushButton());
     stylesheet.append(this->buildLineEdit());
     stylesheet.append(this->buildListView());
-    stylesheet.append(this->buildTabWidget());
     stylesheet.append(this->buildScrollBar());
     stylesheet.append(this->buildCentralWindow());
     stylesheet.append(this->buildToolBar(metrics));
@@ -682,57 +666,6 @@ QString StyleBuilder::buildListView() const {
 }
 
 /*
-Builds the stylesheet for QTabWidget
-    :returns: stylesheet
-*/
-QString StyleBuilder::buildTabWidget() const {
-    QString style;
-    style = "QTabWidget::pane {"
-            " padding: 0px;"
-            "} "
-            "QTabWidget::pane .QStackedWidget {"
-            " background-color: %1;"
-            "} "
-            "QTabBar {"
-            " color: %2;"
-            " font: %3;"
-            " border-style: solid;"
-            " border-right-color: %4;"
-            " border-right-width: %5;"
-            "} "
-            "QTabBar::tab::selected {"
-            " background: %1;"
-            " min-width: 10em;"
-            "} "
-            "QTabBar::tab::!selected {"
-            " background: %6;"
-            " margin-top: 2px;"
-            "} "
-            "QTabBar::tab::!selected:hover {"
-            " background: %7;"
-            " margin-top: 0px;"
-            "} "
-            "QTabBar::tab::first {"
-            " margin-left: 6px;"
-            "} "
-            "QTabBar::tab::right {"
-            " margin-right 6px;"
-            "} ";
-
-    style = style.arg(
-        this->tabwidget_background,
-        this->tabwidget_text,
-        this->tabwidget_text_weight,
-        this->tabwidget_border,
-        this->tabwidget_border_width,
-        this->tabwidget_unselected,
-        this->tabwidget_unselected_hover
-    );
-
-    return(style);
-}
-
-/*
 Builds the stylesheet for QScrollBar
     :returns: stylesheet
 */
@@ -1002,7 +935,6 @@ QString StyleBuilder::buildFluorMenu(const QFontMetrics& metrics) const {
             " margin: 0px 0px 0px 0px;"
             " width: %22px;"
             "} ";
-
     style = style.arg(
         StyleBuilder::toPixels(metrics, this->layout_spacing),
         StyleBuilder::toPixels(metrics, this->layout_sub_spacing),
@@ -1031,6 +963,7 @@ QString StyleBuilder::buildFluorMenu(const QFontMetrics& metrics) const {
         this->fluormenu_background,
         StyleBuilder::toPixels(metrics, "0.5em")
     );
+
     return(style);
 }
 
@@ -1059,20 +992,23 @@ QString StyleBuilder::buildGraph(const QFontMetrics& metrics) const {
             " qproperty-background: %6;"
             " qproperty-background_hover: %7;"
             " qproperty-background_press: %8;"
-            " qproperty-label: %9;"
-            " qproperty-label_weight: '%11';"
-            " qproperty-grid_label: %12;"
-            " qproperty-grid_label_weight: '%13';"
-            " qproperty-axis: %14;"
-            " qproperty-axis_hover: %15;"
-            " qproperty-axis_press: %16;"
-            " qproperty-absorption_width: %17;"
-            " qproperty-absorption_style: '%18';"
-            " qproperty-excitation_width: %19;"
-            " qproperty-excitation_style: '%21';"
-            " qproperty-emission_width: %22;"
-            " qproperty-emission_style: '%23';"
-            " qproperty-colorbar_height: %24;"
+            " qproperty-axis: %11;"
+            " qproperty-axis_hover: %12;"
+            " qproperty-axis_press: %13;"
+            " qproperty-label: %14;"
+            " qproperty-label_weight: '%15';"
+            " qproperty-grid: %16;"
+            " qproperty-grid_label: %17;"
+            " qproperty-grid_label_weight: '%18';"
+            " qproperty-filter: %21;"
+            " qproperty-filter_width: %22;"
+            " qproperty-absorption_width: %23;"
+            " qproperty-absorption_style: '%24';"
+            " qproperty-excitation_width: %25;"
+            " qproperty-excitation_style: '%26';"
+            " qproperty-emission_width: %27;"
+            " qproperty-emission_style: '%28';"
+            " qproperty-colorbar_height: %29;"
             "} ";
     style = style.arg(
         StyleBuilder::toPixels(metrics, this->layout_spacing),
@@ -1082,21 +1018,24 @@ QString StyleBuilder::buildGraph(const QFontMetrics& metrics) const {
         this->graph_scene,
         this->graph_background,
         this->graph_background_hover,
-        this->graph_background_press,
-        this->graph_label
+        this->graph_background_press
     );
     style = style.arg(
-        this->graph_label_weight,
-        this->graph_grid_label,
-        this->graph_grid_label_weight,
         this->graph_axis,
         this->graph_axis_hover,
         this->graph_axis_press,
-        StyleBuilder::toPixels(metrics, this->graph_absorption_width),
-        this->graph_absorption_style,
-        StyleBuilder::toPixels(metrics, this->graph_excitation_width)
+        this->graph_label,
+        this->graph_label_weight,
+        this->graph_grid,
+        this->graph_grid_label,
+        this->graph_grid_label_weight
     );
     style = style.arg(
+        this->graph_filter,
+        StyleBuilder::toPixels(metrics, this->graph_filter_width),
+        StyleBuilder::toPixels(metrics, this->graph_absorption_width),
+        this->graph_absorption_style,
+        StyleBuilder::toPixels(metrics, this->graph_excitation_width),
         this->graph_excitation_style,
         StyleBuilder::toPixels(metrics, this->graph_emission_width),
         this->graph_emission_style,
