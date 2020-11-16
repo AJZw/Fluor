@@ -294,6 +294,9 @@ void GraphicsScene::syncGraphState(const State::GraphState& state){
 
     // Sync visibility / selection
     this->setSelected(state.isSelected());
+
+    // Update the drawing state based on the laser availibitily
+    this->updateSpectra();
 }
 
 /*
@@ -362,6 +365,24 @@ Synchronizes the lasers to the graph
 */
 void GraphicsScene::syncLasers(const std::vector<Data::Laser>& lasers){
     this->item_lasers->syncLasers(lasers);
+
+    this->item_spectra->updateIntensity(this->item_lasers->lasers());
+
+    // If multiple lasers are drawn this can cause >100% relative intensity. Rescale the PlotRect to allow for the additional space
+    bool plot_rect_updated = this->updatePlotRect();
+
+    if(plot_rect_updated){
+        // Recalculate the y-axis
+        this->syncAxisY();
+
+        // Recalculated the entire plot
+        this->calculateSizes(this->size_current);
+        // Schedule full redraw
+        QGraphicsScene::update(this->sceneRect());
+    }else{
+        // Recalculate only the spectra
+        this->item_spectra->setPosition();
+    }
 }
 
 /*
