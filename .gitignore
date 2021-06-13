@@ -1,0 +1,50 @@
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Qt QMake files
+.qmake.stash
+object_script.test.Debug
+object_script.test.Release
+
+# Makefiles
+Makefile
+Makefile.Debug
+Makefile.Release
+
+# Folders
+.vscode/
+debug/
+release/
+_python/
+_cpp_example/
+snippets/
