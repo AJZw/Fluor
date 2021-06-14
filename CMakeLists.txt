@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.13)
 
 # Set project details
-project(fluor VERSION 0.10.0 DESCRIPTION "Fluor executable")
+project(fluor VERSION 0.10.1 DESCRIPTION "Fluor executable")
 
 # C++ version
 set(CMAKE_CXX_STANDARD 14)
@@ -106,7 +106,7 @@ set_target_properties(fluor PROPERTIES
     VERSION ${PROJECT_VERSION}
 )
 
-# set include directories to build private CSS interpreter
+# set include directories
 target_include_directories(fluor PRIVATE widgets/header)
 target_include_directories(fluor PRIVATE lib/public)
 
@@ -134,9 +134,3 @@ add_custom_command(
     ${PROJECT_SOURCE_DIR}/data              
     $<TARGET_FILE_DIR:fluor>/data
 )
-
-########################################################
-# cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Debug 
-# or RelWithDebInfo
-# CMAKE_SH:FILEPATH=CMAKE_SH-NOTFOUND
-# mingw32-make -C build
