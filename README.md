@@ -31,6 +31,8 @@ The selected fluorochromes will be shown in a list on the left and plotted in th
 The software is compiled using Mingw-w64 7.3.0 and Qt 5.12.3  
 To compile run the following commands from project root:
 
+- cmake -S lib -B lib\\build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
+- mingw32-make -C lib\\build
 - cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
 - mingw32-make -C build
 

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.13)
 
 # Set project details
-project(data_library VERSION 0.10.0 DESCRIPTION "Fluor Data Dynamic Library")
+project(data_library VERSION 0.10.2 DESCRIPTION "Fluor Data Dynamic Library")
 
 # C++ version
 set(CMAKE_CXX_STANDARD 14)
