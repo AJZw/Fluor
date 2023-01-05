@@ -43,3 +43,6 @@ build/
 .resources/
 releases/*
 !releases/Fluor v0.10.2
+!releases/Fluor v0.10.2/*.exe
+!releases/Fluor v0.10.2/*.dll
+!releases/Fluor v0.10.2/platforms/*.dll
