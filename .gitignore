@@ -41,4 +41,5 @@ build/
 .vscode/
 .tools/
 .resources/
-.releases/
+releases/*
+!releases/Fluor v0.10.2

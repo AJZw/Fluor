@@ -2,25 +2,25 @@
 ** Version:    v0.9.10
 ** Date:       2020-10-13
 ** Author:     AJ Zwijnenburg
-** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
+** Copyright:  Copyright (C) 2022 - AJ Zwijnenburg
 ** License:    LGPLv3
 ***************************************************************************/
 
 /**** LGPLv3 License *******************************************************
 ** laser_controller.h is part of Fluor
-**        
+**
 ** Fluor is free software: you can redistribute it and/or
 ** modify it under the terms of the Lesser GNU General Public License as
 ** published by the Free Software Foundation, either version 3 of the
 ** License, or (at your option) any later version.
-** 
+**
 ** Fluor is distributed in the hope that it will be useful, but
 ** WITHOUT ANY WARRANTY; without even the implied warranty of
 ** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the Lesser
 ** GNU General Public License for more details.
-** 
+**
 ** You should have received a copy of the Lesser GNU General Public License
-** along with Fluor. If not, see <https://www.gnu.org/licenses/>.  
+** along with Fluor. If not, see <https://www.gnu.org/licenses/>.
 ***************************************************************************/
 
 /**** DOC ******************************************************************
@@ -28,61 +28,60 @@
 **
 ** :class: Laser::Controller
 ** Controls the signal and slots of the laser selection
-** 
+**
 ***************************************************************************/
 
 #ifndef LASER_CONTROLLER_H
 #define LASER_CONTROLLER_H
 
-#include <QWidget>
-#include <QStringList>
 #include <QPaintEvent>
+#include <QStringList>
+#include <QWidget>
+
 #include "data_instruments.h"
 #include "state_gui.h"
 
 namespace Laser {
 
-class Controller : public QWidget{
-    Q_OBJECT
-    
-    public:
-        explicit Controller(QWidget *parent = nullptr);
-        Controller(const Controller &obj) = delete;
-        Controller& operator=(const Controller &obj) = delete;
-        Controller(Controller&&) = delete;
-        Controller& operator=(Controller&&) = delete;
-        ~Controller() = default;
+class Controller : public QWidget {
+  Q_OBJECT
 
-        void paintEvent(QPaintEvent* event);
+ public:
+  explicit Controller(QWidget* parent = nullptr);
+  Controller(const Controller& obj) = delete;
+  Controller& operator=(const Controller& obj) = delete;
+  Controller(Controller&&) = delete;
+  Controller& operator=(Controller&&) = delete;
+  ~Controller() = default;
 
-    public slots:
-        void receiveGlobalEvent(QEvent* event);
-        void receiveGlobalSize(const QWidget* widget=nullptr);
-        void receiveInstrument(const Data::Instrument& instrument);
-        void receiveGraphState(std::vector<State::GraphState>& state);
+  void paintEvent(QPaintEvent* event);
 
-        void receiveOutput(std::vector<Data::LaserID>& lasers);
+ public slots:
+  void receiveGlobalEvent(QEvent* event);
+  void receiveGlobalSize(const QWidget* widget = nullptr);
+  void receiveInstrument(const Data::Instrument& instrument);
+  void receiveGraphState(std::vector<State::GraphState>& state);
 
-    private slots:
-        void clickedPushButton(bool checked);
-        void finishedLineEdit();
-    
-    signals:
-        void sendGlobalEvent(QEvent* event);
-        void sendGlobalSize(const QWidget* widget=nullptr);
-        void sendInstrument(const Data::Instrument& instrument);
-        void sendGraphState(std::vector<State::GraphState>& lasers);
+  void receiveOutput(std::vector<Data::LaserID>& lasers);
 
-        void sendOutput(std::vector<Data::LaserID>& lasers);
+ private slots:
+  void clickedPushButton(bool checked);
+  void finishedLineEdit();
 
-        void showPushButton();
-        void hidePushButton();
-        void showLineEdit();
-        void hideLineEdit();
+ signals:
+  void sendGlobalEvent(QEvent* event);
+  void sendGlobalSize(const QWidget* widget = nullptr);
+  void sendInstrument(const Data::Instrument& instrument);
+  void sendGraphState(std::vector<State::GraphState>& lasers);
 
+  void sendOutput(std::vector<Data::LaserID>& lasers);
+
+  void showPushButton();
+  void hidePushButton();
+  void showLineEdit();
+  void hideLineEdit();
 };
 
-} // Laser namespace
+}  // namespace Laser
 
-
-#endif //LASER_CONTROLLER_H
+#endif  // LASER_CONTROLLER_H

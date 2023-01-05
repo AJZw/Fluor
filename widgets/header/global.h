@@ -2,25 +2,25 @@
 ** Version:    v0.9.13
 ** Date:       2020-11-09
 ** Author:     AJ Zwijnenburg
-** Copyright:  Copyright (C) 2020 - AJ Zwijnenburg
+** Copyright:  Copyright (C) 2022 - AJ Zwijnenburg
 ** License:    LGPLv3
 ***************************************************************************/
 
 /**** LGPLv3 License *******************************************************
 ** global.h is part of Fluor
-**        
+**
 ** Fluor is free software: you can redistribute it and/or
 ** modify it under the terms of the Lesser GNU General Public License as
 ** published by the Free Software Foundation, either version 3 of the
 ** License, or (at your option) any later version.
-** 
+**
 ** Fluor is distributed in the hope that it will be useful, but
 ** WITHOUT ANY WARRANTY; without even the implied warranty of
 ** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the Lesser
 ** GNU General Public License for more details.
-** 
+**
 ** You should have received a copy of the Lesser GNU General Public License
-** along with Fluor. If not, see <https://www.gnu.org/licenses/>.  
+** along with Fluor. If not, see <https://www.gnu.org/licenses/>.
 ***************************************************************************/
 
 /**** DOC ******************************************************************
@@ -43,51 +43,31 @@
 
 namespace State {
 
-enum class ExcitationOption {
-    SinglePhoton,
-    MultiPhoton
-};
+enum class ExcitationOption { SinglePhoton, MultiPhoton };
 
 enum class SortMode {
-    Additive, 
-    AdditiveReversed, 
-    Alphabetical, 
-    AlphabeticalReversed,
-    Excitation, 
-    ExcitationReversed, 
-    Emission,
-    EmissionReversed
+  Additive,
+  AdditiveReversed,
+  Alphabetical,
+  AlphabeticalReversed,
+  Excitation,
+  ExcitationReversed,
+  Emission,
+  EmissionReversed
 };
 
-} // namespace State
+}  // namespace State
 
 namespace Main {
 
-enum class MenuBarAction{
-    SaveAs,
-    Open,
-    Print,
-    Exit,
-    InstrumentID,
-    SortOrder,
-    StyleID,
-    About
-};
+enum class MenuBarAction { SaveAs, Open, Print, Exit, InstrumentID, SortOrder, StyleID, About };
 
-} // namespace Main
+}  // namespace Main
 
 namespace Bar {
 
-enum class ButtonType{
-    Laser,
-    Excitation,
-    Emission,
-    Filter,
-    GraphAdd,
-    GraphRemove,
-    LaserLines
-};
+enum class ButtonType { Laser, Excitation, Emission, Filter, GraphAdd, GraphRemove, LaserLines };
 
-} // namespace Bar
+}  // namespace Bar
 
-#endif // GLOBAL_H
+#endif  // GLOBAL_H

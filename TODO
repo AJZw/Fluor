@@ -1,14 +1,14 @@
 TO DO:
 
 GENERAL:
-    Add a way to intercept all Errors and parse those to a popup window / possible?
+    Add a way to intercept all Errors and parse those to a popup window?
     Implement logging as a better alternative! -> capture QDebug() messages and output to window
     Including logging window! which is openable independently and is updated on every log event
     A way to save the view
     A way to load the view
     A way to export the plots
     Sometimes (exp shift+windows_key) moves the window, this should close all open drop-down menu's.
-    Upon moving to screen with different DPI settings, a setGeometry error is fired. Preventable?
+    Upon moving to screen with different DPI settings, a setGeometry error is fired, yet no problems accur. Preventable?
 
 DATA:
     Implement two_photon excitation
